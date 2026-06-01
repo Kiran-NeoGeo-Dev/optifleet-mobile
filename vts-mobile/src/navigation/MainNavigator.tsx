@@ -2,6 +2,7 @@ import { useRef, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import UserDashboardScreen from "../screens/dashboard/UserDashboardScreen";
@@ -124,22 +125,48 @@ const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
 );
 
 const USER_MGMT_ITEMS = [
-  { label: "Vehicles",     sub: "All registered vehicles",       icon: "car-outline",            iconBg: "#FFF3E0", iconColor: "#F57C00", accent: "#F59E0B", nav: "VehicleList"     },
-  { label: "Drivers",      sub: "All registered drivers",        icon: "people-outline",         iconBg: "#E8F5E9", iconColor: "#2E7D32", accent: "#22C55E", nav: "DriverList"      },
-  { label: "Associations", sub: "Driver & vehicle associations", icon: "git-network-outline",    iconBg: "#FCE4EC", iconColor: "#C2185B", accent: "#EC4899", nav: "AssociationList" },
-  { label: "Trips",        sub: "All trips and routes",          icon: "navigate-outline",       iconBg: "#E3F2FD", iconColor: "#1565C0", accent: "#3B82F6", nav: "TripManagement"  },
+  { label: "Total Vehicles", sub: "All registered vehicles",       icon: "car-outline",            iconBg: "#FFF3E0", iconColor: "#F57C00", accent: "#F59E0B", nav: "VehicleList"     },
+  { label: "Total Drivers",  sub: "All registered drivers",        icon: "people-outline",         iconBg: "#E8F5E9", iconColor: "#2E7D32", accent: "#22C55E", nav: "DriverList"      },
+  { label: "Associations",   sub: "Driver & vehicle associations", icon: "git-network-outline",    iconBg: "#FCE4EC", iconColor: "#C2185B", accent: "#EC4899", nav: "AssociationList" },
+  { label: "Trips",         sub: "All trips and routes",          icon: "navigate-outline",       iconBg: "#E3F2FD", iconColor: "#1565C0", accent: "#3B82F6", nav: "TripManagement"  },
 ] as const;
 
 const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boolean; onClose: () => void; navigation: any }) => {
   const slideX = useRef(new (require("react-native").Animated).Value(-300)).current;
   const bgOpacity = useRef(new (require("react-native").Animated).Value(0)).current;
   const { useEffect } = require("react");
-  const { Animated, Dimensions, Image } = require("react-native");
+  const { Animated, Dimensions, Image, PanResponder } = require("react-native");
   const { SafeAreaView } = require("react-native-safe-area-context");
   const { useAuth } = require("../hooks/useAuth");
   const { logout } = useAuth();
   const SW = Dimensions.get("window").width;
-  const DRAWER_W = SW * 0.82;
+  const DRAWER_W = SW * 0.72;
+
+  // Swipe-to-close gesture
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_: any, gestureState: any) => {
+        return gestureState.dx < -10 && Math.abs(gestureState.dy) < 50;
+      },
+      onPanResponderMove: (_: any, gestureState: any) => {
+        if (gestureState.dx < 0) {
+          slideX.setValue(gestureState.dx);
+        }
+      },
+      onPanResponderRelease: (_: any, gestureState: any) => {
+        if (gestureState.dx < -DRAWER_W * 0.3) {
+          onClose();
+        } else {
+          Animated.spring(slideX, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 12,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   useEffect(() => {
     if (visible) {
@@ -167,49 +194,82 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
       <Animated.View style={[{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 100 }, { opacity: bgOpacity }]}>
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
       </Animated.View>
-      <Animated.View style={[{ position: "absolute", top: 0, left: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#fff", borderTopRightRadius: 24, borderBottomRightRadius: 24, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 6, height: 0 }, elevation: 20, zIndex: 101 }, { transform: [{ translateX: slideX }] }]}>
-        <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-          <View style={{ flexDirection: "row", alignItems: "center", padding: 20, borderBottomWidth: 1, borderBottomColor: "#F0F0F0" }}>
-            <Image source={require("../../assets/images/OptiFleet.png")} style={{ width: 44, height: 44, borderRadius: 12 }} resizeMode="contain" />
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={{ fontSize: 15, fontWeight: "800", color: "#0D1B3E" }}>OptiFleet</Text>
-              <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 1 }}>Fleet Management System</Text>
+      <Animated.View 
+        style={[{ position: "absolute", top: 0, left: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#fff", borderTopRightRadius: 24, borderBottomRightRadius: 24, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 6, height: 0 }, elevation: 20, zIndex: 101 }, { transform: [{ translateX: slideX }] }]}
+        {...panResponder.panHandlers}
+      >
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          {/* Blue Gradient Header with Wave Lines */}
+          <LinearGradient
+            colors={["#0A1F44", "#0D3B8E", "#1565C0", "#3B82F6"]}
+            locations={[0, 0.3, 0.7, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ height: 300, paddingTop: 50, paddingBottom: 32, paddingHorizontal: 24, borderBottomRightRadius: 50, overflow: "hidden" }}
+          >
+            {/* Wave decoration lines */}
+            <View style={{ position: "absolute", top: 40, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-12deg" }] }} />
+            <View style={{ position: "absolute", top: 90, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-8deg" }] }} />
+            <View style={{ position: "absolute", top: 140, right: -50, width: 160, height: 3, backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] }} />
+            <View style={{ position: "absolute", top: 190, right: -70, width: 200, height: 3, backgroundColor: "rgba(255,255,255,0.04)", transform: [{ rotate: "-5deg" }] }} />
+            
+            {/* Glowing particles */}
+            <View style={{ position: "absolute", top: 60, right: 80, width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.3)" }} />
+            <View style={{ position: "absolute", top: 120, right: 120, width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)" }} />
+            <View style={{ position: "absolute", top: 180, right: 60, width: 5, height: 5, borderRadius: 2.5, backgroundColor: "rgba(255,255,255,0.2)" }} />
+            
+            {/* Header Content */}
+            <View style={{ flexDirection: "row", alignItems: "flex-start", zIndex: 1, marginTop: 20 }}>
+              <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
+                <Ionicons name="shield-checkmark" size={36} color="#1565C0" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 16 }}>
+                <Text style={{ fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.5, marginTop: 4 }}>OptiFleet Admin</Text>
+                <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 4, letterSpacing: 0.3 }}>Fleet Management System</Text>
+              </View>
             </View>
-            <TouchableOpacity onPress={onClose} style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="close" size={20} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-          <View style={{ flex: 1, paddingVertical: 8 }}>
-            {USER_MGMT_ITEMS.map((item, idx) => (
+
+            {/* Progress Indicator */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 24, zIndex: 1 }}>
+              <View style={{ flex: 1, height: 4, backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 2 }} />
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#fff", marginLeft: 10, shadowColor: "#fff", shadowOpacity: 0.6, shadowRadius: 6 }} />
+            </View>
+          </LinearGradient>
+
+          {/* Menu Items */}
+          <View style={{ flex: 1, paddingVertical: 24, paddingHorizontal: 16 }}>
+            {USER_MGMT_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.label}
-                style={[{ flexDirection: "row", alignItems: "center", paddingVertical: 16, paddingHorizontal: 20, gap: 14 }, idx < USER_MGMT_ITEMS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#F0F0F0" }]}
+                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 18, paddingHorizontal: 20, marginVertical: 8, backgroundColor: "#fff", borderRadius: 20, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 4, minHeight: 85 }}
                 onPress={() => navigate(item.nav)}
                 activeOpacity={0.75}
               >
-                <View style={[{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon as any} size={22} color={item.iconColor} />
+                <View style={[{ width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
+                  <Ionicons name={item.icon as any} size={26} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
-                  <Text style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{item.sub}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
+                  <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 3 }}>{item.sub}</Text>
                 </View>
-                <Text style={[{ fontSize: 13, fontWeight: "700" }, { color: item.accent }]}>View {">"}< /Text>
+                <Text style={[{ fontSize: 14, fontWeight: "700" }, { color: item.accent }]}>View {"\u003E"}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", padding: 16, borderTopWidth: 1, borderTopColor: "#F0F0F0", margin: 12, backgroundColor: "#F8FAFF", borderRadius: 16 }}>
-            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="shield-checkmark-outline" size={22} color="#1565C0" />
+
+          {/* Footer */}
+          <View style={{ flexDirection: "row", alignItems: "center", padding: 18, margin: 16, marginBottom: 24, backgroundColor: "#F8FAFF", borderRadius: 20, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 14 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="shield-checkmark-outline" size={24} color="#1565C0" />
               </View>
               <View>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet</Text>
-                <Text style={{ fontSize: 11, color: "#6B7280" }}>Version 1.0.0</Text>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet Admin</Text>
+                <Text style={{ fontSize: 12, color: "#6B7280" }}>Version 1.0.0</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={logout} style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+            <TouchableOpacity onPress={logout} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="log-out-outline" size={22} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </SafeAreaView>

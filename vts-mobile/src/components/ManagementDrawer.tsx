@@ -1,14 +1,15 @@
 import { useEffect, useRef } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, Animated,
+  View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder,
   Dimensions,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../hooks/useAuth";
 
 const { width: SW } = Dimensions.get("window");
-const DRAWER_W = SW * 0.82;
+const DRAWER_W = SW * 0.72;
 
 const MENU_ITEMS = [
   { label: "Total Users",    sub: "All registered users",          icon: "person-circle-outline",  iconBg: "#EDE7F6", iconColor: "#7B2CBF", accent: "#7B2CBF", nav: "AdminUserList"    },
@@ -28,6 +29,32 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
   const { username, logout } = useAuth();
   const slideX = useRef(new Animated.Value(-DRAWER_W)).current;
   const bgOpacity = useRef(new Animated.Value(0)).current;
+
+  // Swipe-to-close gesture
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dx < -10 && Math.abs(gestureState.dy) < 50;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          slideX.setValue(gestureState.dx);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -DRAWER_W * 0.3) {
+          onClose();
+        } else {
+          Animated.spring(slideX, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 80,
+            friction: 12,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   useEffect(() => {
     if (visible) {
@@ -58,39 +85,65 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
       </Animated.View>
 
       {/* Drawer */}
-      <Animated.View style={[s.drawer, { transform: [{ translateX: slideX }] }]}>
-        <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-          {/* Header */}
-          <View style={s.drawerHeader}>
-            <View style={s.logoBox}>
-              <Ionicons name="shield-checkmark" size={24} color="#1565C0" />
+      <Animated.View 
+        style={[s.drawer, { transform: [{ translateX: slideX }] }]}
+        {...panResponder.panHandlers}
+      >
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+          {/* Blue Gradient Header with Wave Lines */}
+          <LinearGradient
+            colors={["#0A1F44", "#0D3B8E", "#1565C0", "#3B82F6"]}
+            locations={[0, 0.3, 0.7, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.blueHeader}
+          >
+            {/* Wave decoration lines */}
+            <View style={s.waveLine1} />
+            <View style={s.waveLine2} />
+            <View style={s.waveLine3} />
+            <View style={s.waveLine4} />
+            
+            {/* Glowing particles */}
+            <View style={s.particle1} />
+            <View style={s.particle2} />
+            <View style={s.particle3} />
+            
+            {/* Header Content */}
+            <View style={s.headerContent}>
+              <View style={s.shieldBox}>
+                <Ionicons name="shield-checkmark" size={36} color="#1565C0" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 16 }}>
+                <Text style={s.adminTitle}>OptiFleet Admin</Text>
+                <Text style={s.adminSub}>Fleet Management System</Text>
+              </View>
             </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={s.appName}>Management</Text>
-              <Text style={s.appSub}>Fleet Management System</Text>
+
+            {/* Progress Indicator */}
+            <View style={s.progressContainer}>
+              <View style={s.progressLine} />
+              <View style={s.progressDot} />
             </View>
-            <TouchableOpacity onPress={onClose} style={s.closeBtn}>
-              <Ionicons name="close" size={20} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
+          </LinearGradient>
 
           {/* Menu Items */}
           <View style={s.menuList}>
-            {MENU_ITEMS.map((item, idx) => (
+            {MENU_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.label}
-                style={[s.menuItem, idx < MENU_ITEMS.length - 1 && s.menuDivider]}
+                style={s.menuItem}
                 onPress={() => navigate(item.nav)}
                 activeOpacity={0.75}
               >
                 <View style={[s.menuIconBox, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon as any} size={22} color={item.iconColor} />
+                  <Ionicons name={item.icon as any} size={26} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.menuLabel}>{item.label}</Text>
                   <Text style={s.menuSub}>{item.sub}</Text>
                 </View>
-                <Text style={[s.viewTxt, { color: item.accent }]}>View {">"}</Text>
+                <Text style={[s.viewTxt, { color: item.accent }]}>View {"\u003E"}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -99,15 +152,15 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
           <View style={s.footer}>
             <View style={s.footerLeft}>
               <View style={s.footerIconBox}>
-                <Ionicons name="shield-checkmark-outline" size={22} color="#1565C0" />
+                <Ionicons name="shield-checkmark-outline" size={24} color="#1565C0" />
               </View>
               <View>
-                <Text style={s.footerName}>Admin Panel</Text>
+                <Text style={s.footerName}>OptiFleet Admin</Text>
                 <Text style={s.footerVer}>Version 1.0.0</Text>
               </View>
             </View>
             <TouchableOpacity onPress={logout} style={s.logoutBtn}>
-              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+              <Ionicons name="log-out-outline" size={22} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -119,24 +172,34 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
 const s = StyleSheet.create({
   backdrop:      { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 100 },
   drawer:        { position: "absolute", top: 0, left: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#fff", borderTopRightRadius: 24, borderBottomRightRadius: 24, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 6, height: 0 }, elevation: 20, zIndex: 101 },
-  drawerHeader:  { flexDirection: "row", alignItems: "center", padding: 20, borderBottomWidth: 1, borderBottomColor: "#F0F0F0" },
-  logoBox:       { width: 44, height: 44, borderRadius: 12, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
-  appName:       { fontSize: 15, fontWeight: "800", color: "#0D1B3E" },
-  appSub:        { fontSize: 11, color: "#6B7280", marginTop: 1 },
-  closeBtn:      { width: 32, height: 32, borderRadius: 8, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
-  menuList:      { flex: 1, paddingVertical: 8 },
-  menuItem:      { flexDirection: "row", alignItems: "center", paddingVertical: 16, paddingHorizontal: 20, gap: 14 },
-  menuDivider:   { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#F0F0F0" },
-  menuIconBox:   { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  menuLabel:     { fontSize: 14, fontWeight: "700", color: "#0D1B3E" },
-  menuSub:       { fontSize: 11, color: "#6B7280", marginTop: 2 },
-  viewTxt:       { fontSize: 13, fontWeight: "700" },
-  footer:        { flexDirection: "row", alignItems: "center", padding: 16, borderTopWidth: 1, borderTopColor: "#F0F0F0", margin: 12, backgroundColor: "#F8FAFF", borderRadius: 16 },
-  footerLeft:    { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
-  footerIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
-  footerName:    { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
-  footerVer:     { fontSize: 11, color: "#6B7280" },
-  logoutBtn:     { width: 36, height: 36, borderRadius: 10, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" },
+  blueHeader:    { height: 300, paddingTop: 50, paddingBottom: 32, paddingHorizontal: 24, borderBottomRightRadius: 50, overflow: "hidden" },
+  waveLine1:     { position: "absolute", top: 40, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-12deg" }] },
+  waveLine2:     { position: "absolute", top: 90, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-8deg" }] },
+  waveLine3:     { position: "absolute", top: 140, right: -50, width: 160, height: 3, backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] },
+  waveLine4:     { position: "absolute", top: 190, right: -70, width: 200, height: 3, backgroundColor: "rgba(255,255,255,0.04)", transform: [{ rotate: "-5deg" }] },
+  particle1:     { position: "absolute", top: 60, right: 80, width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.3)" },
+  particle2:     { position: "absolute", top: 120, right: 120, width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)" },
+  particle3:     { position: "absolute", top: 180, right: 60, width: 5, height: 5, borderRadius: 2.5, backgroundColor: "rgba(255,255,255,0.2)" },
+  headerContent: { flexDirection: "row", alignItems: "flex-start", zIndex: 1, marginTop: 20 },
+  shieldBox:     { width: 72, height: 72, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  adminTitle:    { fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.5, marginTop: 4 },
+  adminSub:     { fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 4, letterSpacing: 0.3 },
+  closeBtnBlue:  { position: "absolute", top: 40, right: 20, width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center", zIndex: 2 },
+  progressContainer: { flexDirection: "row", alignItems: "center", marginTop: 24, zIndex: 1 },
+  progressLine:  { flex: 1, height: 4, backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 2 },
+  progressDot:   { width: 10, height: 10, borderRadius: 5, backgroundColor: "#fff", marginLeft: 10, shadowColor: "#fff", shadowOpacity: 0.6, shadowRadius: 6 },
+  menuList:      { flex: 1, paddingVertical: 24, paddingHorizontal: 16 },
+  menuItem:      { flexDirection: "row", alignItems: "center", paddingVertical: 18, paddingHorizontal: 20, marginVertical: 8, backgroundColor: "#fff", borderRadius: 20, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 4, minHeight: 85 },
+  menuIconBox:   { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  menuLabel:     { fontSize: 16, fontWeight: "700", color: "#0D1B3E" },
+  menuSub:       { fontSize: 13, color: "#6B7280", marginTop: 3 },
+  viewTxt:       { fontSize: 14, fontWeight: "700" },
+  footer:        { flexDirection: "row", alignItems: "center", padding: 18, margin: 16, marginBottom: 24, backgroundColor: "#F8FAFF", borderRadius: 20, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  footerLeft:    { flex: 1, flexDirection: "row", alignItems: "center", gap: 14 },
+  footerIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  footerName:    { fontSize: 15, fontWeight: "700", color: "#0D1B3E" },
+  footerVer:     { fontSize: 12, color: "#6B7280" },
+  logoutBtn:     { width: 44, height: 44, borderRadius: 14, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" },
 });
 
 export default ManagementDrawer;
