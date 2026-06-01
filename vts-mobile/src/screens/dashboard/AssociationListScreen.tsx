@@ -1,0 +1,791 @@
+import { useCallback, useState, useEffect } from "react";
+import {
+  View, Text, FlatList, TouchableOpacity, TextInput,
+  StyleSheet, Modal, Pressable, ScrollView, ActivityIndicator,
+  StatusBar, Dimensions,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { MainStackParamList } from "../../navigation/MainNavigator";
+import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Toast, useToast } from "../../components/Toast";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import {
+  fetchAssociations, fetchVehiclesWithDevice,
+  createAssociation, updateAssociation, deleteAssociation,
+} from "../../services/associationService";
+import { fetchDrivers as fetchClientDrivers } from "../../services/driverService";
+import {
+  fetchAdminAssociations, fetchVehiclesDropdown, fetchAvailableDevices,
+  createAdminAssociation, updateAdminAssociation, deleteAdminAssociation,
+} from "../../services/adminAssociationService";
+import { useAuth } from "../../hooks/useAuth";
+import { COLORS, SHADOWS } from "../../components/ScreenBg";
+
+const { width: SW } = Dimensions.get("window");
+
+// Common types
+type CommonAssociation = {
+  id: number;
+  vehicle_id: number;
+  device_id: number;
+  registration_no: string;
+  device_code: string;
+};
+
+type ClientAssociation = CommonAssociation & {
+  driver_id: number;
+  driver_name: string;
+  country: string;
+  status: boolean;
+};
+
+type AdminAssociation = CommonAssociation & {
+  vehicle_make: string;
+  vehicle_model: string;
+  device_model: string;
+  created_at: string;
+};
+
+type VehicleDropdown = {
+  id: number;
+  registration_no: string;
+  vehicle_make: string;
+  vehicle_model: string;
+};
+
+type DeviceDropdown = {
+  id: number;
+  device_code: string;
+  device_model: string;
+  device_type: string;
+  mobile_number: string;
+};
+
+type VehicleWithDevice = {
+  vehicle_id: number;
+  registration_no: string;
+  device_id: number;
+  device_code: string;
+};
+
+type DriverOption = {
+  driver_id: number;
+  driver_name: string;
+  license_no: string;
+};
+
+type AssociationForm = {
+  id?: number;
+  vehicleId?: number;
+  deviceId?: number;
+  driverId?: number;
+  country?: string;
+  status?: boolean;
+};
+
+type Props = NativeStackScreenProps<MainStackParamList, "AssociationList">;
+
+const CLIENT_FORM: AssociationForm = { vehicleId: 0, deviceId: 0, driverId: 0, country: "India", status: true };
+const ADMIN_FORM: AssociationForm = { vehicleId: 0, deviceId: 0 };
+
+const AssociationListScreen = ({ navigation, route }: Props) => {
+  const { isAdmin } = useAuth();
+  const isAdminMode = isAdmin;
+  const shouldOpenAddModal = route.params?.openAddModal ?? false;
+  
+  const [associations, setAssociations] = useState<ClientAssociation[] | AdminAssociation[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleWithDevice[] | VehicleDropdown[]>([]);
+  const [drivers, setDrivers] = useState<DriverOption[]>([]);
+  const [availableDevices, setAvailableDevices] = useState<DeviceDropdown[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [modalVisible, setModalVisible] = useState(shouldOpenAddModal);
+  const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
+  const [form, setForm] = useState<AssociationForm>({});
+  const [selRegNo, setSelRegNo] = useState("");
+  const [selDeviceCode, setSelDeviceCode] = useState("");
+  const [selDriverName, setSelDriverName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [vehicleSheet, setVehicleSheet] = useState(false);
+  const [driverSheet, setDriverSheet] = useState(false);
+  const [deviceSheet, setDeviceSheet] = useState(false);
+  const [vehicleSearch, setVehicleSearch] = useState("");
+  const [deviceSearch, setDeviceSearch]   = useState("");
+  const [driverSearch, setDriverSearch]   = useState("");
+  const { toast, showToast, hideToast } = useToast();
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      if (isAdminMode) {
+        const [assocs, vehs, devs] = await Promise.all([
+          fetchAdminAssociations(),
+          fetchVehiclesDropdown(),
+          fetchAvailableDevices()
+        ]);
+        setAssociations(assocs as AdminAssociation[]);
+        setVehicles(vehs as VehicleDropdown[]);
+        setAvailableDevices(devs as DeviceDropdown[]);
+      } else {
+        const [assocs, vehs] = await Promise.all([
+          fetchAssociations(),
+          fetchVehiclesWithDevice()
+        ]);
+        setAssociations(assocs as ClientAssociation[]);
+        setVehicles(vehs as VehicleWithDevice[]);
+      }
+    } catch (error) {
+      console.error("Load error:", error);
+      showToast("Failed to load data", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(useCallback(() => { load(); }, []));
+
+  // Initialize form when modal opens via openAddModal parameter
+  useEffect(() => {
+    if (shouldOpenAddModal && modalVisible) {
+      if (isAdminMode) {
+        setForm(ADMIN_FORM);
+      } else {
+        setForm(CLIENT_FORM);
+      }
+      setSelRegNo("");
+      setSelDriverName("");
+      setSelDeviceCode("");
+      setModalMode("add");
+    }
+  }, [shouldOpenAddModal, modalVisible, isAdminMode]);
+
+
+  const loadClientDrivers = async () => {
+    try {
+      const list = await fetchClientDrivers();
+      setDrivers(list.map(d => ({
+        driver_id: d.id,
+        driver_name: d.driverName,
+        license_no: d.licenseNumber || ""
+      })));
+    } catch (error) {
+      console.error("Driver load error:", error);
+      setDrivers([]);
+    }
+  };
+
+  const openModal = async (mode: "add" | "edit" | "view", item?: any) => {
+    setModalMode(mode);
+    if (item) {
+      setSelRegNo(item.registration_no);
+      if ('driver_name' in item) {
+        setSelDriverName(item.driver_name);
+      }
+      setSelDeviceCode(item.device_code || "");
+      setForm({
+        id: item.id,
+        vehicleId: item.vehicle_id,
+        deviceId: item.device_id,
+        ...( 'driver_id' in item && { driverId: item.driver_id }),
+        ...( 'country' in item && { country: item.country }),
+        ...( 'status' in item && { status: item.status }),
+      });
+    } else {
+      if (isAdminMode) {
+        setForm(ADMIN_FORM);
+      } else {
+        setForm(CLIENT_FORM);
+      }
+      setSelRegNo("");
+      setSelDriverName("");
+      setSelDeviceCode("");
+      setDrivers([]);
+    }
+
+    if (!isAdminMode) {
+      await loadClientDrivers();
+    }
+
+    setModalVisible(true);
+  };
+
+  const onVehicleSelect = async (v: any) => {
+    setVehicleSheet(false);
+    setSelRegNo(v.registration_no || v.license_plate);
+    setSelDriverName("");
+    
+    const vehicleId = v.vehicle_id || v.id;
+    const deviceId = v.device_id || v.deviceId || 0;
+    
+    setForm(prev => ({ ...prev, vehicleId, deviceId }));
+
+    if (!isAdminMode && deviceId) {
+      await loadClientDrivers();
+    }
+  };
+
+  const onDeviceSelect = (d: DeviceDropdown) => {
+    setDeviceSheet(false);
+    setSelDeviceCode(`${d.device_code} --- ${d.device_model}`);
+    setForm(prev => ({ ...prev, deviceId: d.id }));
+  };
+
+  const onDriverSelect = (d: DriverOption) => {
+    setDriverSheet(false);
+    setSelDriverName(d.driver_name);
+    setForm(prev => ({ ...prev, driverId: d.driver_id }));
+  };
+
+  const handleSave = async () => {
+    if (!form.vehicleId || !form.deviceId) {
+      showToast("Please select both vehicle and device", "error");
+      return;
+    }
+
+    try {
+      if (isAdminMode) {
+        const payload = { vehicle_id: form.vehicleId, device_id: form.deviceId };
+        if (modalMode === "add") {
+          await createAdminAssociation(payload);
+          showToast("Vehicle-Device association created", "success");
+        } else if (form.id !== undefined) {
+          await updateAdminAssociation(form.id, payload);
+          showToast("Association updated", "success");
+        } else {
+          showToast("Invalid association ID", "error");
+          return;
+        }
+      } else {
+        if (!form.driverId) {
+          showToast("Please select a driver", "error");
+          return;
+        }
+        const payload = {
+          vehicleId: form.vehicleId,
+          deviceId: form.deviceId,
+          driverId: form.driverId,
+          country: form.country || "India",
+          status: form.status !== undefined ? form.status : true
+        };
+        if (modalMode === "add") {
+          await createAssociation(payload);
+          showToast("Driver association created", "success");
+        } else if (form.id !== undefined) {
+          await updateAssociation(form.id, payload);
+          showToast("Association updated", "success");
+        } else {
+          showToast("Invalid association ID", "error");
+          return;
+        }
+      }
+      setModalVisible(false);
+      load();
+    } catch (e: any) {
+      showToast(e.response?.data?.message || "Save failed", "error");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (isAdminMode) {
+        await deleteAdminAssociation(deleteTarget);
+      } else {
+        await deleteAssociation(deleteTarget);
+      }
+      showToast("Association deleted", "success");
+      load();
+    } catch {
+      showToast("Delete failed", "error");
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
+  const filtered = associations.filter((a: any) => {
+    const regNo = a.registration_no?.toLowerCase() || "";
+    const deviceCode = a.device_code?.toLowerCase() || "";
+    const driverName = a.driver_name?.toLowerCase() || "";
+    return regNo.includes(query.toLowerCase()) || 
+           deviceCode.includes(query.toLowerCase()) || 
+           driverName.includes(query.toLowerCase());
+  });
+
+  const AssocCard = ({ item }: { item: any }) => {
+    const hasStatus = 'status' in item;
+    const statusColor = hasStatus ? (item.status ? "#16A34A" : "#DC2626") : "#1565C0";
+    const statusBg    = hasStatus ? (item.status ? "rgba(22,163,74,0.12)" : "rgba(220,38,38,0.12)") : "rgba(21,101,192,0.12)";
+    const statusBorder= hasStatus ? (item.status ? "rgba(22,163,74,0.35)" : "rgba(220,38,38,0.35)") : "rgba(21,101,192,0.35)";
+    const accentColor = hasStatus ? statusColor : "#1565C0";
+    
+    return (
+      <View style={[styles.card, SHADOWS.card]}>
+        <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
+        <View style={styles.cardInner}>
+          <View style={styles.topRow}>
+            <View style={styles.idWrap}>
+              <Ionicons name="git-network-outline" size={14} color="#7B2CBF" />
+              <Text style={styles.idTxt}>#{item.id}  {item.registration_no}</Text>
+            </View>
+            {hasStatus && (
+              <View style={[styles.statusPill, { backgroundColor: statusBg, borderColor: statusBorder }]}>
+                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                <Text style={[styles.statusTxt, { color: statusColor }]}>{item.status ? "Active" : "Inactive"}</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.detailGrid}>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>Device</Text>
+              <Text style={styles.detailVal}>{item.device_code || "—"}</Text>
+            </View>
+            {hasStatus && (
+              <>
+                <View style={styles.detailCol}>
+                  <Text style={styles.detailLabel}>Driver</Text>
+                  <Text style={styles.detailVal}>{item.driver_name || "—"}</Text>
+                </View>
+                <View style={styles.detailCol}>
+                  <Text style={styles.detailLabel}>Country</Text>
+                  <Text style={styles.detailVal}>{item.country || "—"}</Text>
+                </View>
+              </>
+            )}
+          </View>
+
+          <View style={styles.cardActions}>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(99,102,241,0.10)", borderColor: "rgba(99,102,241,0.30)" }]} onPress={() => openModal("view", item)}>
+              <Ionicons name="eye-outline" size={14} color="#6366f1" />
+              <Text style={[styles.actionTxt, { color: "#6366f1" }]}>View</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(21,101,192,0.10)", borderColor: "rgba(21,101,192,0.30)" }]} onPress={() => openModal("edit", item)}>
+              <Ionicons name="create-outline" size={14} color="#1565C0" />
+              <Text style={[styles.actionTxt, { color: "#1565C0" }]}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)" }]} onPress={() => setDeleteTarget(item.id)}>
+              <Ionicons name="trash-outline" size={14} color="#EF4444" />
+              <Text style={[styles.actionTxt, { color: "#EF4444" }]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A1F44" />
+      <LinearGradient
+        colors={["#0A1F44", "#0D3B8E", "#1565C0"]}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      {[0.18, 0.36, 0.54, 0.72].map((t, i) => (
+        <View key={`h${i}`} style={[styles.gridH, { top: `${t * 100}%` as any }]} />
+      ))}
+      <View style={styles.orb} />
+
+      <SafeAreaView style={styles.safe}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            <Ionicons name="chevron-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{isAdminMode ? "Vehicle-Device Links" : "Associations"}</Text>
+            <Text style={styles.headerSub}>{filtered.length} record{filtered.length !== 1 ? "s" : ""}</Text>
+          </View>
+          <View style={{ width: 42 }} />
+        </View>
+
+        {/* Search */}
+        <View style={styles.searchWrap}>
+          <Ionicons name="search" size={16} color="#9C6B30" style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search vehicle, device, driver…"
+            placeholderTextColor="#6B7280"
+            value={query}
+            onChangeText={setQuery}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery("")}>
+              <Ionicons name="close-circle" size={18} color="#9C6B30" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+      {loading ? (
+        <ActivityIndicator color="#fff" style={{ marginTop: 40 }} size="large" />
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(i) => String(i.id)}
+          renderItem={({ item }) => <AssocCard item={item} />}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Ionicons name="git-network-outline" size={52} color={COLORS.whiteFaint} />
+              <Text style={styles.emptyTxt}>No associations found</Text>
+              <TouchableOpacity style={styles.emptyBtn} onPress={() => openModal("add")}>
+                <Text style={styles.emptyBtnTxt}>Create {isAdminMode ? "Link" : "Association"}</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      )}
+
+      </SafeAreaView>
+
+      {/* Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setModalVisible(false)}>
+          <Pressable style={styles.sheet}>
+            <Text style={styles.sheetTitle}>
+              {modalMode === "view"
+                ? "Association Details"
+                : modalMode === "edit"
+                  ? "Edit " + (isAdminMode ? "Link" : "Association")
+                  : "New " + (isAdminMode ? "Link" : "Association")}
+            </Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollContent}>
+              
+              {/* Vehicle Selection */}
+              <Text style={styles.fieldLabel}>1. Vehicle Registration *</Text>
+              {modalMode === "view" ? (
+                <View style={styles.readOnly}>
+                  <Text style={styles.readOnlyTxt}>{selRegNo}</Text>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.selector} onPress={() => setVehicleSheet(true)}>
+                  <Ionicons name="car-outline" size={16} color="#7B2CBF" />
+                  <Text style={[styles.selectorTxt, !selRegNo && { color: "#9C7A52" }]}>
+                    {selRegNo || "Select vehicle"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#9C7A52" />
+                </TouchableOpacity>
+              )}
+
+              {/* Device Selection */}
+              <Text style={styles.fieldLabel}>2. Device {isAdminMode ? "*" : "(Auto)"}</Text>
+              {modalMode === "view" ? (
+                <View style={styles.readOnly}>
+                  <Text style={styles.readOnlyTxt}>{selDeviceCode || form.deviceId ? `Device ID: ${form.deviceId}` : "—"}</Text>
+                </View>
+              ) : isAdminMode ? (
+                <TouchableOpacity style={styles.selector} onPress={() => setDeviceSheet(true)}>
+                  <Ionicons name="phone-portrait-outline" size={16} color="#7B2CBF" />
+                  <Text style={[styles.selectorTxt, !selDeviceCode && { color: "#9C7A52" }]}>
+                    {selDeviceCode || "Select device"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#9C7A52" />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.readOnly}>
+                  <Text style={styles.readOnlyTxt}>
+                    {selDeviceCode || form.deviceId ? `Auto: Device ID ${form.deviceId}` : "Select vehicle first"}
+                  </Text>
+                </View>
+              )}
+
+              {/* Client-only fields */}
+              {!isAdminMode && (
+                <>
+                  <Text style={styles.fieldLabel}>3. Assign Driver *</Text>
+                  {modalMode === "view" ? (
+                    <View style={styles.readOnly}>
+                      <Text style={styles.readOnlyTxt}>{selDriverName || "—"}</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={[styles.selector, !form.deviceId && styles.selectorDisabled]} onPress={() => form.deviceId && setDriverSheet(true)} disabled={!form.deviceId}>
+                      <Ionicons name="person-outline" size={16} color="#7B2CBF" />
+                      <Text style={[styles.selectorTxt, !selDriverName && { color: "#9C7A52" }]}>
+                        {selDriverName || (form.deviceId ? "Select driver" : "Select vehicle first")}
+                      </Text>
+                      <Ionicons name="chevron-down" size={16} color="#9C7A52" />
+                    </TouchableOpacity>
+                  )}
+
+                  <Text style={styles.fieldLabel}>4. Country</Text>
+                  {modalMode === "view" ? (
+                    <View style={styles.readOnly}>
+                      <Text style={styles.readOnlyTxt}>{form.country || "India"}</Text>
+                    </View>
+                  ) : (
+                    <TextInput 
+                      style={styles.input} 
+                      value={form.country} 
+                      onChangeText={(t) => setForm(prev => ({ ...prev, country: t }))}
+                      placeholder="India" 
+                      placeholderTextColor={COLORS.whiteMuted}
+                    />
+                  )}
+
+                  <Text style={styles.fieldLabel}>5. Status</Text>
+                  {modalMode === "view" ? (
+                    <View style={[styles.statusReadOnly, form.status ? styles.statusActive : styles.statusInactive]}>
+                      <Text style={styles.statusReadOnlyTxt}>{form.status ? "Active" : "Inactive"}</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.statusToggle, form.status ? styles.statusActive : styles.statusInactive]}
+                      onPress={() => setForm(prev => ({ ...prev, status: !prev.status }))}
+                    >
+                      <Ionicons name={form.status ? "checkmark-circle" : "close-circle"} size={18} color={COLORS.white} />
+                      <Text style={styles.statusToggleTxt}>Status: {form.status ? "Active" : "Inactive"}</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+
+            </ScrollView>
+
+            <View style={styles.sheetBtns}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+                <Text style={styles.cancelTxt}>{modalMode === "view" ? "Close" : "Cancel"}</Text>
+              </TouchableOpacity>
+              {modalMode !== "view" && (
+                <TouchableOpacity style={styles.saveBtnOuter} onPress={handleSave} activeOpacity={0.84}>
+                  <LinearGradient colors={["#16A34A", "#14532D"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.saveBtn}>
+                    <LinearGradient colors={["rgba(255,255,255,0.14)", "rgba(255,255,255,0.00)"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.saveBtnGloss} />
+                    <Text style={styles.saveTxt}>Save</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Vehicle Sheet */}
+      <Modal visible={vehicleSheet} transparent animationType="slide" onRequestClose={() => { setVehicleSheet(false); setVehicleSearch(""); }}>
+        <Pressable style={styles.overlay} onPress={() => { setVehicleSheet(false); setVehicleSearch(""); }}>
+          <Pressable style={styles.sheetSmall}>
+            <Text style={styles.sheetTitle}>Select Vehicle</Text>
+            <View style={styles.sheetSearch}>
+              <Ionicons name="search" size={15} color={COLORS.whiteMuted} />
+              <TextInput
+                style={styles.sheetSearchInput}
+                placeholder="Search registration no..."
+                placeholderTextColor={COLORS.placeholder}
+                value={vehicleSearch}
+                onChangeText={setVehicleSearch}
+                autoFocus
+              />
+              {vehicleSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setVehicleSearch("")}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.whiteMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <FlatList
+              data={(vehicles as any[]).filter(v =>
+                v.registration_no?.toLowerCase().includes(vehicleSearch.toLowerCase())
+              )}
+              keyExtractor={(v) => String(v.id)}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.pickerItem} onPress={() => { onVehicleSelect(item); setVehicleSearch(""); }}>
+                  <Ionicons name="car-outline" size={16} color={COLORS.accent} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pickerItemTxt}>{item.registration_no}</Text>
+                    {isAdminMode ? (
+                      <Text style={styles.pickerItemSub}>{item.vehicle_make} {item.vehicle_model}</Text>
+                    ) : (
+                      <Text style={styles.pickerItemSub}>{item.device_code ? `Device: ${item.device_code}` : "No device"}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.noResults}>No vehicles found</Text>}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Device Sheet (Admin only) */}
+      <Modal visible={deviceSheet} transparent animationType="slide" onRequestClose={() => { setDeviceSheet(false); setDeviceSearch(""); }}>
+        <Pressable style={styles.overlay} onPress={() => { setDeviceSheet(false); setDeviceSearch(""); }}>
+          <Pressable style={styles.sheetSmall}>
+            <Text style={styles.sheetTitle}>Select Device</Text>
+            <View style={styles.sheetSearch}>
+              <Ionicons name="search" size={15} color={COLORS.whiteMuted} />
+              <TextInput
+                style={styles.sheetSearchInput}
+                placeholder="Search device code or model..."
+                placeholderTextColor={COLORS.placeholder}
+                value={deviceSearch}
+                onChangeText={setDeviceSearch}
+                autoFocus
+              />
+              {deviceSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setDeviceSearch("")}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.whiteMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <FlatList
+              data={availableDevices.filter(d =>
+                d.device_code?.toLowerCase().includes(deviceSearch.toLowerCase()) ||
+                d.device_model?.toLowerCase().includes(deviceSearch.toLowerCase())
+              )}
+              keyExtractor={(d) => String(d.id)}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.pickerItem} onPress={() => { onDeviceSelect(item); setDeviceSearch(""); }}>
+                  <Ionicons name="phone-portrait-outline" size={16} color={COLORS.accent} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pickerItemTxt}>{item.device_code}</Text>
+                    <Text style={styles.pickerItemSub}>{item.device_model}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.noResults}>No devices found</Text>}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Driver Sheet */}
+      <Modal visible={driverSheet} transparent animationType="slide" onRequestClose={() => { setDriverSheet(false); setDriverSearch(""); }}>
+        <Pressable style={styles.overlay} onPress={() => { setDriverSheet(false); setDriverSearch(""); }}>
+          <Pressable style={styles.sheetSmall}>
+            <Text style={styles.sheetTitle}>Select Driver</Text>
+            <View style={styles.sheetSearch}>
+              <Ionicons name="search" size={15} color={COLORS.whiteMuted} />
+              <TextInput
+                style={styles.sheetSearchInput}
+                placeholder="Search driver name..."
+                placeholderTextColor={COLORS.placeholder}
+                value={driverSearch}
+                onChangeText={setDriverSearch}
+                autoFocus
+              />
+              {driverSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setDriverSearch("")}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.whiteMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <FlatList
+              data={drivers.filter(d =>
+                d.driver_name?.toLowerCase().includes(driverSearch.toLowerCase())
+              )}
+              keyExtractor={(d) => String(d.driver_id)}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.pickerItem} onPress={() => { onDriverSelect(item); setDriverSearch(""); }}>
+                  <Ionicons name="person-outline" size={16} color={COLORS.accent} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pickerItemTxt}>{item.driver_name}</Text>
+                    <Text style={styles.pickerItemSub}>License: {item.license_no}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.noResults}>No drivers found</Text>}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <ConfirmDialog
+        visible={!!deleteTarget}
+        title="Delete Association"
+        message="Are you sure you want to delete this association?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor={COLORS.red}
+        icon="trash-outline"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  root:         { flex: 1 },
+  safe:         { flex: 1 },
+  gridH:        { position: "absolute", left: 0, right: 0, height: 1, backgroundColor: "rgba(255,255,255,0.025)" },
+  orb:          { position: "absolute", bottom: 100, left: -70, width: 190, height: 190, borderRadius: 95, backgroundColor: "rgba(13,59,142,0.12)" },
+
+  header:       { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+  backBtn:      { width: 42, height: 42, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  headerCenter: { flex: 1, alignItems: "center" },
+  headerTitle:  { fontSize: 20, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
+  headerSub:    { fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 2 },
+
+  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 16, marginHorizontal: 16, marginBottom: 14, paddingHorizontal: 14, height: 54, borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", shadowColor: "#7A4010", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  searchInput: { flex: 1, fontSize: 15, color: "#2B1D0E", fontWeight: "500" },
+
+  list: { paddingHorizontal: 16, paddingBottom: 32 },
+
+  card:      { backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 18, marginBottom: 12, flexDirection: "row", overflow: "hidden", shadowColor: "#1A0040", shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 10 },
+  accentBar: { width: 5 },
+  cardInner: { flex: 1, padding: 14 },
+
+  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  idWrap: { flexDirection: "row", alignItems: "center", gap: 6 },
+  idTxt:  { fontSize: 15, fontWeight: "800", color: "#0A1F44" },
+
+  statusPill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, borderWidth: 1 },
+  statusDot:  { width: 6, height: 6, borderRadius: 3 },
+  statusTxt:  { fontSize: 10, fontWeight: "700", textTransform: "uppercase", color: "#0A1F44" },
+
+  detailGrid:  { flexDirection: "row", gap: 8, marginBottom: 12 },
+  detailCol:   { flex: 1 },
+  detailLabel: { fontSize: 10, color: "#5A7A9F", fontWeight: "700", textTransform: "uppercase", marginBottom: 3, letterSpacing: 0.5 },
+  detailVal:   { fontSize: 13, color: "#0A1F44", fontWeight: "700" },
+
+  cardActions: { flexDirection: "row", gap: 8 },
+  actionBtn:   { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
+  actionTxt:   { fontSize: 12, fontWeight: "700" },
+
+  empty:       { alignItems: "center", paddingTop: 60, gap: 12 },
+  emptyTxt:    { fontSize: 16, color: "rgba(255,255,255,0.65)", fontWeight: "600" },
+  emptyBtn:    { backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, marginTop: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.30)" },
+  emptyBtnTxt: { color: "#fff", fontWeight: "700" },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  sheet: { backgroundColor: "#F6F1E9", borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 22, paddingTop: 28, paddingBottom: 32, maxHeight: "90%", shadowColor: "#1A0040", shadowOpacity: 0.22, shadowRadius: 28, shadowOffset: { width: 0, height: -8 }, elevation: 18 },
+  sheetSmall: { backgroundColor: COLORS.cardBg, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "70%", borderWidth: 1, borderColor: COLORS.cardBorder },
+  sheetTitle: { fontSize: 26, fontWeight: "800", color: "#0A1F44", marginBottom: 20 },
+  sheetSubtitle: { fontSize: 13, color: "#3A5A7A", marginBottom: 18, lineHeight: 18 },
+  sheetDivider: { height: 1, backgroundColor: "rgba(21,101,192,0.12)", marginBottom: 16 },
+  fieldLabel: { fontSize: 12, fontWeight: "700", color: "#1A2F5C", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8, marginTop: 16 },
+  selector: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#EDE0CC", borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", borderRadius: 14, paddingHorizontal: 16, height: 54, shadowColor: "#7A4010", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  selectorDisabled: { opacity: 0.5 },
+  selectorTxt: { flex: 1, color: "#2B1D0E", fontSize: 15, fontWeight: "500" },
+  readOnly: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#EDE0CC", borderWidth: 1, borderColor: "rgba(120,70,20,0.12)", borderRadius: 14, paddingHorizontal: 16, height: 54 },
+  statusReadOnly: { flexDirection: "row", alignItems: "center", gap: 8, padding: 13, borderRadius: 14, marginTop: 12 },
+  readOnlyTxt: { color: "#2B1D0E", fontSize: 15, fontWeight: "500" },
+  statusReadOnlyTxt: { color: "#2B1D0E", fontWeight: "700", fontSize: 14 },
+  input: { backgroundColor: "#EDE0CC", borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", borderRadius: 14, paddingHorizontal: 16, height: 54, color: "#2B1D0E", fontSize: 15, fontWeight: "500" },
+  statusToggle: { flexDirection: "row", alignItems: "center", gap: 8, padding: 13, borderRadius: 14, marginTop: 12, marginBottom: 8 },
+  statusActive: { backgroundColor: "rgba(34,197,94,0.12)", borderWidth: 1, borderColor: "#22C55E" },
+  statusInactive: { backgroundColor: "rgba(248,113,113,0.12)", borderWidth: 1, borderColor: "#F87171" },
+  statusToggleTxt: { color: "#2B1D0E", fontWeight: "700", fontSize: 14 },
+  scrollContent: { maxHeight: 420 },
+  sheetBtns: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 28 },
+  cancelBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14, backgroundColor: "rgba(220,38,38,0.06)", borderWidth: 2, borderColor: "rgba(220,38,38,0.35)" },
+  cancelTxt: { color: "#DC2626", fontWeight: "800", fontSize: 15 },
+  saveBtn: { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14, overflow: "hidden", flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  saveBtnOuter: { borderRadius: 14, shadowColor: "#14532D", shadowOpacity: 0.30, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 7, overflow: "hidden" },
+  saveBtnGloss: { position: "absolute", top: 0, left: 0, right: 0, height: 22, borderRadius: 14 },
+  saveTxt: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  pickerItem: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: COLORS.glassBorder },
+  pickerItemTxt: { fontSize: 14, color: COLORS.white, fontWeight: "600" },
+  pickerItemSub: { fontSize: 12, color: COLORS.whiteMuted, marginTop: 2 },
+  sheetSearch:      { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.inputBg, borderRadius: 12, borderWidth: 1, borderColor: COLORS.inputBorder, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
+  sheetSearchInput: { flex: 1, fontSize: 14, color: COLORS.white },
+  noResults:        { textAlign: "center", color: COLORS.whiteMuted, paddingVertical: 20, fontSize: 13 },
+});
+
+export default AssociationListScreen;
+

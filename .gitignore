@@ -1,0 +1,16 @@
+# Mobile dependencies
+vts-mobile/node_modules/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+
+# Mobile build files
+vts-mobile/android/app/build/
+vts-mobile/ios/build/
+
+# Backend build artifacts
+vts-backend/target/
+
+# Logs
+*.log

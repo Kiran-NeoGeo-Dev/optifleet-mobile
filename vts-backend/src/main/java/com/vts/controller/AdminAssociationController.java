@@ -1,0 +1,107 @@
+package com.vts.controller;
+
+import com.vts.entity.AdminAssociation;
+import com.vts.service.AdminAssociationService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/admin-associations")
+public class AdminAssociationController {
+
+    private final AdminAssociationService service;
+
+    public AdminAssociationController(AdminAssociationService service) {
+        this.service = service;
+    }
+
+    // ── Dropdowns ──────────────────────────────────────────────────────────────
+    @GetMapping("/vehicles")
+    public ResponseEntity<List<Map<String, Object>>> vehiclesDropdown() {
+        return ResponseEntity.ok(service.getVehiclesDropdown());
+    }
+
+    @GetMapping("/available-devices")
+    public ResponseEntity<List<Map<String, Object>>> availableDevices() {
+        return ResponseEntity.ok(service.getAvailableDevices());
+    }
+
+    // ── CRUD ───────────────────────────────────────────────────────────────────
+    @PostMapping
+    public ResponseEntity<?> create(@RequestBody Map<String, Object> body) {
+        try {
+            Integer vehicleId = toInt(body.get("vehicle_id"));
+            Integer deviceId = toInt(body.get("device_id"));
+            
+            if (vehicleId == null || deviceId == null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("message", "vehicle_id and device_id are required"));
+            }
+
+            AdminAssociation result = service.create(vehicleId, deviceId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Map<String, Object>>> getAll() {
+        return ResponseEntity.ok(service.getAllWithDetails());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getOne(@PathVariable Integer id) {
+        return service.getAllWithDetails().stream()
+            .filter(map -> id.equals(map.get("id")))
+            .findFirst()
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        try {
+            Integer vehicleId = toInt(body.get("vehicle_id"));
+            Integer deviceId = toInt(body.get("device_id"));
+            
+            AdminAssociation result = service.update(id, vehicleId, deviceId);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Integer id) {
+        try {
+            service.delete(id);
+            return ResponseEntity.ok(Map.of("message", "Admin association deleted successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // ── Count ──────────────────────────────────────────────────────────────────
+    @GetMapping("/count")
+    public ResponseEntity<Integer> getCount() {
+        return ResponseEntity.ok(service.getAllWithDetails().size());
+    }
+
+    private Integer toInt(Object val) {
+        if (val == null) return null;
+        if (val instanceof Integer) return (Integer) val;
+        if (val instanceof Number) return ((Number) val).intValue();
+        return Integer.parseInt(val.toString());
+    }
+}
+

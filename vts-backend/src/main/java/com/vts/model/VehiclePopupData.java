@@ -1,0 +1,47 @@
+package com.vts.model;
+
+public class VehiclePopupData {
+    private String vehicleId;
+    private String status;
+    private String driverName;
+    private String speed;
+    private String location;
+    private String overspeed;
+    private String smoking;
+    private String mobileUsage;
+    private String drowsiness;
+    private String routeDeviation;
+    private Double lat;
+    private Double lng;
+    private Long   clientId;
+    private Long   timestamp;
+
+    public String getVehicleId()      { return vehicleId; }
+    public void   setVehicleId(String v)    { this.vehicleId = v; }
+    public String getStatus()         { return status; }
+    public void   setStatus(String v)       { this.status = v; }
+    public String getDriverName()     { return driverName; }
+    public void   setDriverName(String v)   { this.driverName = v; }
+    public String getSpeed()          { return speed; }
+    public void   setSpeed(String v)        { this.speed = v; }
+    public String getLocation()       { return location; }
+    public void   setLocation(String v)     { this.location = v; }
+    public String getOverspeed()      { return overspeed; }
+    public void   setOverspeed(String v)    { this.overspeed = v; }
+    public String getSmoking()        { return smoking; }
+    public void   setSmoking(String v)      { this.smoking = v; }
+    public String getMobileUsage()    { return mobileUsage; }
+    public void   setMobileUsage(String v)  { this.mobileUsage = v; }
+    public String getDrowsiness()     { return drowsiness; }
+    public void   setDrowsiness(String v)   { this.drowsiness = v; }
+    public String getRouteDeviation() { return routeDeviation; }
+    public void   setRouteDeviation(String v){ this.routeDeviation = v; }
+    public Double getLat()            { return lat; }
+    public void   setLat(Double v)          { this.lat = v; }
+    public Double getLng()            { return lng; }
+    public void   setLng(Double v)          { this.lng = v; }
+    public Long   getClientId()       { return clientId; }
+    public void   setClientId(Long v)       { this.clientId = v; }
+    public Long   getTimestamp()      { return timestamp; }
+    public void   setTimestamp(Long v)      { this.timestamp = v; }
+}
