@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, Dimensions,
+  View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -29,6 +29,10 @@ import TripLiveTrackingScreen from "../screens/trips/TripLiveTrackingScreen";
 import NotificationsScreen    from "../screens/admin/NotificationsScreen";
 import ManagementDrawer       from "../components/ManagementDrawer";
 import CreateDrawer           from "../components/CreateDrawer";
+import FleetVehiclesScreen    from "../screens/fleet/FleetVehiclesScreen";
+import VehicleDetailsScreen   from "../screens/fleet/VehicleDetailsScreen";
+import FleetDriversScreen     from "../screens/fleet/FleetDriversScreen";
+import DriverScorecardScreen  from "../screens/fleet/DriverScorecardScreen";
 import type { TripItem }      from "../screens/trips/TripManagementScreen";
 
 export type AdminStackParamList = {
@@ -70,17 +74,23 @@ export type AdminStackParamList = {
   EditTrip:         { trip: TripItem };
   TripLiveTracking: { trip: TripItem };
   Notifications:    undefined;
+  FleetVehicles:    undefined;
+  VehicleDetails:   { vehicle: any };
+  FleetDrivers:     undefined;
+  DriverScorecard:  { driver: any };
 };
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 // ── Bottom Tab Bar ────────────────────────────────────────────────────────────
 const TAB_ITEMS = [
-  { key: "Dashboard",     label: "Dashboard",     icon: "pulse-outline"         },
-  { key: "Management",    label: "Management",    icon: "grid-outline"          },
-  { key: "Create",        label: "Create",        icon: "add"                   },
-  { key: "Notifications", label: "Notifications", icon: "notifications-outline" },
-  { key: "Profile",       label: "Profile",       icon: "person-outline"        },
+  { key: "Dashboard",     label: "Dashboard",       icon: "pulse-outline"         },
+  { key: "Management",    label: "Management",      icon: "grid-outline"          },
+  { key: "Create",        label: "Create",          icon: "add"                   },
+  { key: "FleetVehicles", label: "Fleet Vehicles",  icon: "bus-outline"           },
+  { key: "FleetDrivers",  label: "Fleet Drivers",   icon: "people-outline"        },
+  { key: "Notifications", label: "Notifications",   icon: "notifications-outline" },
+  { key: "Profile",       label: "Profile",         icon: "person-outline"        },
 ] as const;
 
 interface BottomBarProps {
@@ -91,7 +101,13 @@ interface BottomBarProps {
 const { width: SW } = Dimensions.get("window");
 
 const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
-  <View style={tb.bar}>
+  // Task 2: ScrollView so all 6 items are reachable by horizontal scroll
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    style={tb.scrollBar}
+    contentContainerStyle={tb.scrollContent}
+  >
     {TAB_ITEMS.map(tab => {
       const isActive  = activeTab === tab.key;
       const isCreate  = tab.key === "Create";
@@ -121,7 +137,7 @@ const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
         </TouchableOpacity>
       );
     })}
-  </View>
+  </ScrollView>
 );
 
 // ── Main Navigator with Bottom Tabs ──────────────────────────────────────────
@@ -142,6 +158,8 @@ const AdminNavigator = () => {
     }
     setActiveTab(key);
     if (key === "Dashboard")     navigationRef.current?.navigate("AdminDashboard");
+    if (key === "FleetVehicles") navigationRef.current?.navigate("FleetVehicles");
+    if (key === "FleetDrivers")  navigationRef.current?.navigate("FleetDrivers");
     if (key === "Notifications") navigationRef.current?.navigate("Notifications");
     if (key === "Profile")       navigationRef.current?.navigate("AdminProfile");
   };
@@ -161,7 +179,9 @@ const AdminNavigator = () => {
             const routes = (e.data as any)?.state?.routes;
             if (!routes) return;
             const current = routes[routes.length - 1]?.name;
-            if (current === "AdminDashboard")   setActiveTab("Dashboard");
+            if (current === "AdminDashboard")    setActiveTab("Dashboard");
+            else if (current === "FleetVehicles" || current === "VehicleDetails")   setActiveTab("FleetVehicles");
+            else if (current === "FleetDrivers"  || current === "DriverScorecard")  setActiveTab("FleetDrivers");
             else if (current === "Notifications") setActiveTab("Notifications");
             else if (current === "AdminProfile")  setActiveTab("Profile");
           },
@@ -191,6 +211,10 @@ const AdminNavigator = () => {
         <Stack.Screen name="EditTrip"         component={EditTripScreen} />
         <Stack.Screen name="TripLiveTracking" component={TripLiveTrackingScreen} />
         <Stack.Screen name="Notifications"    component={NotificationsScreen} />
+        <Stack.Screen name="FleetVehicles"   component={FleetVehiclesScreen} />
+        <Stack.Screen name="VehicleDetails"  component={VehicleDetailsScreen} />
+        <Stack.Screen name="FleetDrivers"    component={FleetDriversScreen} />
+        <Stack.Screen name="DriverScorecard" component={DriverScorecardScreen} />
       </Stack.Navigator>
 
       <BottomBar activeTab={activeTab} onTabPress={handleTabPress} />
@@ -212,12 +236,13 @@ const AdminNavigator = () => {
 };
 
 const tb = StyleSheet.create({
-  bar:       { flexDirection: "row", backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 8, paddingTop: 10, shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 16, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
-  item:      { flex: 1, alignItems: "center", justifyContent: "center", gap: 3, minHeight: 52 },
-  label:     { fontSize: 10, fontWeight: "600", color: "#9CA3AF" },
-  labelActive:{ color: "#1565C0", fontWeight: "700" },
-  indicator: { position: "absolute", bottom: -8, width: 24, height: 3, borderRadius: 2, backgroundColor: "#1565C0" },
-  fab:       { width: 52, height: 52, borderRadius: 26, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", marginBottom: 2, shadowColor: "#1565C0", shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
+  scrollBar:     { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 16, shadowOffset: { width: 0, height: -4 }, elevation: 12, maxHeight: 72 },
+  scrollContent: { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, paddingBottom: 8, paddingTop: 10 },
+  item:          { width: 72, alignItems: "center", justifyContent: "center", gap: 3, minHeight: 52 },
+  label:         { fontSize: 9, fontWeight: "600", color: "#9CA3AF", textAlign: "center" },
+  labelActive:   { color: "#1565C0", fontWeight: "700" },
+  indicator:     { position: "absolute", bottom: -8, width: 24, height: 3, borderRadius: 2, backgroundColor: "#1565C0" },
+  fab:           { width: 48, height: 48, borderRadius: 24, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", marginBottom: 2, shadowColor: "#1565C0", shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
 });
 
 export default AdminNavigator;

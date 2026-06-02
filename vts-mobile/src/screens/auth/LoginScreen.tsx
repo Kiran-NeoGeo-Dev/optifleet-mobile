@@ -172,7 +172,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                       <Ionicons
                         name={tab.icon}
                         size={16}
-                        color={active ? "#1A56DB" : "#8A9BBE"}
+                        color={active ? "#1A56DB" : "#5F6F8F"}
                         style={{ marginRight: 5 }}
                       />
                       <Text style={[s.tabTxt, active && s.tabTxtActive]}>
@@ -192,13 +192,13 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                   <Ionicons
                     name={activeRole === "Driver" ? "call-outline" : "person-outline"}
                     size={19}
-                    color="#1A56DB"
+                    color="#8B652F"
                   />
                 </View>
                 <TextInput
                   style={s.fieldInput}
                   placeholder={activeRole === "Driver" ? "Enter Phone Number" : "Enter Username"}
-                  placeholderTextColor="#A8B8D0"
+                  placeholderTextColor="#5F6F8F"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
@@ -214,12 +214,12 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                   <Text style={s.label}>Password</Text>
                   <View style={s.field}>
                     <View style={s.fieldIconWrap}>
-                      <Ionicons name="lock-closed-outline" size={19} color="#1A56DB" />
+                      <Ionicons name="lock-closed-outline" size={19} color="#8B652F" />
                     </View>
                     <TextInput
                       style={[s.fieldInput, { flex: 1 }]}
                       placeholder="Enter Password"
-                      placeholderTextColor="#A8B8D0"
+                      placeholderTextColor="#5F6F8F"
                       value={password}
                       onChangeText={setPassword}
                       secureTextEntry={!showPassword}
@@ -233,7 +233,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                       <Ionicons
                         name={showPassword ? "eye-off-outline" : "eye-outline"}
                         size={21}
-                        color="#1A56DB"
+                        color="#8B652F"
                       />
                     </TouchableOpacity>
                   </View>
@@ -325,7 +325,8 @@ const s = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: "#6B82A8",
+    color: "#43516D",
+    fontWeight: "600",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -357,7 +358,7 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  tabTxt:       { fontSize: 13, fontWeight: "600", color: "#8A9BBE" },
+  tabTxt:       { fontSize: 13, fontWeight: "600", color: "#5F6F8F" },
   tabTxtActive: { fontSize: 13, fontWeight: "700", color: "#1A56DB" },
 
   // ── Fields ────────────────────────────────────────────────────────────────
@@ -370,13 +371,18 @@ const s = StyleSheet.create({
   field: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F6F9FF",
+    backgroundColor: "#E8D0A9",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#DDE6F8",
+    borderColor: "#C8AC7A",
     height: 54,
     marginBottom: 14,
     paddingRight: 14,
+    shadowColor: "#7A5522",
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   fieldIconWrap: {
     width: 48,
@@ -386,14 +392,15 @@ const s = StyleSheet.create({
   fieldInput: {
     flex: 1,
     fontSize: 15,
-    color: "#1A2F5C",
+    color: "#10204A",
     paddingVertical: 0,
   },
   eyeBtn: { paddingLeft: 8 },
 
   driverHint: {
     fontSize: 12,
-    color: "#6B82A8",
+    color: "#43516D",
+    fontWeight: "600",
     textAlign: "center",
     marginBottom: 14,
     lineHeight: 18,

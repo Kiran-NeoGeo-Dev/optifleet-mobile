@@ -124,14 +124,14 @@ const DriverOtpScreen = ({ route, navigation }: Props) => {
               <Text style={s.label}>6-Digit OTP</Text>
               <View style={s.field}>
                 <View style={s.fieldIconWrap}>
-                  <Ionicons name="key-outline" size={19} color="#1A56DB" />
+                  <Ionicons name="key-outline" size={19} color="#8B652F" />
                 </View>
                 <TextInput
                   style={s.otpInput}
                   value={otp}
                   onChangeText={setOtp}
                   placeholder="• • • • • •"
-                  placeholderTextColor="#A8B8D0"
+                  placeholderTextColor="#5F6F8F"
                   keyboardType="numeric"
                   maxLength={6}
                   autoFocus
@@ -253,13 +253,18 @@ const s = StyleSheet.create({
   field: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F6F9FF",
+    backgroundColor: "#E8D0A9",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#DDE6F8",
+    borderColor: "#C8AC7A",
     height: 58,
     marginBottom: 10,
     paddingRight: 14,
+    shadowColor: "#7A5522",
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   fieldIconWrap: {
     width: 48,
@@ -270,7 +275,7 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: 22,
     fontWeight: "800",
-    color: "#1A2F5C",
+    color: "#10204A",
     letterSpacing: 10,
     paddingVertical: 0,
   },

@@ -335,7 +335,7 @@ const s = StyleSheet.create({
   greeting:   { fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: "500" },
   title:      { fontSize: 18, fontWeight: "800", color: C.white, marginTop: 2 },
   logoutBtn:  { width: 38, height: 38, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  scroll:     { paddingHorizontal: 14, paddingBottom: 20 },
+  scroll:     { paddingHorizontal: 14, paddingBottom: 80 },
   cardsGrid:  { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 4 },
   section:    { backgroundColor: C.card, borderRadius: 18, padding: 14, marginBottom: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },

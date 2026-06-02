@@ -103,11 +103,13 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
             <View style={s.waveLine2} />
             <View style={s.waveLine3} />
             <View style={s.waveLine4} />
+            <View style={s.waveLine5} />
             
             {/* Glowing particles */}
             <View style={s.particle1} />
             <View style={s.particle2} />
             <View style={s.particle3} />
+            <View style={s.particle4} />
             
             {/* Header Content */}
             <View style={s.headerContent}>
@@ -172,22 +174,24 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
 const s = StyleSheet.create({
   backdrop:      { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 100 },
   drawer:        { position: "absolute", top: 0, left: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#fff", borderTopRightRadius: 24, borderBottomRightRadius: 24, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 6, height: 0 }, elevation: 20, zIndex: 101 },
-  blueHeader:    { height: 300, paddingTop: 50, paddingBottom: 32, paddingHorizontal: 24, borderBottomRightRadius: 50, overflow: "hidden" },
-  waveLine1:     { position: "absolute", top: 40, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-12deg" }] },
-  waveLine2:     { position: "absolute", top: 90, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-8deg" }] },
-  waveLine3:     { position: "absolute", top: 140, right: -50, width: 160, height: 3, backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] },
-  waveLine4:     { position: "absolute", top: 190, right: -70, width: 200, height: 3, backgroundColor: "rgba(255,255,255,0.04)", transform: [{ rotate: "-5deg" }] },
-  particle1:     { position: "absolute", top: 60, right: 80, width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.3)" },
-  particle2:     { position: "absolute", top: 120, right: 120, width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)" },
-  particle3:     { position: "absolute", top: 180, right: 60, width: 5, height: 5, borderRadius: 2.5, backgroundColor: "rgba(255,255,255,0.2)" },
-  headerContent: { flexDirection: "row", alignItems: "flex-start", zIndex: 1, marginTop: 20 },
+  blueHeader:    { height: 230, paddingTop: 50, paddingBottom: 28, paddingHorizontal: 32, borderBottomRightRadius: 45, overflow: "hidden" },
+  waveLine1:     { position: "absolute", top: 30, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-12deg" }] },
+  waveLine2:     { position: "absolute", top: 75, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-8deg" }] },
+  waveLine3:     { position: "absolute", top: 120, right: -50, width: 160, height: 3, backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] },
+  waveLine4:     { position: "absolute", top: 165, right: -70, width: 200, height: 3, backgroundColor: "rgba(255,255,255,0.04)", transform: [{ rotate: "-5deg" }] },
+  waveLine5:     { position: "absolute", top: 205, right: -50, width: 170, height: 3, backgroundColor: "rgba(255,255,255,0.03)", transform: [{ rotate: "-10deg" }] },
+  particle1:     { position: "absolute", top: 50, right: 80, width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.3)" },
+  particle2:     { position: "absolute", top: 100, right: 120, width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)" },
+  particle3:     { position: "absolute", top: 150, right: 60, width: 5, height: 5, borderRadius: 2.5, backgroundColor: "rgba(255,255,255,0.2)" },
+  particle4:     { position: "absolute", top: 190, right: 90, width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.15)" },
+  headerContent: { flexDirection: "row", alignItems: "flex-start", zIndex: 1, marginTop: 10 },
   shieldBox:     { width: 72, height: 72, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   adminTitle:    { fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.5, marginTop: 4 },
   adminSub:     { fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 4, letterSpacing: 0.3 },
   closeBtnBlue:  { position: "absolute", top: 40, right: 20, width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center", zIndex: 2 },
   progressContainer: { flexDirection: "row", alignItems: "center", marginTop: 24, zIndex: 1 },
-  progressLine:  { flex: 1, height: 4, backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 2 },
-  progressDot:   { width: 10, height: 10, borderRadius: 5, backgroundColor: "#fff", marginLeft: 10, shadowColor: "#fff", shadowOpacity: 0.6, shadowRadius: 6 },
+  progressLine:  { flex: 1, height: 4, backgroundColor: "#10B981", borderRadius: 2 },
+  progressDot:   { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFD700", marginLeft: 10, shadowColor: "#FFD700", shadowOpacity: 0.6, shadowRadius: 6 },
   menuList:      { flex: 1, paddingVertical: 24, paddingHorizontal: 16 },
   menuItem:      { flexDirection: "row", alignItems: "center", paddingVertical: 18, paddingHorizontal: 20, marginVertical: 8, backgroundColor: "#fff", borderRadius: 20, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 4, minHeight: 85 },
   menuIconBox:   { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
