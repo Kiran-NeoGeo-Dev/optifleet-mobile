@@ -1,8 +1,9 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  StatusBar, Modal, Dimensions,
+  StatusBar, Modal, Dimensions, Animated,
 } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -12,9 +13,8 @@ import { fetchDashboardSummary, fetchLiveVehicles } from "../../services/dashboa
 import { fetchNotifications } from "../../services/notificationService";
 import { Toast, useToast } from "../../components/Toast";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import * as Speech from "expo-speech";
 import type { LiveVehicle } from "../../types/Dashboard";
-
-const { width: SW } = Dimensions.get("window");
 
 const C = {
   bg:     "#0A1F6E",
@@ -36,7 +36,7 @@ const StatCard = ({ icon, label, count, accent }: {
   <View style={sc.card}>
     <View style={[sc.accentBar, { backgroundColor: accent }]} />
     <View style={[sc.iconBox, { backgroundColor: accent + "18" }]}>
-      <Ionicons name={icon} size={22} color={accent} />
+      <Ionicons name={icon} size={18} color={accent} />
     </View>
     <View style={sc.cardBody}>
       <Text style={sc.label}>{label}</Text>
@@ -152,6 +152,25 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
   const webViewRef    = useRef<any>(null);
   const mapInitRef    = useRef(false);
   const { toast, showToast, hideToast } = useToast();
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+  const SH = Dimensions.get("window").height;
+
+  useEffect(() => {
+    if (enablePrompt) {
+      sheetAnim.setValue(SH);
+      Animated.spring(sheetAnim, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start();
+    }
+  }, [enablePrompt]);
+
+  const closeSheet = () => {
+    Animated.timing(sheetAnim, { toValue: SH, duration: 260, useNativeDriver: true }).start(() => setEnablePrompt(false));
+  };
+
+  const handleEnable = () => {
+    Speech.speak("Notifications enabled", { rate: 1.2, pitch: 1.3 });
+    notifEnabled.current = true;
+    closeSheet();
+  };
 
   const loadAll = useCallback(async () => {
     try {
@@ -207,9 +226,6 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
         {/* ── Header ── */}
         <View style={s.header}>
           <Text style={s.title}>OptiFleet Admin Dashboard</Text>
-          <TouchableOpacity style={s.logoutBtn} onPress={() => setLogoutDialog(true)}>
-            <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          </TouchableOpacity>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
@@ -319,21 +335,26 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
       />
       <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
 
-      <Modal visible={enablePrompt} transparent animationType="fade" onRequestClose={() => setEnablePrompt(false)}>
+      <Modal visible={enablePrompt} transparent animationType="none" onRequestClose={closeSheet}>
         <View style={s.promptOverlay}>
-          <View style={s.promptCard}>
-            <Text style={{ fontSize: 52, marginBottom: 12 }}>🔔</Text>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={closeSheet} />
+          <Animated.View style={[s.promptSheet, { transform: [{ translateY: sheetAnim }] }]}>
+            <View style={s.sheetBellBg}>
+              <View style={s.sheetBellEmoji}>
+                <Text style={{ fontSize: 72 }}>🔔</Text>
+              </View>
+            </View>
             <Text style={s.promptTitle}>Don't miss Fleet updates!</Text>
             <Text style={s.promptSub}>Enable notifications for real-time fleet updates and alerts.</Text>
             <View style={s.promptBtns}>
-              <TouchableOpacity style={s.promptGhost} onPress={() => setEnablePrompt(false)}>
+              <TouchableOpacity style={s.promptGhost} onPress={closeSheet}>
                 <Text style={s.promptGhostTxt}>Not now</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.promptSolid} onPress={() => { notifEnabled.current = true; setEnablePrompt(false); }}>
+              <TouchableOpacity style={s.promptSolid} onPress={handleEnable}>
                 <Text style={s.promptSolidTxt}>Enable</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>
@@ -342,12 +363,12 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
 
 // ── Stat Card styles ──────────────────────────────────────────────────────────
 const sc = StyleSheet.create({
-  card:      { width: "47.5%", backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, overflow: "hidden" },
-  accentBar: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderTopLeftRadius: 14, borderBottomLeftRadius: 14 },
-  iconBox:   { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  card:      { width: "47.5%", backgroundColor: C.card, borderRadius: 12, padding: 10, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3, overflow: "hidden" },
+  accentBar: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+  iconBox:   { width: 32, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 6 },
   cardBody:  { flex: 1 },
-  label:     { fontSize: 11, color: C.muted, fontWeight: "600" },
-  count:     { fontSize: 28, fontWeight: "800", marginTop: 2 },
+  label:     { fontSize: 10, color: C.muted, fontWeight: "600" },
+  count:     { fontSize: 22, fontWeight: "800", marginTop: 2 },
 });
 
 const s = StyleSheet.create({
@@ -382,10 +403,14 @@ const s = StyleSheet.create({
   sevTxt:      { fontSize: 10, fontWeight: "800" },
   emptyBox:    { alignItems: "center", paddingVertical: 20, gap: 8 },
   emptyTxt:    { fontSize: 13, color: C.muted },
-  promptOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center", padding: 24 },
-  promptCard:    { backgroundColor: "#fff", borderRadius: 24, padding: 28, alignItems: "center", width: "100%", maxWidth: 340 },
+  promptOverlay:  { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  promptSheet:    { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingBottom: 36, paddingTop: 0, alignItems: "center" },
+  sheetBellBg:    { width: "112%", alignItems: "center", justifyContent: "center", backgroundColor: "#1A3CC8", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 28, paddingTop: 28, marginBottom: 20 },
+  sheetBellEmoji: { position: "relative", alignItems: "center", justifyContent: "center" },
+  sheetBadge:     { position: "absolute", top: 2, right: -10, width: 22, height: 22, borderRadius: 11, backgroundColor: "#22C55E", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#fff" },
+  sheetBadgeTxt:  { fontSize: 11, fontWeight: "800", color: "#fff" },
   promptTitle:   { fontSize: 20, fontWeight: "800", color: C.text, textAlign: "center", marginBottom: 8 },
-  promptSub:     { fontSize: 14, color: C.muted, textAlign: "center", lineHeight: 20, marginBottom: 28 },
+  promptSub:     { fontSize: 14, color: C.muted, textAlign: "center", lineHeight: 20, marginBottom: 24 },
   promptBtns:    { flexDirection: "row", gap: 12, width: "100%" },
   promptGhost:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: "#F3F4F6", alignItems: "center" },
   promptGhostTxt:{ fontSize: 15, fontWeight: "700", color: "#374151" },

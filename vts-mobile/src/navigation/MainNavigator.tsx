@@ -145,14 +145,13 @@ const USER_MGMT_ITEMS = [
   { label: "Total Vehicles", sub: "All registered vehicles",       icon: "car-outline",            iconBg: "#FFF3E0", iconColor: "#F57C00", accent: "#F59E0B", nav: "VehicleList"     },
   { label: "Total Drivers",  sub: "All registered drivers",        icon: "people-outline",         iconBg: "#E8F5E9", iconColor: "#2E7D32", accent: "#22C55E", nav: "DriverList"      },
   { label: "Associations",   sub: "Driver & vehicle associations", icon: "git-network-outline",    iconBg: "#FCE4EC", iconColor: "#C2185B", accent: "#EC4899", nav: "AssociationList" },
-  { label: "Trips",         sub: "All trips and routes",          icon: "navigate-outline",       iconBg: "#E3F2FD", iconColor: "#1565C0", accent: "#3B82F6", nav: "TripManagement"  },
 ] as const;
 
 const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boolean; onClose: () => void; navigation: any }) => {
   const slideX = useRef(new (require("react-native").Animated).Value(-300)).current;
   const bgOpacity = useRef(new (require("react-native").Animated).Value(0)).current;
   const { useEffect } = require("react");
-  const { Animated, Dimensions, Image, PanResponder } = require("react-native");
+  const { Animated, Dimensions, ScrollView: SV, PanResponder } = require("react-native");
   const { SafeAreaView } = require("react-native-safe-area-context");
   const { useAuth } = require("../hooks/useAuth");
   const { logout } = useAuth();
@@ -240,10 +239,10 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
             {/* Header Content */}
             <View style={{ flexDirection: "row", alignItems: "flex-start", zIndex: 1, marginTop: 10 }}>
               <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
-                <Ionicons name="shield-checkmark" size={36} color="#1565C0" />
+                <Ionicons name="person-outline" size={36} color="#1565C0" />
               </View>
               <View style={{ flex: 1, marginLeft: 16 }}>
-                <Text style={{ fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.5, marginTop: 4 }}>OptiFleet Admin</Text>
+                <Text style={{ fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.5, marginTop: 4 }}>OptiFleet User</Text>
                 <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 4, letterSpacing: 0.3 }}>Fleet Management System</Text>
               </View>
             </View>
@@ -256,34 +255,34 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
           </LinearGradient>
 
           {/* Menu Items */}
-          <View style={{ flex: 1, paddingVertical: 24, paddingHorizontal: 16 }}>
+          <SV style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 16, paddingHorizontal: 16, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
             {USER_MGMT_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.label}
-                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 18, paddingHorizontal: 20, marginVertical: 8, backgroundColor: "#fff", borderRadius: 20, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 4, minHeight: 85 }}
+                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, marginVertical: 6, backgroundColor: "#fff", borderRadius: 16, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 3 }, elevation: 4, minHeight: 72 }}
                 onPress={() => navigate(item.nav)}
                 activeOpacity={0.75}
               >
-                <View style={[{ width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon as any} size={26} color={item.iconColor} />
+                <View style={[{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
+                  <Ionicons name={item.icon as any} size={24} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
-                  <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 3 }}>{item.sub}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
+                  <Text style={{ fontSize: 13, color: "#4B5563", marginTop: 3, fontWeight: "500" }}>{item.sub}</Text>
                 </View>
                 <Text style={[{ fontSize: 14, fontWeight: "700" }, { color: item.accent }]}>View {"\u003E"}</Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </SV>
 
           {/* Footer */}
           <View style={{ flexDirection: "row", alignItems: "center", padding: 18, margin: 16, marginBottom: 24, backgroundColor: "#F8FAFF", borderRadius: 20, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}>
             <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 14 }}>
               <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="shield-checkmark-outline" size={24} color="#1565C0" />
+                <Ionicons name="person-outline" size={24} color="#1565C0" />
               </View>
               <View>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet Admin</Text>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet User</Text>
                 <Text style={{ fontSize: 12, color: "#6B7280" }}>Version 1.0.0</Text>
               </View>
             </View>

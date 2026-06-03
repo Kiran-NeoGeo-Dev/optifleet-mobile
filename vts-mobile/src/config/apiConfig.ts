@@ -1,5 +1,5 @@
 // Production — public IP, works on any network (mobile data, WiFi, etc.)
-export const API_BASE_URL = "http://10.217.93.165:8083";
+export const API_BASE_URL = "http://192.168.1.199:8083";
 
 //export const API_BASE_URL = "http://192.168.1.199:8880";
 

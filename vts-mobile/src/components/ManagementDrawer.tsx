@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder,
-  Dimensions,
+  Dimensions, ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -129,8 +129,12 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
             </View>
           </LinearGradient>
 
-          {/* Menu Items */}
-          <View style={s.menuList}>
+          {/* Menu Items - Scrollable */}
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={s.menuList}
+            showsVerticalScrollIndicator={false}
+          >
             {MENU_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.label}
@@ -139,7 +143,7 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
                 activeOpacity={0.75}
               >
                 <View style={[s.menuIconBox, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon as any} size={26} color={item.iconColor} />
+                  <Ionicons name={item.icon as any} size={24} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.menuLabel}>{item.label}</Text>
@@ -148,13 +152,13 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
                 <Text style={[s.viewTxt, { color: item.accent }]}>View {"\u003E"}</Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
 
           {/* Footer */}
           <View style={s.footer}>
             <View style={s.footerLeft}>
               <View style={s.footerIconBox}>
-                <Ionicons name="shield-checkmark-outline" size={24} color="#1565C0" />
+                <Ionicons name="person-outline" size={24} color="#1565C0" />
               </View>
               <View>
                 <Text style={s.footerName}>OptiFleet Admin</Text>
@@ -192,11 +196,11 @@ const s = StyleSheet.create({
   progressContainer: { flexDirection: "row", alignItems: "center", marginTop: 24, zIndex: 1 },
   progressLine:  { flex: 1, height: 4, backgroundColor: "#10B981", borderRadius: 2 },
   progressDot:   { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFD700", marginLeft: 10, shadowColor: "#FFD700", shadowOpacity: 0.6, shadowRadius: 6 },
-  menuList:      { flex: 1, paddingVertical: 24, paddingHorizontal: 16 },
-  menuItem:      { flexDirection: "row", alignItems: "center", paddingVertical: 18, paddingHorizontal: 20, marginVertical: 8, backgroundColor: "#fff", borderRadius: 20, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 4, minHeight: 85 },
-  menuIconBox:   { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  menuLabel:     { fontSize: 16, fontWeight: "700", color: "#0D1B3E" },
-  menuSub:       { fontSize: 13, color: "#6B7280", marginTop: 3 },
+  menuList:      { flex: 1, paddingVertical: 16, paddingHorizontal: 16, paddingBottom: 100 },
+  menuItem:      { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, marginVertical: 6, backgroundColor: "#fff", borderRadius: 16, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 3 }, elevation: 4, minHeight: 72 },
+  menuIconBox:   { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  menuLabel:     { fontSize: 15, fontWeight: "700", color: "#0D1B3E" },
+  menuSub:       { fontSize: 13, color: "#4B5563", marginTop: 3, fontWeight: "500" },
   viewTxt:       { fontSize: 14, fontWeight: "700" },
   footer:        { flexDirection: "row", alignItems: "center", padding: 18, margin: 16, marginBottom: 24, backgroundColor: "#F8FAFF", borderRadius: 20, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   footerLeft:    { flex: 1, flexDirection: "row", alignItems: "center", gap: 14 },
