@@ -16,7 +16,7 @@ const MENU_ITEMS = [
   { label: "Total Drivers",  sub: "All registered drivers",        icon: "people-outline",          iconBg: "#E8F5E9", iconColor: "#2E7D32", accent: "#22C55E", nav: "AdminDriverList"  },
   { label: "Total Vehicles", sub: "All registered vehicles",       icon: "car-outline",             iconBg: "#FFF3E0", iconColor: "#F57C00", accent: "#F59E0B", nav: "AdminVehicleList" },
   { label: "Total Devices",  sub: "All connected devices",         icon: "phone-portrait-outline",  iconBg: "#E3F2FD", iconColor: "#1565C0", accent: "#3B82F6", nav: "DeviceManagement" },
-  { label: "Associations",   sub: "Driver & vehicle associations", icon: "git-network-outline",     iconBg: "#FCE4EC", iconColor: "#C2185B", accent: "#EC4899", nav: "AssociationList"  },
+  { label: "Associations",   sub: "Vehicle & device associations", icon: "git-network-outline",     iconBg: "#FCE4EC", iconColor: "#C2185B", accent: "#EC4899", nav: "AssociationList"  },
 ] as const;
 
 interface Props {

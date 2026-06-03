@@ -239,7 +239,7 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
             {/* Header Content */}
             <View style={{ flexDirection: "row", alignItems: "flex-start", zIndex: 1, marginTop: 10 }}>
               <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
-                <Ionicons name="person-outline" size={36} color="#1565C0" />
+                <Ionicons name="shield-checkmark" size={36} color="#1565C0" />
               </View>
               <View style={{ flex: 1, marginLeft: 16 }}>
                 <Text style={{ fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.5, marginTop: 4 }}>OptiFleet User</Text>
