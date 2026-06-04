@@ -7,41 +7,122 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Path, Circle, Text as SvgText } from "react-native-svg";
 import { fetchDriverScorecard, FleetDriver, DriverScorecard, EventCounts } from "../../services/fleetService";
 
-// ── Circular progress ring ────────────────────────────────────────────────────
-const RING_SIZE = 180;
-const STROKE    = 14;
-const RADIUS    = (RING_SIZE - STROKE) / 2;
-const CIRCUM    = 2 * Math.PI * RADIUS;
-const MAX_RAW   = 15;
-
+// ── Score helpers (exact same logic as backend getRemark) ─────────────────────
 const rawScoreColor = (raw: number) =>
   raw <= 2 ? "#16A34A" : raw <= 4 ? "#22C55E" : raw <= 6 ? "#EAB308" : raw <= 8 ? "#F97316" : raw <= 10 ? "#EF4444" : "#991B1B";
 
-const ScoreRing = ({ rawScore }: { rawScore: number }) => {
-  const pct   = Math.max(0, Math.min(100, (1 - rawScore / MAX_RAW) * 100));
-  const dash  = (pct / 100) * CIRCUM;
-  const color = rawScoreColor(rawScore);
+// 6 equal tiers — each occupies 60° of the pie
+const TIERS = [
+  { label: "Excellent", color: "#16A34A" },
+  { label: "Very Good", color: "#22C55E" },
+  { label: "Good",      color: "#EAB308" },
+  { label: "Fair",      color: "#F97316" },
+  { label: "Poor",      color: "#EF4444" },
+  { label: "Very Poor", color: "#991B1B" },
+];
+
+const remarkToTierIndex = (remark: string) =>
+  TIERS.findIndex(t => t.label === remark);
+
+// ── Pie Chart Component ───────────────────────────────────────────────────────
+const PIE  = 200;
+const CX   = PIE / 2;
+const CY   = PIE / 2;
+const OR   = 86;   // outer radius
+const IR   = 50;   // inner radius
+const GAP  = 2.5;  // degrees gap between slices
+const EACH = 360 / TIERS.length; // 60° each
+
+const makeArc = (startDeg: number, endDeg: number) => {
+  const toXY = (deg: number, r: number) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
+  };
+  const s = startDeg + GAP / 2;
+  const e = endDeg   - GAP / 2;
+  const lg = e - s > 180 ? 1 : 0;
+  const o1 = toXY(s, OR), o2 = toXY(e, OR);
+  const i1 = toXY(e, IR), i2 = toXY(s, IR);
+  return `M${o1.x} ${o1.y} A${OR} ${OR} 0 ${lg} 1 ${o2.x} ${o2.y} L${i1.x} ${i1.y} A${IR} ${IR} 0 ${lg} 0 ${i2.x} ${i2.y}Z`;
+};
+
+const ScorePieChart = ({ rawScore, remark }: { rawScore: number; remark: string }) => {
+  const activeColor = rawScoreColor(rawScore);
+  const activeTier  = remarkToTierIndex(remark);
+
   return (
-    <View style={{ alignItems: "center", justifyContent: "center", width: RING_SIZE, height: RING_SIZE }}>
-      <Svg width={RING_SIZE} height={RING_SIZE} style={{ position: "absolute" }}>
-        <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS}
-          stroke="#E5E7EB" strokeWidth={STROKE} fill="none" />
-        <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS}
-          stroke={color} strokeWidth={STROKE} fill="none"
-          strokeDasharray={`${dash} ${CIRCUM - dash}`}
-          strokeDashoffset={CIRCUM / 4}
-          strokeLinecap="round" />
+    <View style={{ alignItems: "center" }}>
+      <Svg width={PIE} height={PIE}>
+        {TIERS.map((t, i) => {
+          const start = i * EACH;
+          const path  = makeArc(start, start + EACH);
+          const isActive = i === activeTier;
+          return (
+            <Path
+              key={t.label}
+              d={path}
+              fill={isActive ? t.color : t.color + "28"}
+              stroke="#fff"
+              strokeWidth={2}
+            />
+          );
+        })}
+        {/* Donut hole */}
+        <Circle cx={CX} cy={CY} r={IR - 1} fill="#fff" />
+        {/* Score value */}
+        <SvgText
+          x={CX} y={CY - 5}
+          textAnchor="middle"
+          fontSize="28"
+          fontWeight="900"
+          fill={activeColor}
+        >
+          {rawScore.toFixed(2)}
+        </SvgText>
+        {/* Score label */}
+        <SvgText
+          x={CX} y={CY + 14}
+          textAnchor="middle"
+          fontSize="9"
+          fontWeight="700"
+          fill="#9CA3AF"
+        >
+          SAFETY SCORE
+        </SvgText>
       </Svg>
-      <Text style={[ring.score, { color }]}>{rawScore.toFixed(2)}</Text>
+
+      {/* Tier legend chips */}
+      <View style={pie.legend}>
+        {TIERS.map((t, i) => {
+          const isActive = i === activeTier;
+          return (
+            <View
+              key={t.label}
+              style={[
+                pie.chip,
+                isActive && { borderColor: t.color, borderWidth: 1.5, backgroundColor: t.color + "18" },
+              ]}
+            >
+              <View style={[pie.dot, { backgroundColor: t.color }]} />
+              <Text style={[pie.chipTxt, isActive && { color: t.color, fontWeight: "800" }]}>
+                {t.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 };
 
-const ring = StyleSheet.create({
-  score: { fontSize: 38, fontWeight: "900" },
+const pie = StyleSheet.create({
+  legend:  { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 4 },
+  chip:    { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20, backgroundColor: "#F3F4F6", borderWidth: 1, borderColor: "transparent" },
+  dot:     { width: 7, height: 7, borderRadius: 4 },
+  chipTxt: { fontSize: 11, color: "#6B7280", fontWeight: "600" },
 });
 
 // ── Remark text ───────────────────────────────────────────────────────────────
@@ -55,12 +136,12 @@ const REMARK_DESC: Record<string, string> = {
 };
 
 const REMARK_COLORS: Record<string, string> = {
-  "Excellent": "#16A34A",  // Green
-  "Very Good": "#22C55E",  // Light Green
-  "Good":      "#EAB308",  // Yellow
-  "Fair":      "#F97316",  // Orange
-  "Poor":      "#EF4444",  // Red
-  "Very Poor": "#991B1B",  // Dark Red
+  "Excellent": "#16A34A",
+  "Very Good": "#22C55E",
+  "Good":      "#EAB308",
+  "Fair":      "#F97316",
+  "Poor":      "#EF4444",
+  "Very Poor": "#991B1B",
 };
 
 const remarkColor = (r: string) => REMARK_COLORS[r] ?? "#6B7280";
@@ -105,13 +186,13 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
         ? driver.photoFront! : `data:image/jpeg;base64,${driver.photoFront}`)
     : null;
 
-  const rawScore    = data?.safetyScore ?? 0;
-  const remark      = data?.remark ?? "—";
-  const events      = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, kmDriven: 0 };
+  const rawScore     = data?.safetyScore ?? 0;
+  const remark       = data?.remark ?? "—";
+  const events       = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, kmDriven: 0 };
   const vehicleModel = data?.vehicleModel ?? driver.vehicleModel ?? null;
-  const hasNoData   = data != null && events.kmDriven === 0 &&
-                      events.smoking === 0 && events.mobile === 0 && events.distraction === 0 &&
-                      events.overspeed === 0 && events.drowsiness === 0 && events.seatbelt === 0;
+  const hasNoData    = data != null && events.kmDriven === 0 &&
+                       events.smoking === 0 && events.mobile === 0 && events.distraction === 0 &&
+                       events.overspeed === 0 && events.drowsiness === 0 && events.seatbelt === 0;
 
   const MonthEventsCard = ({ ev }: { ev: EventCounts }) => (
     <View style={sc.card}>
@@ -219,7 +300,7 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
           ) : (
             <>
               <View style={{ alignItems: "center", marginVertical: 16 }}>
-                <ScoreRing rawScore={rawScore} />
+                <ScorePieChart rawScore={rawScore} remark={remark} />
                 <Text style={[sc.remarkLabel, { color: remarkColor(remark), marginTop: 12 }]}>
                   {remark.toUpperCase()}
                 </Text>

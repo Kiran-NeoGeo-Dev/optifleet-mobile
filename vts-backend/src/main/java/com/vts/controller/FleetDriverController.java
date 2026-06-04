@@ -191,15 +191,15 @@ public class FleetDriverController {
             java.time.LocalDate now = java.time.LocalDate.now();
             int y = now.getYear(), m = now.getMonthValue();
 
-            // Step 1: get event weights per vehicle from vtelemetry
+            // Step 1: get event weights per vehicle from vtelemetry (boolean columns, month filter on created_at)
             String eventSql =
                 "SELECT UPPER(vehicle_id) AS vid, " +
-                "  COALESCE(SUM(CASE WHEN smoking_status    = true      THEN " + W_SMOKING     + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN mobile_usage      = true      THEN " + W_MOBILE      + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN overspeed         = true      THEN " + W_OVERSPEED   + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN drowsiness_status = 'Fatigue' THEN " + W_DROWSY      + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN seatbelt_status   = false     THEN " + W_SEATBELT    + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN distraction_status = true     THEN " + W_DISTRACTION + " ELSE 0 END),0) AS total_weight " +
+                "  COALESCE(SUM(CASE WHEN smoking_status     = true      THEN " + W_SMOKING     + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN mobile_usage       = true      THEN " + W_MOBILE      + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN overspeed          = true      THEN " + W_OVERSPEED   + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN drowsiness_status  = 'Fatigue' THEN " + W_DROWSY      + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN seatbelt_status    = false     THEN " + W_SEATBELT    + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN distraction_status = true      THEN " + W_DISTRACTION + " ELSE 0 END),0) AS total_weight " +
                 "FROM public.vtelemetry " +
                 "WHERE vehicle_id IS NOT NULL " +
                 "  AND EXTRACT(YEAR  FROM created_at) = ? " +
@@ -208,18 +208,15 @@ public class FleetDriverController {
 
             List<Map<String, Object>> eventRows = jdbc.queryForList(eventSql, y, m);
 
-            // Step 2: get km per vehicle from trips
+            // Step 2: get total km per vehicle from trips — only vehicle_id + distance_km, no date filter
             String kmSql =
                 "SELECT UPPER(vehicle_id) AS vid, COALESCE(SUM(distance_km), 0) AS km_driven " +
                 "FROM public.trips " +
                 "WHERE vehicle_id IS NOT NULL " +
-                "  AND EXTRACT(YEAR  FROM COALESCE(start_date, created_at)) = ? " +
-                "  AND EXTRACT(MONTH FROM COALESCE(start_date, created_at)) = ? " +
-                "  AND status IN ('Completed', 'In Progress') " +
                 "GROUP BY UPPER(vehicle_id)";
 
             Map<String, Double> kmByVehicle = new HashMap<>();
-            for (Map<String, Object> row : jdbc.queryForList(kmSql, y, m)) {
+            for (Map<String, Object> row : jdbc.queryForList(kmSql)) {
                 String vid = row.get("vid") != null ? row.get("vid").toString() : null;
                 double km  = row.get("km_driven") != null ? ((Number) row.get("km_driven")).doubleValue() : 0;
                 if (vid != null) kmByVehicle.put(vid, km);
@@ -245,12 +242,12 @@ public class FleetDriverController {
         try {
             String sql =
                 "SELECT " +
-                "  COALESCE(SUM(CASE WHEN smoking_status    = true      THEN 1 ELSE 0 END),0) AS smoking, " +
-                "  COALESCE(SUM(CASE WHEN mobile_usage      = true      THEN 1 ELSE 0 END),0) AS mobile, " +
-                "  COALESCE(SUM(CASE WHEN overspeed         = true      THEN 1 ELSE 0 END),0) AS overspeed, " +
-                "  COALESCE(SUM(CASE WHEN drowsiness_status = 'Fatigue' THEN 1 ELSE 0 END),0) AS drowsiness, " +
-                "  COALESCE(SUM(CASE WHEN seatbelt_status   = false     THEN 1 ELSE 0 END),0) AS seatbelt, " +
-                "  COALESCE(SUM(CASE WHEN distraction_status = true     THEN 1 ELSE 0 END),0) AS distraction " +
+                "  COALESCE(SUM(CASE WHEN smoking_status     = true      THEN 1 ELSE 0 END),0) AS smoking, " +
+                "  COALESCE(SUM(CASE WHEN mobile_usage       = true      THEN 1 ELSE 0 END),0) AS mobile, " +
+                "  COALESCE(SUM(CASE WHEN overspeed          = true      THEN 1 ELSE 0 END),0) AS overspeed, " +
+                "  COALESCE(SUM(CASE WHEN drowsiness_status  = 'Fatigue' THEN 1 ELSE 0 END),0) AS drowsiness, " +
+                "  COALESCE(SUM(CASE WHEN seatbelt_status    = false     THEN 1 ELSE 0 END),0) AS seatbelt, " +
+                "  COALESCE(SUM(CASE WHEN distraction_status = true      THEN 1 ELSE 0 END),0) AS distraction " +
                 "FROM public.vtelemetry " +
                 "WHERE UPPER(vehicle_id) = UPPER(?) " +
                 "  AND EXTRACT(YEAR  FROM created_at) = ? " +
@@ -258,15 +255,11 @@ public class FleetDriverController {
 
             Map<String, Object> row = jdbc.queryForMap(sql, vehicleRegNo, year, month);
 
-            // KM Driven from trips table — include Completed and In Progress trips
-            // Use COALESCE(start_date, created_at) to handle NULL start_date
+            // KM from trips — only vehicle_id + distance_km, no date filter per spec
             Double km = jdbc.queryForObject(
                 "SELECT COALESCE(SUM(distance_km), 0) FROM public.trips " +
-                "WHERE UPPER(vehicle_id) = UPPER(?) " +
-                "  AND EXTRACT(YEAR  FROM COALESCE(start_date, created_at)) = ? " +
-                "  AND EXTRACT(MONTH FROM COALESCE(start_date, created_at)) = ? " +
-                "  AND status IN ('Completed', 'In Progress')",
-                Double.class, vehicleRegNo, year, month);
+                "WHERE UPPER(vehicle_id) = UPPER(?)",
+                Double.class, vehicleRegNo);
 
             Map<String, Object> ev = new LinkedHashMap<>();
             ev.put("smoking",     toLong(row.get("smoking")));
