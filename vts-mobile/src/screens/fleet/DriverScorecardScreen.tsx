@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
   ActivityIndicator, Modal,
@@ -11,20 +11,16 @@ import Svg, { Circle } from "react-native-svg";
 import { fetchDriverScorecard, FleetDriver, DriverScorecard, EventCounts } from "../../services/fleetService";
 
 // ── Circular progress ring ────────────────────────────────────────────────────
-// rawScore: 0 = perfect, higher = worse (per spec)
-// Ring fill: inversely proportional. rawScore 0 → full green ring, rawScore 15+ → empty red ring
 const RING_SIZE = 180;
 const STROKE    = 14;
 const RADIUS    = (RING_SIZE - STROKE) / 2;
 const CIRCUM    = 2 * Math.PI * RADIUS;
-const MAX_RAW   = 15; // rawScore >= 15 = completely empty ring (Very Poor)
+const MAX_RAW   = 15;
 
-// Color: green for low score (safe), red for high score (unsafe)
 const rawScoreColor = (raw: number) =>
-  raw <= 2 ? "#22C55E" : raw <= 6 ? "#F59E0B" : "#EF4444";
+  raw <= 2 ? "#16A34A" : raw <= 4 ? "#22C55E" : raw <= 6 ? "#EAB308" : raw <= 8 ? "#F97316" : raw <= 10 ? "#EF4444" : "#991B1B";
 
 const ScoreRing = ({ rawScore }: { rawScore: number }) => {
-  // Ring shows how "good" the driver is — inverse of rawScore
   const pct   = Math.max(0, Math.min(100, (1 - rawScore / MAX_RAW) * 100));
   const dash  = (pct / 100) * CIRCUM;
   const color = rawScoreColor(rawScore);
@@ -39,29 +35,13 @@ const ScoreRing = ({ rawScore }: { rawScore: number }) => {
           strokeDashoffset={CIRCUM / 4}
           strokeLinecap="round" />
       </Svg>
-      {/* Show rawScore as the score value, formatted to 1 decimal */}
-      <Text style={[ring.score, { color }]}>{rawScore.toFixed(1)}</Text>
+      <Text style={[ring.score, { color }]}>{rawScore.toFixed(2)}</Text>
     </View>
   );
 };
 
 const ring = StyleSheet.create({
   score: { fontSize: 38, fontWeight: "900" },
-});
-
-// ── Event row ─────────────────────────────────────────────────────────────────
-const EventRow = ({ icon, label, count, color }: { icon: string; label: string; count: number; color: string }) => (
-  <View style={er.row}>
-    <Ionicons name={icon as any} size={14} color={color} />
-    <Text style={er.label} numberOfLines={1}>{label}</Text>
-    <Text style={[er.count, { color }]}>{count}</Text>
-  </View>
-);
-
-const er = StyleSheet.create({
-  row:   { flexDirection: "row", alignItems: "center", paddingVertical: 4, gap: 4 },
-  label: { flex: 1, fontSize: 11, color: "#374151", fontWeight: "600" },
-  count: { fontSize: 12, fontWeight: "800", minWidth: 16, textAlign: "right" },
 });
 
 // ── Remark text ───────────────────────────────────────────────────────────────
@@ -74,21 +54,23 @@ const REMARK_DESC: Record<string, string> = {
   "Very Poor": "Critical safety concerns. Immediate action required.",
 };
 
-const remarkColor = (r: string) => {
-  if (r === "Excellent" || r === "Very Good") return "#22C55E";
-  if (r === "Good")      return "#10B981";
-  if (r === "Fair")      return "#F59E0B";
-  if (r === "Poor")      return "#F97316";
-  return "#EF4444";
+const REMARK_COLORS: Record<string, string> = {
+  "Excellent": "#16A34A",  // Green
+  "Very Good": "#22C55E",  // Light Green
+  "Good":      "#EAB308",  // Yellow
+  "Fair":      "#F97316",  // Orange
+  "Poor":      "#EF4444",  // Red
+  "Very Poor": "#991B1B",  // Dark Red
 };
 
-// Fleet list card: show rawScore with color (lower=greener)
-const listScoreColor = (raw: number) =>
-  raw <= 2 ? "#22C55E" : raw <= 6 ? "#F59E0B" : "#EF4444";
+const remarkColor = (r: string) => REMARK_COLORS[r] ?? "#6B7280";
 
-const PERIODS = ["Today", "Yesterday", "This Week"] as const;
-type Period = typeof PERIODS[number];
-const PERIOD_KEY: Record<Period, string> = { "Today": "today", "Yesterday": "yesterday", "This Week": "week" };
+// ── Month picker ──────────────────────────────────────────────────────────────
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+] as const;
+type MonthName = typeof MONTHS[number];
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -98,20 +80,24 @@ interface Props {
 
 const DriverScorecardScreen = ({ navigation, route }: Props) => {
   const { driver } = route.params;
-  const [data,        setData]        = useState<DriverScorecard | null>(null);
-  const [loading,     setLoading]     = useState(true);
-  const [period,      setPeriod]      = useState<Period>("Today");
-  const [showPicker,  setShowPicker]  = useState(false);
-  const [imgError,    setImgError]    = useState(false);
+  const now = new Date();
+  const [data,       setData]       = useState<DriverScorecard | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [selYear,    setSelYear]    = useState(now.getFullYear());
+  const [selMonth,   setSelMonth]   = useState<MonthName>(MONTHS[now.getMonth()]);
+  const [showPicker, setShowPicker] = useState(false);
+  const [imgError,   setImgError]   = useState(false);
 
-  const load = useCallback(async (p: Period) => {
+  const monthNum = (m: MonthName) => MONTHS.indexOf(m) + 1;
+
+  const load = useCallback(async (year: number, month: MonthName) => {
     setLoading(true);
-    try { setData(await fetchDriverScorecard(driver.id, PERIOD_KEY[p])); }
+    try { setData(await fetchDriverScorecard(driver.id, year, monthNum(month))); }
     catch (_) {}
     finally { setLoading(false); }
   }, [driver.id]);
 
-  useFocusEffect(useCallback(() => { load(period); }, [period]));
+  useFocusEffect(useCallback(() => { load(selYear, selMonth); }, [selYear, selMonth]));
 
   const hasPhoto = !imgError && !!driver.photoFront && driver.photoFront.length > 4;
   const photoUri = hasPhoto
@@ -119,29 +105,38 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
         ? driver.photoFront! : `data:image/jpeg;base64,${driver.photoFront}`)
     : null;
 
-  const rawScore = data?.safetyScore ?? 0;
-  const remark   = data?.remark ?? "—";
-  const events   = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, kmDriven: 0 };
+  const rawScore    = data?.safetyScore ?? 0;
+  const remark      = data?.remark ?? "—";
+  const events      = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, kmDriven: 0 };
+  const vehicleModel = data?.vehicleModel ?? driver.vehicleModel ?? null;
+  const hasNoData   = data != null && events.kmDriven === 0 &&
+                      events.smoking === 0 && events.mobile === 0 && events.distraction === 0 &&
+                      events.overspeed === 0 && events.drowsiness === 0 && events.seatbelt === 0;
 
-  const PeriodColumn = ({ title, ev }: { title: string; ev: EventCounts }) => (
-    <View style={sc.periodCol}>
-      <View style={sc.periodHeader}>
-        <Ionicons name="calendar-outline" size={13} color="#1565C0" />
-        <Text style={sc.periodTitle}>{title}</Text>
-      </View>
-      {([
-        { icon: "flame-outline",       label: "Smoking",   count: ev.smoking,    color: "#EF4444" },
-        { icon: "call-outline",        label: "Mobile",    count: ev.mobile,     color: "#F59E0B" },
-        { icon: "speedometer-outline", label: "Overspeed", count: ev.overspeed,  color: "#F97316" },
-        { icon: "moon-outline",        label: "Drowsy",    count: ev.drowsiness, color: "#8B5CF6" },
-        { icon: "shield-outline",      label: "Seatbelt",  count: ev.seatbelt,   color: "#10B981" },
-      ] as const).map(r => (
-        <View key={r.label} style={sc.evRow}>
-          <Ionicons name={r.icon as any} size={13} color={r.color} />
-          <Text style={sc.evLabel}>{r.label}</Text>
-          <Text style={[sc.evCount, { color: r.color }]}>{r.count}</Text>
+  const MonthEventsCard = ({ ev }: { ev: EventCounts }) => (
+    <View style={sc.card}>
+      <Text style={sc.sectionTitle}>EVENTS — {selMonth.toUpperCase()} {selYear}</Text>
+      <View style={{ marginTop: 8 }}>
+        {([
+          { icon: "flame-outline",       label: "Smoking",     count: ev.smoking,     color: "#EF4444" },
+          { icon: "call-outline",        label: "Mobile",      count: ev.mobile,      color: "#F59E0B" },
+          { icon: "speedometer-outline", label: "Overspeed",   count: ev.overspeed,   color: "#F97316" },
+          { icon: "moon-outline",        label: "Drowsy",      count: ev.drowsiness,  color: "#8B5CF6" },
+          { icon: "shield-outline",      label: "Seatbelt",    count: ev.seatbelt,    color: "#10B981" },
+          { icon: "eye-off-outline",     label: "Distraction", count: ev.distraction, color: "#EC4899" },
+        ] as const).map(r => (
+          <View key={r.label} style={sc.evRow}>
+            <Ionicons name={r.icon as any} size={14} color={r.color} />
+            <Text style={sc.evLabel}>{r.label}</Text>
+            <Text style={[sc.evCount, { color: r.color }]}>{r.count}</Text>
+          </View>
+        ))}
+        <View style={[sc.evRow, { borderTopWidth: 1, borderTopColor: "#E5E7EB", marginTop: 4, paddingTop: 8 }]}>
+          <Ionicons name="speedometer-outline" size={14} color="#1565C0" />
+          <Text style={[sc.evLabel, { color: "#1565C0" }]}>KM Driven</Text>
+          <Text style={[sc.evCount, { color: "#1565C0" }]}>{ev.kmDriven.toFixed(1)}</Text>
         </View>
-      ))}
+      </View>
     </View>
   );
 
@@ -189,7 +184,7 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
               </View>
               <View style={sc.detailRow}>
                 <Ionicons name="bus-outline" size={14} color="#6B7280" />
-                <Text style={sc.detailTxt}>Heavy Vehicle</Text>
+                <Text style={sc.detailTxt}>{vehicleModel ?? "—"}</Text>
               </View>
               <View style={sc.detailRow}>
                 <Ionicons name="call-outline" size={14} color="#6B7280" />
@@ -199,12 +194,12 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
           </View>
         </View>
 
-        {/* Period Filter */}
+        {/* Month Filter */}
         <LinearGradient colors={["#0D3B8E", "#1565C0"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={sc.filterCard}>
           <View style={sc.filterRow}>
-            <Text style={sc.filterLabel}>Show Score For</Text>
+            <Text style={sc.filterLabel}>Monthly Score</Text>
             <TouchableOpacity style={sc.dropdown} onPress={() => setShowPicker(true)}>
-              <Text style={sc.dropdownTxt}>{period}</Text>
+              <Text style={sc.dropdownTxt}>{selMonth} {selYear}</Text>
               <Ionicons name="chevron-down" size={16} color="#1565C0" />
             </TouchableOpacity>
           </View>
@@ -215,6 +210,12 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
           <Text style={sc.sectionTitle}>OVERALL SAFETY SCORE</Text>
           {loading ? (
             <ActivityIndicator color="#1565C0" style={{ marginVertical: 40 }} />
+          ) : hasNoData ? (
+            <View style={{ alignItems: "center", marginVertical: 32, gap: 8 }}>
+              <Ionicons name="analytics-outline" size={48} color="#D1D5DB" />
+              <Text style={{ fontSize: 15, color: "#9CA3AF", fontWeight: "600" }}>No trip data for this month</Text>
+              <Text style={{ fontSize: 12, color: "#D1D5DB", textAlign: "center" }}>Score requires completed trip distance</Text>
+            </View>
           ) : (
             <>
               <View style={{ alignItems: "center", marginVertical: 16 }}>
@@ -228,33 +229,35 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
           )}
         </View>
 
-        {/* Event Summary — 3 columns */}
-        {data && (
-          <View style={sc.card}>
-            <View style={sc.periodGrid}>
-              <PeriodColumn title="TODAY"     ev={data.todayEvents}     />
-              <View style={sc.divider} />
-              <PeriodColumn title="YESTERDAY" ev={data.yesterdayEvents} />
-              <View style={sc.divider} />
-              <PeriodColumn title="THIS WEEK" ev={data.weekEvents}      />
-            </View>
-          </View>
-        )}
+        {/* Event Summary — monthly */}
+        {data && <MonthEventsCard ev={events} />}
 
       </ScrollView>
 
-      {/* Period Picker Modal */}
+      {/* Month Picker Modal */}
       <Modal visible={showPicker} transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
         <TouchableOpacity style={sc.overlay} onPress={() => setShowPicker(false)} activeOpacity={1}>
           <View style={sc.pickerCard}>
-            {PERIODS.map(p => (
+            <View style={sc.yearRow}>
+              <TouchableOpacity onPress={() => setSelYear(y => y - 1)}>
+                <Ionicons name="chevron-back" size={20} color="#1565C0" />
+              </TouchableOpacity>
+              <Text style={sc.yearTxt}>{selYear}</Text>
               <TouchableOpacity
-                key={p}
-                style={[sc.pickerItem, period === p && sc.pickerItemActive]}
-                onPress={() => { setPeriod(p); setShowPicker(false); }}
+                onPress={() => setSelYear(y => y + 1)}
+                disabled={selYear >= now.getFullYear()}
               >
-                <Text style={[sc.pickerTxt, period === p && sc.pickerTxtActive]}>{p}</Text>
-                {period === p && <Ionicons name="checkmark" size={16} color="#1565C0" />}
+                <Ionicons name="chevron-forward" size={20} color={selYear >= now.getFullYear() ? "#D1D5DB" : "#1565C0"} />
+              </TouchableOpacity>
+            </View>
+            {MONTHS.map(m => (
+              <TouchableOpacity
+                key={m}
+                style={[sc.pickerItem, selMonth === m && sc.pickerItemActive]}
+                onPress={() => { setSelMonth(m); setShowPicker(false); }}
+              >
+                <Text style={[sc.pickerTxt, selMonth === m && sc.pickerTxtActive]}>{m}</Text>
+                {selMonth === m && <Ionicons name="checkmark" size={16} color="#1565C0" />}
               </TouchableOpacity>
             ))}
           </View>
@@ -265,48 +268,45 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
 };
 
 const sc = StyleSheet.create({
-  root:           { flex: 1, backgroundColor: "#F3F4F6" },
-  header:         { paddingHorizontal: 16, paddingBottom: 16 },
-  headerRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
-  backBtn:        { flexDirection: "row", alignItems: "center", gap: 6 },
-  backTxt:        { color: "#fff", fontSize: 14, fontWeight: "600" },
-  headerTitle:    { fontSize: 16, fontWeight: "900", color: "#fff", letterSpacing: 1 },
-  scroll:         { padding: 14, gap: 12, paddingBottom: 30 },
-  card:           { backgroundColor: "#fff", borderRadius: 20, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  profileRow:     { flexDirection: "row", alignItems: "flex-start" },
-  photo:          { width: 90, height: 90, borderRadius: 45 },
-  photoPlaceholder:{ width: 90, height: 90, borderRadius: 45, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
-  driverName:     { fontSize: 20, fontWeight: "800", color: "#0D1B3E", marginBottom: 6 },
-  badgeRow:       { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
-  badge:          { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
-  badgeGreen:     { backgroundColor: "#DCFCE7" },
-  badgeRed:       { backgroundColor: "#FEE2E2" },
-  badgeTxt:       { fontSize: 11, fontWeight: "800" },
-  vehicleReg:     { fontSize: 13, fontWeight: "700", color: "#1565C0" },
-  detailRow:      { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  detailTxt:      { fontSize: 13, color: "#6B7280" },
-  filterCard:     { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 0, marginHorizontal: -14 },
-  filterRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  filterLabel:    { fontSize: 15, color: "#fff", fontWeight: "600" },
-  dropdown:       { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 0, backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
-  dropdownTxt:    { fontSize: 14, color: "#1565C0", fontWeight: "600" },
-  sectionTitle:   { fontSize: 13, fontWeight: "800", color: "#1565C0", textAlign: "center", letterSpacing: 1, marginBottom: 4 },
-  remarkLabel:    { fontSize: 18, fontWeight: "900", letterSpacing: 1 },
-  remarkDesc:     { fontSize: 13, color: "#6B7280", textAlign: "center", lineHeight: 18, marginTop: 8 },
-  periodGrid:   { flexDirection: "row" },
-  periodCol:    { flex: 1, paddingHorizontal: 2 },
-  periodHeader: { flexDirection: "row", alignItems: "center", gap: 3, marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
-  periodTitle:  { fontSize: 9, fontWeight: "800", color: "#1565C0", letterSpacing: 0.3 },
-  evRow:        { flexDirection: "row", alignItems: "center", paddingVertical: 6, gap: 6 },
-  evLabel:      { flex: 1, fontSize: 11, color: "#374151", fontWeight: "600" },
-  evCount:      { fontSize: 12, fontWeight: "800", minWidth: 16, textAlign: "right" },
-  divider:      { width: 1, backgroundColor: "#E5E7EB", marginHorizontal: 4 },
-  overlay:        { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" },
-  pickerCard:     { backgroundColor: "#fff", borderRadius: 16, padding: 8, width: 240, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
-  pickerItem:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderRadius: 10 },
-  pickerItemActive:{ backgroundColor: "#EFF6FF" },
-  pickerTxt:      { fontSize: 15, color: "#374151", fontWeight: "600" },
-  pickerTxtActive:{ color: "#1565C0", fontWeight: "800" },
+  root:             { flex: 1, backgroundColor: "#F3F4F6" },
+  header:           { paddingHorizontal: 16, paddingBottom: 16 },
+  headerRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
+  backBtn:          { flexDirection: "row", alignItems: "center", gap: 6 },
+  backTxt:          { color: "#fff", fontSize: 14, fontWeight: "600" },
+  headerTitle:      { fontSize: 16, fontWeight: "900", color: "#fff", letterSpacing: 1 },
+  scroll:           { padding: 14, gap: 12, paddingBottom: 30 },
+  card:             { backgroundColor: "#fff", borderRadius: 20, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  profileRow:       { flexDirection: "row", alignItems: "flex-start" },
+  photo:            { width: 90, height: 90, borderRadius: 45 },
+  photoPlaceholder: { width: 90, height: 90, borderRadius: 45, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
+  driverName:       { fontSize: 20, fontWeight: "800", color: "#0D1B3E", marginBottom: 6 },
+  badgeRow:         { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  badge:            { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
+  badgeGreen:       { backgroundColor: "#DCFCE7" },
+  badgeRed:         { backgroundColor: "#FEE2E2" },
+  badgeTxt:         { fontSize: 11, fontWeight: "800" },
+  vehicleReg:       { fontSize: 13, fontWeight: "700", color: "#1565C0" },
+  detailRow:        { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  detailTxt:        { fontSize: 13, color: "#6B7280" },
+  filterCard:       { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 0, marginHorizontal: -14 },
+  filterRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  filterLabel:      { fontSize: 15, color: "#fff", fontWeight: "600" },
+  dropdown:         { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
+  dropdownTxt:      { fontSize: 14, color: "#1565C0", fontWeight: "600" },
+  sectionTitle:     { fontSize: 13, fontWeight: "800", color: "#1565C0", textAlign: "center", letterSpacing: 1, marginBottom: 4 },
+  remarkLabel:      { fontSize: 18, fontWeight: "900", letterSpacing: 1 },
+  remarkDesc:       { fontSize: 13, color: "#6B7280", textAlign: "center", lineHeight: 18, marginTop: 8 },
+  evRow:            { flexDirection: "row", alignItems: "center", paddingVertical: 6, gap: 6 },
+  evLabel:          { flex: 1, fontSize: 12, color: "#374151", fontWeight: "600" },
+  evCount:          { fontSize: 13, fontWeight: "800", minWidth: 24, textAlign: "right" },
+  overlay:          { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" },
+  pickerCard:       { backgroundColor: "#fff", borderRadius: 16, padding: 8, width: 260, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
+  yearRow:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
+  yearTxt:          { fontSize: 15, fontWeight: "800", color: "#0D1B3E" },
+  pickerItem:       { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10 },
+  pickerItemActive: { backgroundColor: "#EFF6FF" },
+  pickerTxt:        { fontSize: 14, color: "#374151", fontWeight: "600" },
+  pickerTxtActive:  { color: "#1565C0", fontWeight: "800" },
 });
 
 export default DriverScorecardScreen;

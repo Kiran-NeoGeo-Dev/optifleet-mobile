@@ -13,8 +13,8 @@ import { fetchFleetDrivers, FleetDriver } from "../../services/fleetService";
 const initials = (name: string) =>
   (name ?? "?").split(" ").slice(0, 2).map(w => w[0]?.toUpperCase() ?? "").join("");
 
-const scoreColor = (s: number) =>
-  s >= 88 ? "#22C55E" : s >= 70 ? "#F59E0B" : "#EF4444";
+const scoreColor = (raw: number) =>
+  raw <= 2 ? "#16A34A" : raw <= 4 ? "#22C55E" : raw <= 6 ? "#EAB308" : raw <= 8 ? "#F97316" : raw <= 10 ? "#EF4444" : "#991B1B";
 
 const AVATAR_COLORS = ["#EDE9FE", "#D1FAE5", "#DBEAFE", "#FCE7F3", "#FFEDD5", "#CFFAFE"];
 const AVATAR_TEXT   = ["#7C3AED", "#10B981", "#3B82F6", "#EC4899", "#F97316", "#06B6D4"];
@@ -62,7 +62,7 @@ const FleetDriversScreen = ({ navigation }: Props) => {
           ? item.photoFront! : `data:image/jpeg;base64,${item.photoFront}`)
       : null;
 
-    const scoreNum = item.safetyScore != null ? Math.round(item.safetyScore) : 100;
+    const scoreNum = item.safetyScore != null ? item.safetyScore : 0;
     return (
       <TouchableOpacity
         style={s.card}
@@ -96,9 +96,9 @@ const FleetDriversScreen = ({ navigation }: Props) => {
         {/* Score + Badge + Arrow */}
         <View style={s.cardRight}>
           <Text style={[s.scoreNum, { color: scoreColor(scoreNum) }]}>
-            {scoreNum}%
+            {scoreNum.toFixed(2)}
           </Text>
-          <Text style={s.safetyLabel}>SAFETY</Text>
+          <Text style={s.safetyLabel}>Monthly Score</Text>
           <View style={s.badgeRow}>
             <View style={[s.badge, item.active ? s.badgeActive : s.badgeInactive]}>
               <View style={[s.badgeDot, { backgroundColor: item.active ? "#22C55E" : "#EF4444" }]} />

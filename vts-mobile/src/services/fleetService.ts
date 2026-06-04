@@ -41,6 +41,7 @@ export interface FleetDriver {
   phoneNumber:  string | null;
   photoFront:   string | null;
   vehicleRegNo: string | null;
+  vehicleModel: string | null;
   tripStatus:   string;
   active:       boolean;
   safetyScore:  number;
@@ -48,27 +49,26 @@ export interface FleetDriver {
 }
 
 export interface EventCounts {
-  smoking:    number;
-  mobile:     number;
-  overspeed:  number;
-  drowsiness: number;
-  seatbelt:   number;
-  kmDriven:   number;
+  smoking:     number;
+  mobile:      number;
+  overspeed:   number;
+  drowsiness:  number;
+  seatbelt:    number;
+  distraction: number;
+  kmDriven:    number;
 }
 
 export interface DriverScorecard {
-  driverId:         number;
-  driverName:       string;
-  phoneNumber:      string | null;
-  photoFront:       string | null;
-  vehicleRegNo:     string | null;
-  period:           string;
-  safetyScore:      number;
-  remark:           string;
-  events:           EventCounts;
-  todayEvents:      EventCounts;
-  yesterdayEvents:  EventCounts;
-  weekEvents:       EventCounts;
+  driverId:     number;
+  driverName:   string;
+  phoneNumber:  string | null;
+  photoFront:   string | null;
+  vehicleRegNo: string | null;
+  vehicleModel: string | null;
+  period:       string;
+  safetyScore:  number;
+  remark:       string;
+  events:       EventCounts;
 }
 
 export const fetchFleetDrivers = async (): Promise<FleetDriver[]> => {
@@ -76,7 +76,7 @@ export const fetchFleetDrivers = async (): Promise<FleetDriver[]> => {
   return res.data;
 };
 
-export const fetchDriverScorecard = async (id: number, period = "today"): Promise<DriverScorecard> => {
-  const res = await api.get<DriverScorecard>(`/api/fleet/drivers/${id}/scorecard?period=${period}`);
+export const fetchDriverScorecard = async (id: number, year: number, month: number): Promise<DriverScorecard> => {
+  const res = await api.get<DriverScorecard>(`/api/fleet/drivers/${id}/scorecard?year=${year}&month=${month}`);
   return res.data;
 };

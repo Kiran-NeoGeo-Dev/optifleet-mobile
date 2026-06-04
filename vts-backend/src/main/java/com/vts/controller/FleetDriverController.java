@@ -17,11 +17,12 @@ import java.util.*;
 public class FleetDriverController {
 
     // Configurable event weights
-    private static final int W_SMOKING   = 2;
-    private static final int W_MOBILE    = 5;
-    private static final int W_OVERSPEED = 5;
-    private static final int W_DROWSY    = 5;
-    private static final int W_SEATBELT  = 5;
+    private static final int W_SMOKING     = 5;
+    private static final int W_MOBILE      = 5;
+    private static final int W_OVERSPEED   = 5;
+    private static final int W_DROWSY      = 5;
+    private static final int W_SEATBELT    = 5;
+    private static final int W_DISTRACTION = 5;
 
     private final DriverService                 driverService;
     private final AssociationRepository         assocRepo;
@@ -50,19 +51,20 @@ public class FleetDriverController {
 
         List<Driver> drivers = driverService.getDriversForCurrentRole();
 
-        Map<Long, String>   driverIdToVehicle = buildDriverIdToVehicleMap(isAdmin, cid);
-        Map<String, String> liveStatus        = fetchLiveStatusMap(isAdmin, cid);
-        Map<String, Double> vehicleScores     = fetchLatestScoresByVehicle("today");
+        Map<Long, String>   driverIdToVehicle    = buildDriverIdToVehicleMap(isAdmin, cid);
+        Map<Long, String>   driverIdToModel      = buildDriverIdToVehicleModelMap(isAdmin, cid);
+        Map<String, String> liveStatus           = fetchLiveStatusMap(isAdmin, cid);
+        Map<String, Double> vehicleScores        = fetchLatestScoresByVehicle("month");
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (Driver d : drivers) {
-            String vehicleReg = driverIdToVehicle.get(d.getId());
-            String tripStatus = vehicleReg != null
+            String vehicleReg   = driverIdToVehicle.get(d.getId());
+            String vehicleModel = driverIdToModel.get(d.getId());
+            String tripStatus   = vehicleReg != null
                     ? liveStatus.getOrDefault(vehicleReg.toUpperCase(), "Parked")
                     : "Parked";
             boolean active = "Moving".equalsIgnoreCase(tripStatus) || "Idle".equalsIgnoreCase(tripStatus);
 
-            // rawScore: lower = safer driver
             double rawScore = vehicleReg != null
                     ? vehicleScores.getOrDefault(vehicleReg.toUpperCase(), 0.0)
                     : 0.0;
@@ -73,50 +75,76 @@ public class FleetDriverController {
             entry.put("phoneNumber",  d.getPhoneNumber());
             entry.put("photoFront",   d.getFrontFaceImage());
             entry.put("vehicleRegNo", vehicleReg);
+            entry.put("vehicleModel", vehicleModel);
             entry.put("tripStatus",   tripStatus);
             entry.put("active",       active);
-            entry.put("safetyScore",  rawScore);   // rawScore 0-N (lower=better)
+            entry.put("safetyScore",  rawScore);
             entry.put("clientId",     d.getClientId());
             result.add(entry);
         }
         return ResponseEntity.ok(result);
     }
 
-    // ── GET /api/fleet/drivers/{id}/scorecard?period=today|yesterday|week ────
+    // ── GET /api/fleet/drivers/{id}/scorecard?period=month&year=2025&month=6 ──
     @GetMapping("/{id}/scorecard")
     public ResponseEntity<Map<String, Object>> getScorecard(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "today") String period) {
+            @RequestParam(defaultValue = "month") String period,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
 
         Driver driver     = driverService.getDriver(id);
-        Map<Long, String> driverIdToVehicle = buildDriverIdToVehicleMap(true, null);
-        String vehicleReg = driverIdToVehicle.get(id);
+        Map<Long, String> driverIdToVehicle      = buildDriverIdToVehicleMap(true, null);
+        Map<Long, String> driverIdToVehicleModel = buildDriverIdToVehicleModelMap(true, null);
+        String vehicleReg   = driverIdToVehicle.get(id);
+        String vehicleModel = driverIdToVehicleModel.get(id);
 
-        Map<String, Object> events      = fetchEventsByVehicle(vehicleReg, period);
-        Map<String, Object> todayEv     = fetchEventsByVehicle(vehicleReg, "today");
-        Map<String, Object> yesterdayEv = fetchEventsByVehicle(vehicleReg, "yesterday");
-        Map<String, Object> weekEv      = fetchEventsByVehicle(vehicleReg, "week");
+        // Resolve year/month for monthly period
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int resolvedYear  = (year  != null) ? year  : now.getYear();
+        int resolvedMonth = (month != null) ? month : now.getMonthValue();
 
+        Map<String, Object> events = fetchEventsByVehicleMonth(vehicleReg, resolvedYear, resolvedMonth);
         double rawScore = calcRawScore(events);
         String remark   = getRemark(rawScore);
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("driverId",        id);
-        result.put("driverName",      driver.getDriverName());
-        result.put("phoneNumber",     driver.getPhoneNumber());
-        result.put("photoFront",      driver.getFrontFaceImage());
-        result.put("vehicleRegNo",    vehicleReg);
-        result.put("period",          period);
-        result.put("safetyScore",     rawScore);   // 0 = perfect, higher = worse
-        result.put("remark",          remark);
-        result.put("events",          events);
-        result.put("todayEvents",     todayEv);
-        result.put("yesterdayEvents", yesterdayEv);
-        result.put("weekEvents",      weekEv);
+        result.put("driverId",     id);
+        result.put("driverName",   driver.getDriverName());
+        result.put("phoneNumber",  driver.getPhoneNumber());
+        result.put("photoFront",   driver.getFrontFaceImage());
+        result.put("vehicleRegNo", vehicleReg);
+        result.put("vehicleModel", vehicleModel);
+        result.put("period",       resolvedYear + "-" + String.format("%02d", resolvedMonth));
+        result.put("safetyScore",  rawScore);
+        result.put("remark",       remark);
+        result.put("events",       events);
         return ResponseEntity.ok(result);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private Map<Long, String> buildDriverIdToVehicleModelMap(boolean isAdmin, Long cid) {
+        Map<Long, String> map = new HashMap<>();
+        try {
+            String sql = isAdmin
+                ? "SELECT a.driver_id, v.vehicle_model FROM public.associations a " +
+                  "JOIN public.vehicles v ON v.id = a.vehicle_id WHERE a.status = true ORDER BY a.id DESC"
+                : "SELECT a.driver_id, v.vehicle_model FROM public.associations a " +
+                  "JOIN public.vehicles v ON v.id = a.vehicle_id " +
+                  "WHERE a.status = true AND a.client_id = ? ORDER BY a.id DESC";
+            List<Map<String, Object>> rows = isAdmin
+                    ? jdbc.queryForList(sql)
+                    : jdbc.queryForList(sql, cid);
+            for (Map<String, Object> row : rows) {
+                Object did   = row.get("driver_id");
+                Object model = row.get("vehicle_model");
+                if (did != null)
+                    map.putIfAbsent(((Number) did).longValue(), model != null ? model.toString() : null);
+            }
+        } catch (Exception ignored) {}
+        return map;
+    }
 
     private Map<Long, String> buildDriverIdToVehicleMap(boolean isAdmin, Long cid) {
         Map<Long, String> map = new HashMap<>();
@@ -154,113 +182,136 @@ public class FleetDriverController {
     }
 
     /**
-     * Fetch rawScore per vehicle for the fleet list display (uses same period logic).
-     * rawScore = (totalWeight / kmDriven) * 100 per spec.
-     * 0 = no violations = best score.
+     * Fetch monthly rawScore per vehicle for the fleet list (current month).
+     * Queries vtelemetry and trips separately to avoid dropping vehicles with no trip join.
      */
     private Map<String, Double> fetchLatestScoresByVehicle(String period) {
         Map<String, Double> scores = new HashMap<>();
         try {
-            String dateFilter = buildDateFilter(period);
-            String sql =
-                "SELECT UPPER(vehicle_id) AS vid, " +
-                "  COALESCE(SUM(CASE WHEN smoking_status  = true                                      THEN " + W_SMOKING   + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN mobile_usage    = true                                      THEN " + W_MOBILE    + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN overspeed       = true                                      THEN " + W_OVERSPEED + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN drowsiness_status = 'Fatigue'                              THEN " + W_DROWSY    + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN seatbelt_status = false                                     THEN " + W_SEATBELT  + " ELSE 0 END),0) AS total_weight," +
-                "  COALESCE(SUM(COALESCE(speed,0) * 0.25), 0) AS km_driven " +
-                "FROM public.vtelemetry WHERE vehicle_id IS NOT NULL AND " + dateFilter +
-                " GROUP BY UPPER(vehicle_id)";
+            java.time.LocalDate now = java.time.LocalDate.now();
+            int y = now.getYear(), m = now.getMonthValue();
 
-            List<Map<String, Object>> rows = jdbc.queryForList(sql);
-            for (Map<String, Object> row : rows) {
-                String vid    = row.get("vid")          != null ? row.get("vid").toString()                         : null;
-                double weight = row.get("total_weight") != null ? ((Number) row.get("total_weight")).doubleValue()  : 0;
-                double km     = row.get("km_driven")    != null ? ((Number) row.get("km_driven")).doubleValue()     : 0;
+            // Step 1: get event weights per vehicle from vtelemetry
+            String eventSql =
+                "SELECT UPPER(vehicle_id) AS vid, " +
+                "  COALESCE(SUM(CASE WHEN smoking_status    = true      THEN " + W_SMOKING     + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN mobile_usage      = true      THEN " + W_MOBILE      + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN overspeed         = true      THEN " + W_OVERSPEED   + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN drowsiness_status = 'Fatigue' THEN " + W_DROWSY      + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN seatbelt_status   = false     THEN " + W_SEATBELT    + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN distraction_status = true     THEN " + W_DISTRACTION + " ELSE 0 END),0) AS total_weight " +
+                "FROM public.vtelemetry " +
+                "WHERE vehicle_id IS NOT NULL " +
+                "  AND EXTRACT(YEAR  FROM created_at) = ? " +
+                "  AND EXTRACT(MONTH FROM created_at) = ? " +
+                "GROUP BY UPPER(vehicle_id)";
+
+            List<Map<String, Object>> eventRows = jdbc.queryForList(eventSql, y, m);
+
+            // Step 2: get km per vehicle from trips
+            String kmSql =
+                "SELECT UPPER(vehicle_id) AS vid, COALESCE(SUM(distance_km), 0) AS km_driven " +
+                "FROM public.trips " +
+                "WHERE vehicle_id IS NOT NULL " +
+                "  AND EXTRACT(YEAR  FROM COALESCE(start_date, created_at)) = ? " +
+                "  AND EXTRACT(MONTH FROM COALESCE(start_date, created_at)) = ? " +
+                "  AND status IN ('Completed', 'In Progress') " +
+                "GROUP BY UPPER(vehicle_id)";
+
+            Map<String, Double> kmByVehicle = new HashMap<>();
+            for (Map<String, Object> row : jdbc.queryForList(kmSql, y, m)) {
+                String vid = row.get("vid") != null ? row.get("vid").toString() : null;
+                double km  = row.get("km_driven") != null ? ((Number) row.get("km_driven")).doubleValue() : 0;
+                if (vid != null) kmByVehicle.put(vid, km);
+            }
+
+            // Step 3: combine
+            for (Map<String, Object> row : eventRows) {
+                String vid    = row.get("vid")          != null ? row.get("vid").toString()                        : null;
+                double weight = row.get("total_weight") != null ? ((Number) row.get("total_weight")).doubleValue() : 0;
+                double km     = vid != null ? kmByVehicle.getOrDefault(vid, 0.0) : 0.0;
                 if (vid != null) scores.put(vid, calcRawFromWeightKm(weight, km));
             }
         } catch (Exception ignored) {}
         return scores;
     }
 
-    private Map<String, Object> fetchEventsByVehicle(String vehicleRegNo, String period) {
+    /**
+     * Fetch event counts + KM driven for a specific year/month.
+     * KM Driven = SUM(public.trips.distance_km) for completed trips in the month.
+     */
+    private Map<String, Object> fetchEventsByVehicleMonth(String vehicleRegNo, int year, int month) {
         if (vehicleRegNo == null) return emptyEvents();
         try {
-            String dateFilter = buildDateFilter(period);
             String sql =
                 "SELECT " +
-                "  COALESCE(SUM(CASE WHEN smoking_status  = true                                      THEN 1 ELSE 0 END),0) AS smoking, " +
-                "  COALESCE(SUM(CASE WHEN mobile_usage    = true                                      THEN 1 ELSE 0 END),0) AS mobile, " +
-                "  COALESCE(SUM(CASE WHEN overspeed       = true                                      THEN 1 ELSE 0 END),0) AS overspeed, " +
-                "  COALESCE(SUM(CASE WHEN drowsiness_status = 'Fatigue'                              THEN 1 ELSE 0 END),0) AS drowsiness, " +
-                "  COALESCE(SUM(CASE WHEN seatbelt_status = false                                     THEN 1 ELSE 0 END),0) AS seatbelt, " +
-                "  COALESCE(SUM(COALESCE(speed,0) * 0.25), 0) AS km_driven " +
-                "FROM public.vtelemetry WHERE UPPER(vehicle_id) = UPPER(?) AND " + dateFilter;
+                "  COALESCE(SUM(CASE WHEN smoking_status    = true      THEN 1 ELSE 0 END),0) AS smoking, " +
+                "  COALESCE(SUM(CASE WHEN mobile_usage      = true      THEN 1 ELSE 0 END),0) AS mobile, " +
+                "  COALESCE(SUM(CASE WHEN overspeed         = true      THEN 1 ELSE 0 END),0) AS overspeed, " +
+                "  COALESCE(SUM(CASE WHEN drowsiness_status = 'Fatigue' THEN 1 ELSE 0 END),0) AS drowsiness, " +
+                "  COALESCE(SUM(CASE WHEN seatbelt_status   = false     THEN 1 ELSE 0 END),0) AS seatbelt, " +
+                "  COALESCE(SUM(CASE WHEN distraction_status = true     THEN 1 ELSE 0 END),0) AS distraction " +
+                "FROM public.vtelemetry " +
+                "WHERE UPPER(vehicle_id) = UPPER(?) " +
+                "  AND EXTRACT(YEAR  FROM created_at) = ? " +
+                "  AND EXTRACT(MONTH FROM created_at) = ?";
 
-            Map<String, Object> row = jdbc.queryForMap(sql, vehicleRegNo);
-            Map<String, Object> ev  = new LinkedHashMap<>();
-            ev.put("smoking",    toLong(row.get("smoking")));
-            ev.put("mobile",     toLong(row.get("mobile")));
-            ev.put("overspeed",  toLong(row.get("overspeed")));
-            ev.put("drowsiness", toLong(row.get("drowsiness")));
-            ev.put("seatbelt",   toLong(row.get("seatbelt")));
-            ev.put("kmDriven",   toDouble(row.get("km_driven")));
+            Map<String, Object> row = jdbc.queryForMap(sql, vehicleRegNo, year, month);
+
+            // KM Driven from trips table — include Completed and In Progress trips
+            // Use COALESCE(start_date, created_at) to handle NULL start_date
+            Double km = jdbc.queryForObject(
+                "SELECT COALESCE(SUM(distance_km), 0) FROM public.trips " +
+                "WHERE UPPER(vehicle_id) = UPPER(?) " +
+                "  AND EXTRACT(YEAR  FROM COALESCE(start_date, created_at)) = ? " +
+                "  AND EXTRACT(MONTH FROM COALESCE(start_date, created_at)) = ? " +
+                "  AND status IN ('Completed', 'In Progress')",
+                Double.class, vehicleRegNo, year, month);
+
+            Map<String, Object> ev = new LinkedHashMap<>();
+            ev.put("smoking",     toLong(row.get("smoking")));
+            ev.put("mobile",      toLong(row.get("mobile")));
+            ev.put("overspeed",   toLong(row.get("overspeed")));
+            ev.put("drowsiness",  toLong(row.get("drowsiness")));
+            ev.put("seatbelt",    toLong(row.get("seatbelt")));
+            ev.put("distraction", toLong(row.get("distraction")));
+            ev.put("kmDriven",    km != null ? km : 0.0);
             return ev;
         } catch (Exception e) {
             return emptyEvents();
         }
     }
 
-    /**
-     * Build date filter using ONLY created_at (database source of truth).
-     * Filters records by their actual event timestamp, not insertion time.
-     * 
-     * Today:     DATE(created_at) = CURRENT_DATE
-     * Yesterday: DATE(created_at) = CURRENT_DATE - INTERVAL '1 day'
-     * Week:      created_at >= DATE_TRUNC('week', CURRENT_DATE)
-     */
-    private String buildDateFilter(String period) {
-        String p = period.toLowerCase();
-        if ("yesterday".equals(p)) {
-            return "DATE(created_at) = CURRENT_DATE - INTERVAL '1 day'";
-        } else if ("week".equals(p)) {
-            return "created_at >= DATE_TRUNC('week', CURRENT_DATE)";
-        } else {
-            // today
-            return "DATE(created_at) = CURRENT_DATE";
-        }
-    }
-
     private Map<String, Object> emptyEvents() {
         Map<String, Object> e = new LinkedHashMap<>();
         e.put("smoking", 0L); e.put("mobile", 0L); e.put("overspeed", 0L);
-        e.put("drowsiness", 0L); e.put("seatbelt", 0L); e.put("kmDriven", 0.0);
+        e.put("drowsiness", 0L); e.put("seatbelt", 0L); e.put("distraction", 0L); e.put("kmDriven", 0.0);
         return e;
     }
 
     private double calcRawScore(Map<String, Object> events) {
-        long   smoking   = toLong(events.get("smoking"));
-        long   mobile    = toLong(events.get("mobile"));
-        long   overspeed = toLong(events.get("overspeed"));
-        long   drowsy    = toLong(events.get("drowsiness"));
-        long   seatbelt  = toLong(events.get("seatbelt"));
-        double km        = toDouble(events.get("kmDriven"));
+        long   smoking     = toLong(events.get("smoking"));
+        long   mobile      = toLong(events.get("mobile"));
+        long   overspeed   = toLong(events.get("overspeed"));
+        long   drowsy      = toLong(events.get("drowsiness"));
+        long   seatbelt    = toLong(events.get("seatbelt"));
+        long   distraction = toLong(events.get("distraction"));
+        double km          = toDouble(events.get("kmDriven"));
 
         double weight = (smoking * W_SMOKING) + (mobile * W_MOBILE)
-                      + (overspeed * W_OVERSPEED) + (drowsy * W_DROWSY) + (seatbelt * W_SEATBELT);
+                      + (overspeed * W_OVERSPEED) + (drowsy * W_DROWSY)
+                      + (seatbelt * W_SEATBELT) + (distraction * W_DISTRACTION);
         return calcRawFromWeightKm(weight, km);
     }
 
     /**
      * rawScore = (weight / km) * 100 per spec.
-     * 0 = perfect driver, higher = more violations per km.
-     * If km = 0 but weight > 0, use weight directly as raw score.
-     * If weight = 0, rawScore = 0 (perfect).
+     * If km = 0 and weight = 0 → 0.0 (perfect).
+     * If km = 0 but weight > 0 → no trip distance data, return 0 (no score possible).
      */
     private double calcRawFromWeightKm(double weight, double km) {
         if (weight == 0) return 0.0;
-        if (km <= 0) return weight; // no distance data, use raw weight
+        if (km <= 0)     return 0.0; // no trip km data for this period — cannot score
         return (weight / km) * 100.0;
     }
 
