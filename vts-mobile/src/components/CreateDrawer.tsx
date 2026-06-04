@@ -6,27 +6,29 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Polygon, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg";
 import { useAuth } from "../hooks/useAuth";
 
 const { width: SW } = Dimensions.get("window");
-const DRAWER_W  = SW * 0.72;
-const CARD_H    = 72;
-const CTA_W     = DRAWER_W * 0.30;  // ~30% of card width
+const DRAWER_W = SW * 0.72;
+const CARD_H   = 60;
+const CTA_W    = 105;
 
+// ── Item definitions ──────────────────────────────────────────────────────────
 const ADMIN_ITEMS = [
-  { label: "Create New User", icon: "person-add-outline",     color: "#9333EA", nav: "CreateClient",    params: undefined },
-  { label: "Add Driver",      icon: "people-outline",         color: "#10B981", nav: "AddDriver",        params: undefined },
-  { label: "Add Vehicle",     icon: "car-outline",            color: "#F97316", nav: "AddVehicle",       params: undefined },
-  { label: "Add Device",      icon: "phone-portrait-outline", color: "#3B82F6", nav: "DeviceManagement", params: { openAddModal: true } },
-  { label: "Add Association", icon: "git-network-outline",    color: "#EC4899", nav: "AssociationList",  params: { openAddModal: true } },
-  { label: "Register Trip",   icon: "clipboard-outline",      color: "#06B6D4", nav: "RegisterTrip",     params: undefined },
+  { label: "Create New User", icon: "person-add-outline",     color: "#7C3AED", bg: "#EDE9FE", nav: "CreateClient",    params: undefined },
+  { label: "Add Driver",      icon: "people-outline",         color: "#16A34A", bg: "#DCFCE7", nav: "AddDriver",        params: undefined },
+  { label: "Add Vehicle",     icon: "car-outline",            color: "#EA580C", bg: "#FFEDD5", nav: "AddVehicle",       params: undefined },
+  { label: "Add Device",      icon: "phone-portrait-outline", color: "#2563EB", bg: "#DBEAFE", nav: "DeviceManagement", params: { openAddModal: true } },
+  { label: "Add Association", icon: "link-outline",           color: "#E11D48", bg: "#FFE4E6", nav: "AssociationList",  params: { openAddModal: true } },
+  { label: "Register Trip",   icon: "clipboard-outline",      color: "#0891B2", bg: "#CFFAFE", nav: "RegisterTrip",     params: undefined },
 ] as const;
 
 const USER_ITEMS = [
-  { label: "Add Driver",      icon: "people-outline",         color: "#10B981", nav: "AddDriver",       params: undefined },
-  { label: "Add Vehicle",     icon: "car-outline",            color: "#F97316", nav: "AddVehicle",      params: undefined },
-  { label: "Add Association", icon: "git-network-outline",    color: "#EC4899", nav: "AssociationList", params: { openAddModal: true } },
-  { label: "Register Trip",   icon: "clipboard-outline",      color: "#06B6D4", nav: "RegisterTrip",    params: undefined },
+  { label: "Add Driver",      icon: "people-outline",      color: "#16A34A", bg: "#DCFCE7", nav: "AddDriver",       params: undefined },
+  { label: "Add Vehicle",     icon: "car-outline",         color: "#EA580C", bg: "#FFEDD5", nav: "AddVehicle",      params: undefined },
+  { label: "Add Association", icon: "link-outline",        color: "#E11D48", bg: "#FFE4E6", nav: "AssociationList", params: { openAddModal: true } },
+  { label: "Register Trip",   icon: "clipboard-outline",   color: "#0891B2", bg: "#CFFAFE", nav: "RegisterTrip",    params: undefined },
 ] as const;
 
 interface Props {
@@ -36,57 +38,70 @@ interface Props {
   isAdmin?:   boolean;
 }
 
-/**
- * SlantedCTA
- *
- * The card has overflow:hidden and a fixed height (CARD_H).
- * We place a full-width tinted block at the right end of the row,
- * then lay a white skewed mask on top of its LEFT edge — creating
- * the diagonal cut effect.  A solid colour strip closes the right edge.
- *
- * Layout (inside card, right-aligned):
- *
- *   ┌──────────────────┬──────────────────────┬───┐
- *   │  white card bg   │  tinted CTA body     │▌  │
- *   │               ╱  │  "Click  >"          │▌  │ ← solid edge
- *   │             ╱    │                      │▌  │
- *   └──────────────────┴──────────────────────┴───┘
- *                  ↑
- *          white skewed mask (position:absolute)
- *          overlaps left portion of tinted body
- */
-const SlantedCTA = ({ color }: { color: string }) => {
-  const EDGE  = 5;
-  const SKEW  = 22;   // px of diagonal overlap into the tinted body
+// ── SVG Diagonal Header Bottom ────────────────────────────────────────────────
+// Produces a true polygon cut: left side starts higher, right side lower
+// matching the screenshot's diagonal from top-right to bottom-left
+const DIAG_H = 48;
+const HeaderDiag = ({ bgColor }: { bgColor: string }) => (
+  <Svg
+    width={DRAWER_W}
+    height={DIAG_H}
+    style={{ display: "flex" }}
+  >
+    {/* Blue trapezoid fills the top part */}
+    <Polygon
+      points={`0,0 ${DRAWER_W},0 ${DRAWER_W},${DIAG_H * 0.35} 0,${DIAG_H}`}
+      fill="#2E86E8"
+    />
+    {/* White polygon creates the diagonal cut into the content area */}
+    <Polygon
+      points={`0,${DIAG_H} ${DRAWER_W},${DIAG_H * 0.35} ${DRAWER_W},${DIAG_H}`}
+      fill={bgColor}
+    />
+  </Svg>
+);
+
+// ── SVG Slanted CTA ───────────────────────────────────────────────────────────
+// True polygon: left edge is diagonal, right edge is straight
+// Shape: top-left diagonal cut, rectangle on right
+const SlantedCTA = ({ color, bg }: { color: string; bg: string }) => {
+  const STRIP = 6;
+  // Polygon points for the tinted CTA area with diagonal left edge:
+  // Start from (SLANT,0) top, (CTA_W-STRIP,0), (CTA_W-STRIP,CARD_H), (0,CARD_H)
+  const SLANT = 22;
+  const pts = `${SLANT},0 ${CTA_W - STRIP},0 ${CTA_W - STRIP},${CARD_H} 0,${CARD_H}`;
   return (
-    <View style={[s.ctaOuter, { width: CTA_W }]}>
-      {/* Full-height tinted fill */}
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: `${color}1A` }]} />
-
-      {/* White skewed mask — same bg as card — creates diagonal left edge */}
-      <View
-        style={[
-          s.ctaMask,
-          { backgroundColor: "#fff", width: SKEW + 10, left: -(SKEW / 2) },
-        ]}
-      />
-
-      {/* "Click >" label, centred in the tinted area (after the mask) */}
-      <View style={[s.ctaContent, { paddingLeft: SKEW / 2 + 4 }]}>
-        <Text style={[s.ctaText, { color }]}>Click</Text>
-        <Ionicons name="chevron-forward" size={13} color={color} />
+    <View style={{ width: CTA_W, height: CARD_H }}>
+      {/* SVG tinted polygon */}
+      <Svg width={CTA_W} height={CARD_H} style={StyleSheet.absoluteFill}>
+        <Polygon points={pts} fill={bg} />
+        {/* Solid right accent strip */}
+        <Polygon
+          points={`${CTA_W - STRIP},0 ${CTA_W},0 ${CTA_W},${CARD_H} ${CTA_W - STRIP},${CARD_H}`}
+          fill={color}
+        />
+      </Svg>
+      {/* Click > label — positioned after the diagonal slant */}
+      <View style={[cta.label, { paddingLeft: SLANT + 4 }]}>
+        <Text style={[cta.txt, { color }]}>Click</Text>
+        <Ionicons name="chevron-forward" size={14} color={color} />
       </View>
-
-      {/* Solid right-edge accent strip */}
-      <View style={[s.ctaEdge, { backgroundColor: color, width: EDGE }]} />
     </View>
   );
 };
 
+const cta = StyleSheet.create({
+  label: { ...StyleSheet.absoluteFillObject, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingRight: 10 },
+  txt:   { fontSize: 14, fontWeight: "800" },
+});
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) => {
   const { logout }  = useAuth();
+  const roleLabel   = isAdmin ? "OptiFleet Admin" : "OptiFleet User";
   const slideX      = useRef(new Animated.Value(-DRAWER_W)).current;
   const bgOpacity   = useRef(new Animated.Value(0)).current;
+  const BG          = "#F0F2F8";
 
   const panResponder = useRef(
     PanResponder.create({
@@ -111,15 +126,14 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
     } else {
       Animated.parallel([
         Animated.timing(slideX,    { toValue: -DRAWER_W, duration: 220, useNativeDriver: true }),
-        Animated.timing(bgOpacity, { toValue: 0,         duration: 200, useNativeDriver: true }),
+        Animated.timing(bgOpacity, { toValue: 0,          duration: 200, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
 
   if (!visible) return null;
 
-  const items = isAdmin ? ADMIN_ITEMS : USER_ITEMS;
-
+  const items    = isAdmin ? ADMIN_ITEMS : USER_ITEMS;
   const navigate = (screen: string, params?: any) => {
     onClose();
     setTimeout(() => navigation.navigate(screen as any, params), 250);
@@ -127,102 +141,95 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* Backdrop */}
       <Animated.View style={[s.backdrop, { opacity: bgOpacity }]}>
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
       </Animated.View>
 
+      {/* Drawer */}
       <Animated.View
         style={[s.drawer, { transform: [{ translateX: slideX }] }]}
         {...panResponder.panHandlers}
       >
-        <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+        <SafeAreaView style={s.safeArea} edges={["bottom"]}>
 
-          {/* ── Blue Gradient Header ── */}
+          {/* Blue gradient header */}
           <LinearGradient
-            colors={["#0A1F44", "#0D3B8E", "#1565C0", "#3B82F6"]}
-            locations={[0, 0.3, 0.7, 1]}
-            start={{ x: 0, y: 0 }}
+            colors={["#0B1D6E", "#1040B0", "#1565C0", "#2E86E8"]}
+            locations={[0, 0.35, 0.7, 1]}
+            start={{ x: 0.1, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={s.header}
           >
-            {/* Dot matrix decoration */}
-            <View style={s.dotGrid}>
-              {[...Array(12)].map((_, i) => (
-                <View key={i} style={s.dot} />
+            {/* Dot matrix */}
+            <View style={s.dotGrid} pointerEvents="none">
+              {[0,1,2,3,4].map(r => (
+                <View key={r} style={s.dotRow}>
+                  {[0,1,2,3,4,5].map(c => <View key={c} style={s.dot} />)}
+                </View>
               ))}
             </View>
+            {/* Diagonal decoration lines */}
+            <View style={s.dline1} /><View style={s.dline2} /><View style={s.dline3} />
 
+            {/* Shield + text */}
             <View style={s.headerRow}>
-              <View style={s.shieldBox}>
-                <Ionicons name="shield-checkmark" size={34} color="#1565C0" />
+              <View style={s.shieldOuter}>
+                <View style={s.shieldInner}>
+                  <Ionicons name="shield-checkmark" size={32} color="#1565C0" />
+                </View>
               </View>
-              <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={s.adminTitle}>OptiFleet Admin</Text>
-                <Text style={s.adminSub}>Fleet Management System</Text>
-                <View style={s.cyanBar} />
+              <View style={s.headerMeta}>
+                <Text style={s.title}>{roleLabel}</Text>
+                <Text style={s.sub}>Fleet Management System</Text>
+                <View style={s.cyan} />
               </View>
             </View>
           </LinearGradient>
 
-          {/*
-           * ── Issue 2: Large Diagonal Section Divider ──
-           *
-           * Strategy: place a View (diagonalZone) directly below the header.
-           * Its top half is filled with the header's bottom blue (#3B82F6).
-           * A white rectangle is rotated ~-8deg so its bottom-left corner
-           * sits at the very bottom-left of the zone while its top-right
-           * extends well beyond the right edge — creating the steep diagonal
-           * seen in the reference (white cuts in from the left, angling down).
-           *)
-          <View style={s.diagZone} pointerEvents="none">
-            <View style={s.diagBlue} />
-            <View style={s.diagWhite} />
-          </View>
+          {/* TRUE SVG diagonal cut divider */}
+          <HeaderDiag bgColor={BG} />
 
-          {/* ── Cards + Footer in ScrollView (no flex:1 gap) ── */}
+          {/* Cards — scrollable */}
           <ScrollView
             style={s.scroll}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={s.scrollContent}
           >
-            {items.map((item) => (
+            {items.map(item => (
               <TouchableOpacity
                 key={item.label}
                 style={s.card}
                 onPress={() => navigate(item.nav, item.params)}
-                activeOpacity={0.75}
+                activeOpacity={0.78}
               >
-                {/* Icon */}
-                <View style={[s.iconBox, { backgroundColor: `${item.color}18` }]}>
-                  <Ionicons name={item.icon as any} size={23} color={item.color} />
+                <View style={[s.iconBox, { backgroundColor: item.bg }]}>
+                  <Ionicons name={item.icon as any} size={24} color={item.color} />
                 </View>
-                {/* Vertical accent line */}
-                <View style={[s.accentLine, { backgroundColor: item.color }]} />
-                {/* Title */}
-                <Text style={s.cardTitle} numberOfLines={1}>{item.label}</Text>
-                {/* Slanted CTA */}
-                <SlantedCTA color={item.color} />
+                <View style={[s.accentBar, { backgroundColor: item.color }]} />
+                <Text style={s.cardLabel} numberOfLines={1}>{item.label}</Text>
+                <SlantedCTA color={item.color} bg={item.bg} />
               </TouchableOpacity>
             ))}
-
-            {/* ── Issue 4 & 5: Footer with card-equivalent top margin ── */}
-            <View style={s.footer}>
-              <View style={s.footerLeft}>
-                <View style={s.profileCircle}>
-                  <Ionicons name="person" size={22} color="#fff" />
-                </View>
-                <View>
-                  <Text style={s.footerName}>OptiFleet Admin</Text>
-                  <Text style={s.footerVer}>Version 1.0.0</Text>
-                </View>
-              </View>
-              <View style={s.footerDiv} />
-              <TouchableOpacity onPress={logout} style={s.logoutRow}>
-                <Ionicons name="log-out-outline" size={21} color="#1565C0" />
-                <Text style={s.logoutText}>Logout</Text>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
+
+          {/* Footer — pinned OUTSIDE ScrollView */}
+          <View style={s.footer}>
+            <View style={s.footerLeft}>
+              <View style={s.avatar}>
+                <Ionicons name="person" size={22} color="#fff" />
+              </View>
+              <View>
+                <Text style={s.footerName}>{roleLabel}</Text>
+                <Text style={s.footerVer}>Version 1.0.0</Text>
+              </View>
+            </View>
+            <View style={s.divider} />
+            <TouchableOpacity onPress={logout} style={s.logoutRow}>
+              <Ionicons name="log-out-outline" size={22} color="#2563EB" />
+              <Text style={s.logoutTxt}>Logout</Text>
+            </TouchableOpacity>
+          </View>
 
         </SafeAreaView>
       </Animated.View>
@@ -231,55 +238,43 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
 };
 
 const s = StyleSheet.create({
-  // ── Shell ──
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 100 },
-  drawer:   { position: "absolute", top: 0, left: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#EEF0F7", borderTopRightRadius: 24, borderBottomRightRadius: 24, shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 20, shadowOffset: { width: 6, height: 0 }, elevation: 20, zIndex: 101 },
+  backdrop:     { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 100 },
+  drawer:       { position: "absolute", top: 0, left: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#F0F2F8", zIndex: 101, elevation: 24, shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 8, height: 0 } },
+  safeArea:     { flex: 1 },
 
-  // ── Header ──
-  header:    { paddingTop: 48, paddingBottom: 30, paddingHorizontal: 22, overflow: "hidden" },
-  dotGrid:   { position: "absolute", top: 22, right: 16, flexDirection: "column", gap: 9 },
-  dot:       { width: 5, height: 5, borderRadius: 2.5, backgroundColor: "rgba(255,255,255,0.22)" },
+  // Header
+  header:    { paddingTop: 52, paddingBottom: 24, paddingHorizontal: 24, overflow: "hidden" },
+  dotGrid:   { position: "absolute", top: 12, right: 8 },
+  dotRow:    { flexDirection: "row", marginBottom: 5 },
+  dot:       { width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(100,180,255,0.4)", marginRight: 5 },
+  dline1:    { position: "absolute", top: 16, right: -25, width: 150, height: 1.5, backgroundColor: "rgba(255,255,255,0.1)", transform: [{ rotate: "38deg" }] },
+  dline2:    { position: "absolute", top: 44, right: -35, width: 170, height: 1.5, backgroundColor: "rgba(255,255,255,0.07)", transform: [{ rotate: "38deg" }] },
+  dline3:    { position: "absolute", top: 72, right: -20, width: 130, height: 1.5, backgroundColor: "rgba(255,255,255,0.05)", transform: [{ rotate: "38deg" }] },
   headerRow: { flexDirection: "row", alignItems: "center" },
-  shieldBox: { width: 66, height: 66, borderRadius: 16, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  adminTitle:{ fontSize: 20, fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
-  adminSub:  { fontSize: 12, color: "rgba(255,255,255,0.82)", marginTop: 3 },
-  cyanBar:   { width: 34, height: 3, backgroundColor: "#06B6D4", borderRadius: 2, marginTop: 9 },
+  shieldOuter:{ width: 72, height: 72, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  shieldInner:{ width: 62, height: 62, borderRadius: 17, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  headerMeta:{ flex: 1, marginLeft: 16 },
+  title:     { fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
+  sub:       { fontSize: 13, color: "rgba(255,255,255,0.80)", marginTop: 4 },
+  cyan:      { width: 36, height: 3, backgroundColor: "#06B6D4", borderRadius: 2, marginTop: 10 },
 
-  // ── Diagonal divider ──
-  // Zone height controls how tall the transition region is.
-  diagZone:  { height: 44, overflow: "hidden" },
-  // Fills the zone with the header's bottom gradient colour
-  diagBlue:  { ...StyleSheet.absoluteFillObject, backgroundColor: "#3B82F6" },
-  // Large white rectangle, rotated so the left side sits at the bottom-left
-  // and the right side rises — matching the reference diagonal cut.
-  // bottom:-8 keeps the bottom of this rect flush with the zone bottom.
-  // left:-30 / right:-30 ensures full width coverage.
-  diagWhite: { position: "absolute", bottom: -12, left: -30, right: -30, height: 58, backgroundColor: "#EEF0F7", transform: [{ rotate: "-7deg" }] },
-
-  // ── Cards ──
+  // Cards
   scroll:       { flex: 1 },
-  scrollContent:{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: 12 },
-  card:         { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, marginVertical: 5, height: CARD_H, overflow: "hidden", elevation: 3, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 7, shadowOffset: { width: 0, height: 2 } },
-  iconBox:      { width: 46, height: 46, borderRadius: 13, alignItems: "center", justifyContent: "center", marginLeft: 12 },
-  accentLine:   { width: 3, height: 28, borderRadius: 2, marginLeft: 11 },
-  cardTitle:    { flex: 1, fontSize: 14, fontWeight: "700", color: "#0D1B3E", marginLeft: 11 },
+  scrollContent:{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 8, gap: 16 },
+  card:         { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 18, height: CARD_H, overflow: "hidden", elevation: 4, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  iconBox:      { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center", marginLeft: 14 },
+  accentBar:    { width: 3, height: 28, borderRadius: 2, marginLeft: 10 },
+  cardLabel:    { flex: 1, fontSize: 15, fontWeight: "700", color: "#0D1B3E", marginLeft: 10 },
 
-  // ── Slanted CTA ──
-  ctaOuter:   { height: CARD_H, flexDirection: "row", alignItems: "center", overflow: "hidden" },
-  ctaMask:    { position: "absolute", top: 0, bottom: 0, transform: [{ skewX: "-14deg" }] },
-  ctaContent: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3 },
-  ctaText:    { fontSize: 13, fontWeight: "700" },
-  ctaEdge:    { position: "absolute", right: 0, top: 0, bottom: 0 },
-
-  // ── Footer ──
-  footer:       { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, marginTop: 5, paddingVertical: 13, paddingHorizontal: 14, elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 1 }, borderWidth: 1, borderColor: "#E8EAF0" },
-  footerLeft:   { flex: 1, flexDirection: "row", alignItems: "center", gap: 11 },
-  profileCircle:{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center" },
-  footerName:   { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
-  footerVer:    { fontSize: 11, color: "#6B7280", marginTop: 2 },
-  footerDiv:    { width: 1, height: 32, backgroundColor: "#E5E7EB", marginHorizontal: 12 },
-  logoutRow:    { flexDirection: "row", alignItems: "center", gap: 5 },
-  logoutText:   { fontSize: 13, fontWeight: "700", color: "#1565C0" },
+  // Footer
+  footer:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F8F9FC", paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: "#E5E7EB" },
+  footerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar:     { width: 46, height: 46, borderRadius: 23, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center" },
+  footerName: { fontSize: 15, fontWeight: "700", color: "#0D1B3E" },
+  footerVer:  { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  divider:    { width: 1, height: 36, backgroundColor: "#D1D5DB", marginHorizontal: 14 },
+  logoutRow:  { flexDirection: "row", alignItems: "center", gap: 6 },
+  logoutTxt:  { fontSize: 15, fontWeight: "700", color: "#2563EB" },
 });
 
 export default CreateDrawer;
