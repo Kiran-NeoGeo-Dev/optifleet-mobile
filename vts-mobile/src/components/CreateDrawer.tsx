@@ -11,7 +11,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const { width: SW } = Dimensions.get("window");
 const DRAWER_W = SW * 0.72;
-const CARD_H   = 60;
+const CARD_H   = 68;
 const CTA_W    = 105;
 
 // ── Item definitions ──────────────────────────────────────────────────────────
@@ -161,14 +161,6 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
             end={{ x: 1, y: 1 }}
             style={s.header}
           >
-            {/* Dot matrix */}
-            <View style={s.dotGrid} pointerEvents="none">
-              {[0,1,2,3,4].map(r => (
-                <View key={r} style={s.dotRow}>
-                  {[0,1,2,3,4,5].map(c => <View key={c} style={s.dot} />)}
-                </View>
-              ))}
-            </View>
             {/* Diagonal decoration lines */}
             <View style={s.dline1} /><View style={s.dline2} /><View style={s.dline3} />
 
@@ -182,8 +174,12 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
               <View style={s.headerMeta}>
                 <Text style={s.title}>{roleLabel}</Text>
                 <Text style={s.sub}>Fleet Management System</Text>
-                <View style={s.cyan} />
               </View>
+            </View>
+            {/* Progress indicator — full width below header content */}
+            <View style={s.progressRow}>
+              <View style={s.progressLine} />
+              <View style={s.progressDot} />
             </View>
           </LinearGradient>
 
@@ -207,7 +203,7 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
                   <Ionicons name={item.icon as any} size={24} color={item.color} />
                 </View>
                 <View style={[s.accentBar, { backgroundColor: item.color }]} />
-                <Text style={s.cardLabel} numberOfLines={1}>{item.label}</Text>
+                <Text style={s.cardLabel}>{item.label}</Text>
                 <SlantedCTA color={item.color} bg={item.bg} />
               </TouchableOpacity>
             ))}
@@ -244,9 +240,6 @@ const s = StyleSheet.create({
 
   // Header
   header:    { paddingTop: 52, paddingBottom: 24, paddingHorizontal: 24, overflow: "hidden" },
-  dotGrid:   { position: "absolute", top: 12, right: 8 },
-  dotRow:    { flexDirection: "row", marginBottom: 5 },
-  dot:       { width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(100,180,255,0.4)", marginRight: 5 },
   dline1:    { position: "absolute", top: 16, right: -25, width: 150, height: 1.5, backgroundColor: "rgba(255,255,255,0.1)", transform: [{ rotate: "38deg" }] },
   dline2:    { position: "absolute", top: 44, right: -35, width: 170, height: 1.5, backgroundColor: "rgba(255,255,255,0.07)", transform: [{ rotate: "38deg" }] },
   dline3:    { position: "absolute", top: 72, right: -20, width: 130, height: 1.5, backgroundColor: "rgba(255,255,255,0.05)", transform: [{ rotate: "38deg" }] },
@@ -257,6 +250,9 @@ const s = StyleSheet.create({
   title:     { fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
   sub:       { fontSize: 13, color: "rgba(255,255,255,0.80)", marginTop: 4 },
   cyan:      { width: 36, height: 3, backgroundColor: "#06B6D4", borderRadius: 2, marginTop: 10 },
+  progressRow:  { flexDirection: "row", alignItems: "center", marginTop: 24 },
+  progressLine: { flex: 1, height: 3, backgroundColor: "#16A34A", borderRadius: 2 },
+  progressDot:  { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFD700", marginLeft: 8 },
 
   // Cards
   scroll:       { flex: 1 },

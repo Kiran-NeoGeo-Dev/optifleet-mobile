@@ -133,6 +133,7 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
           <Text style={s.driver}>Driver: {item.driverName}</Text>
         </View>
         <StatusBadge status={item.tripStatus} />
+        <View style={s.viewBtn}><Text style={s.viewBtnTxt}>View ›</Text></View>
       </TouchableOpacity>
     );
   };
@@ -156,7 +157,7 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
             <TextInput
               style={s.searchInput}
               placeholder="Search by Vehicle No. or Driver..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#6B7280"
               value={query}
               onChangeText={setQuery}
             />
@@ -203,14 +204,16 @@ const s = StyleSheet.create({
   headerRow:   { flexDirection: "row", alignItems: "center", marginTop: 8, marginBottom: 18 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "#fff" },
   headerSub:   { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 },
-  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#EEF2FF", borderRadius: 28, paddingHorizontal: 16, paddingVertical: 11, gap: 10 },
-  searchInput: { flex: 1, fontSize: 14, color: "#0D1B3E" },
+  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 28, paddingHorizontal: 16, paddingVertical: 11, gap: 10, borderWidth: 1, borderColor: "#F0C080" },
+  searchInput: { flex: 1, fontSize: 14, color: "#1F2937" },
   list:        { padding: 14, gap: 10 },
   card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 18, padding: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 14 },
   iconBox:     { width: 60, height: 60, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   cardBody:    { flex: 1 },
   regNo:       { fontSize: 16, fontWeight: "800", color: "#0D1B3E" },
   driver:      { fontSize: 13, color: "#6B7280", marginTop: 4 },
+  viewBtn:     { marginLeft: 6, backgroundColor: "#1565C0", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
+  viewBtnTxt:  { fontSize: 12, fontWeight: "800", color: "#FFFFFF" },
   empty:       { alignItems: "center", marginTop: 60, gap: 12 },
   emptyText:   { fontSize: 15, color: "#9CA3AF" },
 });

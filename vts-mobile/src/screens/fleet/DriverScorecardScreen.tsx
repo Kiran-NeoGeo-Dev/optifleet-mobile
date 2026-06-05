@@ -28,25 +28,27 @@ const remarkToTierIndex = (remark: string) =>
   TIERS.findIndex(t => t.label === remark);
 
 // ── Pie Chart Component ───────────────────────────────────────────────────────
-const PIE  = 200;
+const PIE  = 220;
 const CX   = PIE / 2;
 const CY   = PIE / 2;
-const OR   = 86;   // outer radius
-const IR   = 50;   // inner radius
-const GAP  = 2.5;  // degrees gap between slices
-const EACH = 360 / TIERS.length; // 60° each
+const OR   = 94;   // outer radius — thicker ring
+const IR   = 58;   // inner radius
+const GAP  = 3;    // gap between slices
+const EACH = 360 / TIERS.length;
 
-const makeArc = (startDeg: number, endDeg: number) => {
-  const toXY = (deg: number, r: number) => {
+const makeArc = (startDeg: number, endDeg: number, expand = false) => {
+  const r = expand ? OR + 7 : OR;
+  const ir = expand ? IR - 4 : IR;
+  const toXY = (deg: number, radius: number) => {
     const rad = ((deg - 90) * Math.PI) / 180;
-    return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
+    return { x: CX + radius * Math.cos(rad), y: CY + radius * Math.sin(rad) };
   };
   const s = startDeg + GAP / 2;
   const e = endDeg   - GAP / 2;
   const lg = e - s > 180 ? 1 : 0;
-  const o1 = toXY(s, OR), o2 = toXY(e, OR);
-  const i1 = toXY(e, IR), i2 = toXY(s, IR);
-  return `M${o1.x} ${o1.y} A${OR} ${OR} 0 ${lg} 1 ${o2.x} ${o2.y} L${i1.x} ${i1.y} A${IR} ${IR} 0 ${lg} 0 ${i2.x} ${i2.y}Z`;
+  const o1 = toXY(s, r),  o2 = toXY(e, r);
+  const i1 = toXY(e, ir), i2 = toXY(s, ir);
+  return `M${o1.x} ${o1.y} A${r} ${r} 0 ${lg} 1 ${o2.x} ${o2.y} L${i1.x} ${i1.y} A${ir} ${ir} 0 ${lg} 0 ${i2.x} ${i2.y}Z`;
 };
 
 const ScorePieChart = ({ rawScore, remark }: { rawScore: number; remark: string }) => {
@@ -55,44 +57,59 @@ const ScorePieChart = ({ rawScore, remark }: { rawScore: number; remark: string 
 
   return (
     <View style={{ alignItems: "center" }}>
-      <Svg width={PIE} height={PIE}>
-        {TIERS.map((t, i) => {
-          const start = i * EACH;
-          const path  = makeArc(start, start + EACH);
-          const isActive = i === activeTier;
-          return (
-            <Path
-              key={t.label}
-              d={path}
-              fill={isActive ? t.color : t.color + "28"}
-              stroke="#fff"
-              strokeWidth={2}
-            />
-          );
-        })}
-        {/* Donut hole */}
-        <Circle cx={CX} cy={CY} r={IR - 1} fill="#fff" />
-        {/* Score value */}
-        <SvgText
-          x={CX} y={CY - 5}
-          textAnchor="middle"
-          fontSize="28"
-          fontWeight="900"
-          fill={activeColor}
-        >
-          {rawScore.toFixed(2)}
-        </SvgText>
-        {/* Score label */}
-        <SvgText
-          x={CX} y={CY + 14}
-          textAnchor="middle"
-          fontSize="9"
-          fontWeight="700"
-          fill="#9CA3AF"
-        >
-          SAFETY SCORE
-        </SvgText>
-      </Svg>
+      {/* Outer glow shadow ring */}
+      <View style={pie.chartShadow}>
+        <Svg width={PIE} height={PIE}>
+          {TIERS.map((t, i) => {
+            const start    = i * EACH;
+            const isActive = i === activeTier;
+            return (
+              <Path
+                key={t.label}
+                d={makeArc(start, start + EACH, isActive)}
+                fill={isActive ? t.color : t.color + "35"}
+                stroke={isActive ? t.color : "#fff"}
+                strokeWidth={isActive ? 0 : 1.5}
+                opacity={isActive ? 1 : 0.85}
+              />
+            );
+          })}
+          {/* Soft inner shadow ring */}
+          <Circle cx={CX} cy={CY} r={IR + 2} fill="rgba(0,0,0,0.04)" />
+          {/* White donut hole */}
+          <Circle cx={CX} cy={CY} r={IR - 1} fill="#fff" />
+          {/* Score value */}
+          <SvgText
+            x={CX} y={CY - 8}
+            textAnchor="middle"
+            fontSize="26"
+            fontWeight="900"
+            fill={activeColor}
+          >
+            {rawScore.toFixed(2)}
+          </SvgText>
+          {/* Score label */}
+          <SvgText
+            x={CX} y={CY + 10}
+            textAnchor="middle"
+            fontSize="8"
+            fontWeight="700"
+            fill="#9CA3AF"
+          >
+            SAFETY SCORE
+          </SvgText>
+        </Svg>
+      </View>
+
+      {/* Active tier highlighted chip */}
+      {activeTier >= 0 && (
+        <View style={[pie.activeBadge, { backgroundColor: TIERS[activeTier].color + "18", borderColor: TIERS[activeTier].color }]}>
+          <View style={[pie.dot, { backgroundColor: TIERS[activeTier].color }]} />
+          <Text style={[pie.activeBadgeTxt, { color: TIERS[activeTier].color }]}>
+            {TIERS[activeTier].label}
+          </Text>
+        </View>
+      )}
 
       {/* Tier legend chips */}
       <View style={pie.legend}>
@@ -101,10 +118,7 @@ const ScorePieChart = ({ rawScore, remark }: { rawScore: number; remark: string 
           return (
             <View
               key={t.label}
-              style={[
-                pie.chip,
-                isActive && { borderColor: t.color, borderWidth: 1.5, backgroundColor: t.color + "18" },
-              ]}
+              style={[pie.chip, isActive && { borderColor: t.color, borderWidth: 1.5, backgroundColor: t.color + "15" }]}
             >
               <View style={[pie.dot, { backgroundColor: t.color }]} />
               <Text style={[pie.chipTxt, isActive && { color: t.color, fontWeight: "800" }]}>
@@ -119,10 +133,13 @@ const ScorePieChart = ({ rawScore, remark }: { rawScore: number; remark: string 
 };
 
 const pie = StyleSheet.create({
-  legend:  { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 4 },
-  chip:    { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20, backgroundColor: "#F3F4F6", borderWidth: 1, borderColor: "transparent" },
-  dot:     { width: 7, height: 7, borderRadius: 4 },
-  chipTxt: { fontSize: 11, color: "#6B7280", fontWeight: "600" },
+  chartShadow:   { shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  legend:        { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 10 },
+  chip:          { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: "#F3F4F6", borderWidth: 1, borderColor: "transparent" },
+  activeBadge:   { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, marginBottom: 4, marginTop: 8 },
+  activeBadgeTxt:{ fontSize: 13, fontWeight: "800" },
+  dot:           { width: 7, height: 7, borderRadius: 4 },
+  chipTxt:       { fontSize: 11, color: "#6B7280", fontWeight: "600" },
 });
 
 // ── Remark text ───────────────────────────────────────────────────────────────
@@ -168,6 +185,11 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
   const [selMonth,   setSelMonth]   = useState<MonthName>(MONTHS[now.getMonth()]);
   const [showPicker, setShowPicker] = useState(false);
   const [imgError,   setImgError]   = useState(false);
+  const [tempYear,   setTempYear]   = useState(now.getFullYear());
+  const [tempMonth,  setTempMonth]  = useState<MonthName>(MONTHS[now.getMonth()]);
+
+  const openPicker  = () => { setTempYear(selYear); setTempMonth(selMonth); setShowPicker(true); };
+  const applyPicker = () => { setSelYear(tempYear); setSelMonth(tempMonth); setShowPicker(false); };
 
   const monthNum = (m: MonthName) => MONTHS.indexOf(m) + 1;
 
@@ -231,8 +253,7 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
         <SafeAreaView edges={["top"]}>
           <View style={sc.headerRow}>
             <TouchableOpacity style={sc.backBtn} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={18} color="#fff" />
-              <Text style={sc.backTxt}>Back</Text>
+              <Ionicons name="arrow-back" size={20} color="#fff" />
             </TouchableOpacity>
             <Text style={sc.headerTitle}>DRIVER SCORECARD</Text>
             <View style={{ width: 60 }} />
@@ -279,7 +300,7 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
         <LinearGradient colors={["#0D3B8E", "#1565C0"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={sc.filterCard}>
           <View style={sc.filterRow}>
             <Text style={sc.filterLabel}>Monthly Score</Text>
-            <TouchableOpacity style={sc.dropdown} onPress={() => setShowPicker(true)}>
+            <TouchableOpacity style={sc.dropdown} onPress={openPicker}>
               <Text style={sc.dropdownTxt}>{selMonth} {selYear}</Text>
               <Ionicons name="chevron-down" size={16} color="#1565C0" />
             </TouchableOpacity>
@@ -299,12 +320,12 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
             </View>
           ) : (
             <>
-              <View style={{ alignItems: "center", marginVertical: 16 }}>
+              <View style={{ alignItems: "center", marginVertical: 8 }}>
                 <ScorePieChart rawScore={rawScore} remark={remark} />
-                <Text style={[sc.remarkLabel, { color: remarkColor(remark), marginTop: 12 }]}>
-                  {remark.toUpperCase()}
-                </Text>
               </View>
+              <Text style={[sc.remarkLabel, { color: remarkColor(remark) }]}>
+                {remark.toUpperCase()}
+              </Text>
               <Text style={sc.remarkDesc}>{REMARK_DESC[remark] ?? ""}</Text>
             </>
           )}
@@ -315,34 +336,58 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
 
       </ScrollView>
 
-      {/* Month Picker Modal */}
+      {/* Month-Year Grid Picker Modal */}
       <Modal visible={showPicker} transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
-        <TouchableOpacity style={sc.overlay} onPress={() => setShowPicker(false)} activeOpacity={1}>
+        <View style={sc.overlay}>
           <View style={sc.pickerCard}>
+            {/* Title */}
+            <Text style={sc.pickerTitle}>Select Month</Text>
+
+            {/* Year nav */}
             <View style={sc.yearRow}>
-              <TouchableOpacity onPress={() => setSelYear(y => y - 1)}>
+              <TouchableOpacity style={sc.yearBtn} onPress={() => setTempYear(y => y - 1)}>
                 <Ionicons name="chevron-back" size={20} color="#1565C0" />
               </TouchableOpacity>
-              <Text style={sc.yearTxt}>{selYear}</Text>
+              <Text style={sc.yearTxt}>{tempYear}</Text>
               <TouchableOpacity
-                onPress={() => setSelYear(y => y + 1)}
-                disabled={selYear >= now.getFullYear()}
+                style={sc.yearBtn}
+                onPress={() => setTempYear(y => y + 1)}
+                disabled={tempYear >= now.getFullYear()}
               >
-                <Ionicons name="chevron-forward" size={20} color={selYear >= now.getFullYear() ? "#D1D5DB" : "#1565C0"} />
+                <Ionicons name="chevron-forward" size={20} color={tempYear >= now.getFullYear() ? "#D1D5DB" : "#1565C0"} />
               </TouchableOpacity>
             </View>
-            {MONTHS.map(m => (
-              <TouchableOpacity
-                key={m}
-                style={[sc.pickerItem, selMonth === m && sc.pickerItemActive]}
-                onPress={() => { setSelMonth(m); setShowPicker(false); }}
-              >
-                <Text style={[sc.pickerTxt, selMonth === m && sc.pickerTxtActive]}>{m}</Text>
-                {selMonth === m && <Ionicons name="checkmark" size={16} color="#1565C0" />}
+
+            {/* Month grid — 4 columns × 3 rows */}
+            <View style={sc.monthGrid}>
+              {MONTHS.map(m => {
+                const isSelected = tempMonth === m;
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    style={[sc.monthCell, isSelected && sc.monthCellActive]}
+                    onPress={() => setTempMonth(m)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[sc.monthCellTxt, isSelected && sc.monthCellTxtActive]}>
+                      {m.slice(0, 3)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Action buttons */}
+            <View style={sc.pickerActions}>
+              <TouchableOpacity style={sc.cancelBtn} onPress={() => setShowPicker(false)}>
+                <Text style={sc.cancelBtnTxt}>Cancel</Text>
               </TouchableOpacity>
-            ))}
+              <TouchableOpacity style={sc.applyBtn} onPress={applyPicker}>
+                <Text style={sc.applyBtnTxt}>Apply</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </View>
   );
@@ -352,8 +397,7 @@ const sc = StyleSheet.create({
   root:             { flex: 1, backgroundColor: "#F3F4F6" },
   header:           { paddingHorizontal: 16, paddingBottom: 16 },
   headerRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
-  backBtn:          { flexDirection: "row", alignItems: "center", gap: 6 },
-  backTxt:          { color: "#fff", fontSize: 14, fontWeight: "600" },
+  backBtn:          { width: 42, height: 42, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   headerTitle:      { fontSize: 16, fontWeight: "900", color: "#fff", letterSpacing: 1 },
   scroll:           { padding: 14, gap: 12, paddingBottom: 30 },
   card:             { backgroundColor: "#fff", borderRadius: 20, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
@@ -369,7 +413,7 @@ const sc = StyleSheet.create({
   vehicleReg:       { fontSize: 13, fontWeight: "700", color: "#1565C0" },
   detailRow:        { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   detailTxt:        { fontSize: 13, color: "#6B7280" },
-  filterCard:       { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 0, marginHorizontal: -14 },
+  filterCard:       { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 14, marginHorizontal: 0 },
   filterRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   filterLabel:      { fontSize: 15, color: "#fff", fontWeight: "600" },
   dropdown:         { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
@@ -380,14 +424,22 @@ const sc = StyleSheet.create({
   evRow:            { flexDirection: "row", alignItems: "center", paddingVertical: 6, gap: 6 },
   evLabel:          { flex: 1, fontSize: 12, color: "#374151", fontWeight: "600" },
   evCount:          { fontSize: 13, fontWeight: "800", minWidth: 24, textAlign: "right" },
-  overlay:          { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" },
-  pickerCard:       { backgroundColor: "#fff", borderRadius: 16, padding: 8, width: 260, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
-  yearRow:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
-  yearTxt:          { fontSize: 15, fontWeight: "800", color: "#0D1B3E" },
-  pickerItem:       { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10 },
-  pickerItemActive: { backgroundColor: "#EFF6FF" },
-  pickerTxt:        { fontSize: 14, color: "#374151", fontWeight: "600" },
-  pickerTxtActive:  { color: "#1565C0", fontWeight: "800" },
+  overlay:          { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
+  pickerCard:       { backgroundColor: "#fff", borderRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, width: 320, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, elevation: 12 },
+  pickerTitle:      { fontSize: 16, fontWeight: "800", color: "#0D1B3E", textAlign: "center", marginBottom: 16 },
+  yearRow:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16, backgroundColor: "#F3F4F6", borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12 },
+  yearBtn:          { width: 36, height: 36, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  yearTxt:          { fontSize: 18, fontWeight: "800", color: "#0D1B3E" },
+  monthGrid:        { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
+  monthCell:        { width: "22%", flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 12, backgroundColor: "#F3F4F6" },
+  monthCellActive:  { backgroundColor: "#1565C0" },
+  monthCellTxt:     { fontSize: 13, fontWeight: "700", color: "#374151" },
+  monthCellTxtActive:{ fontSize: 13, fontWeight: "800", color: "#fff" },
+  pickerActions:    { flexDirection: "row", gap: 10 },
+  cancelBtn:        { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: "#E5E7EB", alignItems: "center" },
+  cancelBtnTxt:     { fontSize: 14, fontWeight: "700", color: "#6B7280" },
+  applyBtn:         { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#1565C0", alignItems: "center" },
+  applyBtnTxt:      { fontSize: 14, fontWeight: "800", color: "#fff" },
 });
 
 export default DriverScorecardScreen;

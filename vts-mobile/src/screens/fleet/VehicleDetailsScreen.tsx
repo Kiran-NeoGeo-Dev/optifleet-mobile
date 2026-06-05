@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Image,
   TouchableOpacity, ActivityIndicator,
@@ -38,7 +38,7 @@ const badge = StyleSheet.create({
 const InfoCell = ({ iconName, iconBg, iconColor, label, value }: {
   iconName: string; iconBg: string; iconColor: string; label: string; value: string;
 }) => (
-  <View style={cell.wrap}>
+  <View style={[cell.wrap, { borderLeftColor: iconColor }]}>
     <View style={[cell.iconBox, { backgroundColor: iconBg }]}>
       <Ionicons name={iconName as any} size={22} color={iconColor} />
     </View>
@@ -48,7 +48,7 @@ const InfoCell = ({ iconName, iconBg, iconColor, label, value }: {
 );
 
 const cell = StyleSheet.create({
-  wrap:    { flex: 1, backgroundColor: "#F8FAFF", borderRadius: 14, padding: 14, minWidth: "46%", gap: 6 },
+  wrap:    { flex: 1, backgroundColor: "#F8FAFF", borderRadius: 14, padding: 14, minWidth: "46%", gap: 6, borderLeftWidth: 3 },
   iconBox: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   label:   { fontSize: 10, fontWeight: "700", color: "#6B7280", letterSpacing: 0.5, textTransform: "uppercase" },
   value:   { fontSize: 15, fontWeight: "800", color: "#0D1B3E" },
@@ -72,16 +72,16 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
   const { vehicle } = route.params;
 
   // Live status — refresh from same endpoint Dashboard uses
-  const [liveStatus,  setLiveStatus]  = useState<string>(vehicle.tripStatus);
-  const [driverName,  setDriverName]  = useState<string>(vehicle.driverName);
-  const [speed,       setSpeed]       = useState<number>(vehicle.liveData?.speed ?? 0);
+  const [liveStatus,   setLiveStatus]   = useState<string>(vehicle.tripStatus);
+  const [driverName,   setDriverName]   = useState<string>(vehicle.driverName);
+  const [speed,        setSpeed]        = useState<number>(vehicle.liveData?.speed ?? 0);
 
   // Extra telemetry (RPM, ignition, signal health) from fleet endpoint
-  const [engineRpm,   setEngineRpm]   = useState<number>(0);
-  const [ignition,    setIgnition]    = useState<string>("—");
-  const [signalHealth,setSignalHealth]= useState<string>("—");
-  const [telLoading,  setTelLoading]  = useState(true);
-  const [imgError,    setImgError]    = useState(false);
+  const [engineRpm,    setEngineRpm]    = useState<number>(0);
+  const [ignition,     setIgnition]     = useState<string>("—");
+  const [signalHealth, setSignalHealth] = useState<string>("—");
+  const [telLoading,   setTelLoading]   = useState(true);
+  const [imgError,     setImgError]     = useState(false);
 
   // Refresh live status from the same /api/dashboard/live-vehicles call
   const refreshLive = async () => {
@@ -128,8 +128,11 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
         : `data:image/jpeg;base64,${vehicle.vehiclePhoto}`)
     : null;
 
+  const statusCfg = STATUS_MAP[(liveStatus ?? "").toLowerCase().trim()] ?? STATUS_MAP.parked;
+
   return (
     <View style={s.root}>
+      {/* ── Header ── */}
       <LinearGradient
         colors={["#0A1F44", "#0D3B8E", "#1565C0"]}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -140,9 +143,14 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={20} color="#fff" />
             </TouchableOpacity>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={s.headerTitle}>Vehicle Details</Text>
               <Text style={s.headerSub}>Real-time vehicle information</Text>
+            </View>
+            {/* Live pill */}
+            <View style={s.livePill}>
+              <View style={s.liveDot} />
+              <Text style={s.liveTxt}>LIVE</Text>
             </View>
           </View>
         </SafeAreaView>
@@ -150,47 +158,67 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* Identity card — status from same live feed as Dashboard */}
-        <View style={s.card}>
-          <View style={s.identityRow}>
+        {/* ── Hero Identity Card ── */}
+        <View style={s.heroCard}>
+          {/* Accent bar */}
+          <View style={[s.accentBar, { backgroundColor: statusCfg.dot }]} />
+          <View style={s.heroInner}>
+            {/* Icon */}
             <View style={s.vehicleIconBox}>
-              <Ionicons name="bus-outline" size={30} color="#7C3AED" />
+              <Ionicons name="bus-outline" size={34} color="#7C3AED" />
             </View>
+            {/* Info */}
             <View style={{ flex: 1 }}>
               <Text style={s.regNo}>{vehicle.licensePlate}</Text>
-              <Text style={s.driverName}>Driver: {driverName}</Text>
+              <Text style={s.modelTxt}>{model}</Text>
+              <View style={s.driverRow}>
+                <Ionicons name="person-outline" size={13} color="#6B7280" />
+                <Text style={s.driverName}>{driverName}</Text>
+              </View>
             </View>
-            <StatusBadge status={liveStatus} />
+            {/* Status */}
+            <View style={s.statusCol}>
+              <StatusBadge status={liveStatus} />
+              <Text style={s.speedTxt}>{speed} km/h</Text>
+            </View>
           </View>
         </View>
 
-        {/* Vehicle Photo from vehicles.photo column */}
+        {/* ── Vehicle Photo ── */}
         <View style={s.card}>
-          <Text style={s.sectionTitle}>Vehicle Photo</Text>
+          <Text style={s.sectionTitle}>VEHICLE PHOTO</Text>
           {photoSrc ? (
-            <Image
-              source={{ uri: photoSrc }}
-              style={s.photo}
-              resizeMode="cover"
-              onError={() => setImgError(true)}
-            />
+            <View style={s.photoWrap}>
+              <Image
+                source={{ uri: photoSrc }}
+                style={s.photo}
+                resizeMode="cover"
+                onError={() => setImgError(true)}
+              />
+              <View style={s.photoOverlay}>
+                <Ionicons name="bus-outline" size={14} color="#fff" />
+                <Text style={s.photoOverlayTxt}>{vehicle.licensePlate}</Text>
+              </View>
+            </View>
           ) : (
             <View style={s.photoPlaceholder}>
-              <Ionicons name="bus-outline" size={56} color="#D1D5DB" />
+              <View style={s.photoPlaceholderIcon}>
+                <Ionicons name="bus-outline" size={48} color="#D1D5DB" />
+              </View>
               <Text style={s.photoPlaceholderText}>No Photo Available</Text>
             </View>
           )}
         </View>
 
-        {/* Vehicle Information */}
+        {/* ── Telemetry Grid ── */}
         <View style={s.card}>
-          <Text style={s.sectionTitle}>Vehicle Information</Text>
+          <Text style={s.sectionTitle}>VEHICLE INFORMATION</Text>
           {telLoading ? (
-            <ActivityIndicator color="#1565C0" style={{ marginVertical: 20 }} />
+            <ActivityIndicator color="#1565C0" style={{ marginVertical: 24 }} />
           ) : (
             <View style={s.infoGrid}>
               <View style={s.infoRow}>
-                <InfoCell iconName="person-circle-outline" iconBg="#EDE9FE" iconColor="#7C3AED" label="Model"         value={model} />
+                <InfoCell iconName="car-sport-outline"     iconBg="#EDE9FE" iconColor="#7C3AED" label="Model"         value={model} />
                 <InfoCell iconName="speedometer-outline"   iconBg="#DBEAFE" iconColor="#3B82F6" label="Speed"         value={`${speed} km/h`} />
               </View>
               <View style={s.infoRow}>
@@ -199,7 +227,7 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
               </View>
               <View style={s.infoRow}>
                 <InfoCell iconName="power-outline"         iconBg="#D1FAE5" iconColor="#10B981" label="Ignition"      value={ignition} />
-                <InfoCell iconName="time-outline"          iconBg="#EDE9FE" iconColor="#7C3AED" label="Last Updated"  value="Live" />
+                <InfoCell iconName="radio-outline"         iconBg="#EDE9FE" iconColor="#7C3AED" label="Last Updated"  value="Live" />
               </View>
             </View>
           )}
@@ -212,22 +240,46 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
 
 const s = StyleSheet.create({
   root:                { flex: 1, backgroundColor: "#F3F4F6" },
+
+  // Header
   header:              { paddingHorizontal: 16, paddingBottom: 20 },
   headerRow:           { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8 },
   backBtn:             { width: 42, height: 42, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  headerTitle:         { fontSize: 22, fontWeight: "800", color: "#fff" },
-  headerSub:           { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 },
+  headerTitle:         { fontSize: 20, fontWeight: "800", color: "#fff" },
+  headerSub:           { fontSize: 12, color: "rgba(255,255,255,0.70)", marginTop: 2 },
+  livePill:            { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(34,197,94,0.20)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: "rgba(34,197,94,0.40)" },
+  liveDot:             { width: 7, height: 7, borderRadius: 4, backgroundColor: "#22C55E" },
+  liveTxt:             { fontSize: 10, fontWeight: "800", color: "#22C55E", letterSpacing: 0.8 },
+
   scroll:              { flex: 1 },
-  scrollContent:       { padding: 14, gap: 12 },
+  scrollContent:       { padding: 14, gap: 12, paddingBottom: 30 },
+
+  // Hero card
+  heroCard:            { backgroundColor: "#fff", borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
+  accentBar:           { height: 4, width: "100%" },
+  heroInner:           { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
+  vehicleIconBox:      { width: 64, height: 64, borderRadius: 18, backgroundColor: "#EDE9FE", alignItems: "center", justifyContent: "center" },
+  regNo:               { fontSize: 20, fontWeight: "900", color: "#0D1B3E" },
+  modelTxt:            { fontSize: 13, color: "#1565C0", fontWeight: "700", marginTop: 2 },
+  driverRow:           { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 5 },
+  driverName:          { fontSize: 13, color: "#6B7280", fontWeight: "600" },
+  statusCol:           { alignItems: "flex-end", gap: 8 },
+  speedTxt:            { fontSize: 12, fontWeight: "700", color: "#0D1B3E" },
+
+  // Generic card
   card:                { backgroundColor: "#fff", borderRadius: 20, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  identityRow:         { flexDirection: "row", alignItems: "center", gap: 14 },
-  vehicleIconBox:      { width: 60, height: 60, borderRadius: 16, backgroundColor: "#EDE9FE", alignItems: "center", justifyContent: "center" },
-  regNo:               { fontSize: 18, fontWeight: "800", color: "#0D1B3E" },
-  driverName:          { fontSize: 13, color: "#6B7280", marginTop: 4 },
-  sectionTitle:        { fontSize: 16, fontWeight: "800", color: "#0D1B3E", marginBottom: 14 },
-  photo:               { width: "100%", height: 200, borderRadius: 14 },
-  photoPlaceholder:    { height: 180, backgroundColor: "#F3F4F6", borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 10 },
-  photoPlaceholderText:{ fontSize: 14, color: "#9CA3AF" },
+  sectionTitle:        { fontSize: 12, fontWeight: "800", color: "#1565C0", letterSpacing: 1.2, marginBottom: 14, textTransform: "uppercase" },
+
+  // Photo
+  photoWrap:           { borderRadius: 14, overflow: "hidden", position: "relative" },
+  photo:               { width: "100%", height: 210 },
+  photoOverlay:        { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(10,31,68,0.55)", paddingHorizontal: 14, paddingVertical: 8 },
+  photoOverlayTxt:     { fontSize: 13, fontWeight: "700", color: "#fff" },
+  photoPlaceholder:    { height: 160, backgroundColor: "#F3F4F6", borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 10, borderWidth: 1.5, borderColor: "#E5E7EB", borderStyle: "dashed" },
+  photoPlaceholderIcon:{ width: 72, height: 72, borderRadius: 36, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  photoPlaceholderText:{ fontSize: 13, color: "#9CA3AF", fontWeight: "600" },
+
+  // Telemetry grid
   infoGrid:            { gap: 10 },
   infoRow:             { flexDirection: "row", gap: 10 },
 });

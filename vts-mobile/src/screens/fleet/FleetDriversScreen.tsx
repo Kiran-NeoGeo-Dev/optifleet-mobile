@@ -108,7 +108,7 @@ const FleetDriversScreen = ({ navigation }: Props) => {
             </View>
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#D1D5DB" style={{ marginLeft: 4 }} />
+        <View style={s.viewBtn}><Text style={s.viewBtnTxt}>View ›</Text></View>
       </TouchableOpacity>
     );
   };
@@ -128,7 +128,7 @@ const FleetDriversScreen = ({ navigation }: Props) => {
             <TextInput
               style={s.searchInput}
               placeholder="Search by driver name, phone or vehicle..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#6B7280"
               value={query}
               onChangeText={setQuery}
             />
@@ -150,8 +150,22 @@ const FleetDriversScreen = ({ navigation }: Props) => {
             onPress={() => setActiveTab(tab)}
             activeOpacity={0.75}
           >
-            <Text style={[s.tabTxt, activeTab === tab && s.tabTxtActive]}>
-              {tab === "active" ? `Active (${activeCount})` : `Inactive (${inactiveCount})`}
+            <Text>
+              {tab === "active" ? (
+                <Text>
+                  <Text style={activeTab === "active" ? s.tabTxtActiveGreen : s.tabTxt}>Active </Text>
+                  <Text style={s.tabCount}>(</Text>
+                  <Text style={activeTab === "active" ? s.tabCountNumActive : s.tabCountNumActive}>{activeCount}</Text>
+                  <Text style={s.tabCount}>)</Text>
+                </Text>
+              ) : (
+                <Text>
+                  <Text style={activeTab === "inactive" ? s.tabTxtActiveRed : s.tabTxt}>Inactive </Text>
+                  <Text style={s.tabCount}>(</Text>
+                  <Text style={activeTab === "inactive" ? s.tabCountNumInactive : s.tabCountNumInactive}>{inactiveCount}</Text>
+                  <Text style={s.tabCount}>)</Text>
+                </Text>
+              )}
             </Text>
             {activeTab === tab && <View style={s.tabLine} />}
           </TouchableOpacity>
@@ -191,14 +205,19 @@ const s = StyleSheet.create({
   header:      { paddingHorizontal: 16, paddingBottom: 22 },
   headerTitle: { fontSize: 24, fontWeight: "800", color: "#fff", marginTop: 8 },
   headerSub:   { fontSize: 13, color: "rgba(255,255,255,0.75)", marginTop: 2, marginBottom: 16 },
-  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 28, paddingHorizontal: 16, paddingVertical: 11, gap: 10 },
-  searchInput: { flex: 1, fontSize: 14, color: "#0D1B3E" },
+  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 28, paddingHorizontal: 16, paddingVertical: 11, gap: 10, borderWidth: 1, borderColor: "#F0C080" },
+  searchInput: { flex: 1, fontSize: 14, color: "#1F2937" },
   tabs:        { flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
   tab:         { flex: 1, alignItems: "center", paddingVertical: 14, position: "relative" },
   tabActive:   {},
   tabTxt:      { fontSize: 14, fontWeight: "600", color: "#6B7280" },
-  tabTxtActive:{ color: "#1565C0", fontWeight: "800" },
-  tabLine:     { position: "absolute", bottom: 0, left: "15%", right: "15%", height: 3, backgroundColor: "#1565C0", borderRadius: 2 },
+  tabTxtActive:      { color: "#1565C0", fontWeight: "800" },
+  tabTxtActiveGreen: { fontSize: 14, fontWeight: "800", color: "#16A34A" },
+  tabTxtActiveRed:   { fontSize: 14, fontWeight: "800", color: "#DC2626" },
+  tabCount:          { fontSize: 14, fontWeight: "700", color: "#0F172A" },
+  tabCountNumActive: { fontSize: 14, fontWeight: "800", color: "#15803D" },
+  tabCountNumInactive:{ fontSize: 14, fontWeight: "800", color: "#B91C1C" },
+  tabLine:     { position: "absolute", bottom: 0, left: "15%", right: "15%", height: 3, backgroundColor: "#FFD700", borderRadius: 2 },
   list:        { padding: 14, gap: 10 },
   card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 18, padding: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 12 },
   avatar:      { width: 56, height: 56, borderRadius: 28 },
@@ -209,8 +228,10 @@ const s = StyleSheet.create({
   infoRow:     { flexDirection: "row", alignItems: "center", gap: 5 },
   infoText:    { fontSize: 12, color: "#6B7280" },
   cardRight:   { alignItems: "flex-end", gap: 4 },
-  scoreNum:    { fontSize: 20, fontWeight: "900" },
-  safetyLabel: { fontSize: 9, fontWeight: "700", color: "#9CA3AF", letterSpacing: 0.5 },
+  scoreNum:    { fontSize: 20, fontWeight: "700" },
+  safetyLabel: { fontSize: 11, fontWeight: "700", color: "#374151", letterSpacing: 0.3 },
+  viewBtn:     { marginLeft: 6, backgroundColor: "#1565C0", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
+  viewBtnTxt:  { fontSize: 12, fontWeight: "800", color: "#FFFFFF" },
   badgeRow:    { flexDirection: "row" },
   badge:       { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, gap: 4 },
   badgeActive: { backgroundColor: "#DCFCE7" },

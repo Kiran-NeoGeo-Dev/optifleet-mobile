@@ -86,9 +86,9 @@ const Stack = createNativeStackNavigator<AdminStackParamList>();
 const TAB_ITEMS = [
   { key: "Dashboard",     label: "Dashboard",       icon: "pulse-outline"         },
   { key: "Management",    label: "Management",      icon: "grid-outline"          },
+  { key: "FleetDrivers",  label: "Fleet Drivers",   icon: "people-outline"        },
   { key: "Create",        label: "Create",          icon: "add"                   },
   { key: "FleetVehicles", label: "Fleet Vehicles",  icon: "bus-outline"           },
-  { key: "FleetDrivers",  label: "Fleet Drivers",   icon: "people-outline"        },
   { key: "Notifications", label: "Notifications",   icon: "notifications-outline" },
   { key: "Profile",       label: "Profile",         icon: "person-outline"        },
 ] as const;
