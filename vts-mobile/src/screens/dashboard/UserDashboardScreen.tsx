@@ -14,6 +14,7 @@ import { fetchDashboardSummary, fetchLiveVehicles } from "../../services/dashboa
 import { fetchNotifications } from "../../services/notificationService";
 import { Toast, useToast } from "../../components/Toast";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import LottieView from "lottie-react-native";
 import * as Speech from "expo-speech";
 import type { LiveVehicle } from "../../types/Dashboard";
 
@@ -138,6 +139,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [enablePrompt, setEnablePrompt] = useState(false);
   const notifEnabled = useRef(false);
+  const lottieRef   = useRef<LottieView>(null);
   const webViewRef   = useRef<any>(null);
   const mapInitRef   = useRef(false);
   const { toast, showToast, hideToast } = useToast();
@@ -148,6 +150,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
     if (enablePrompt) {
       sheetAnim.setValue(SH);
       Animated.spring(sheetAnim, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start();
+      setTimeout(() => lottieRef.current?.play(), 100);
     }
   }, [enablePrompt]);
 
@@ -210,15 +213,37 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.blueDk} />
-      <LinearGradient
-        colors={[C.blueDk, C.blueMd, C.blue]}
-        locations={[0, 0.45, 1]}
-        start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}
-        style={s.headerBg}
-      />
+      {/* ── Single curved header ── */}
+      <View style={s.headerBg}>
+        <LinearGradient
+          colors={[C.blueDk, C.blueMd, C.blue]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <SafeAreaView style={s.safe} edges={["top"]}>
         <View style={s.header}>
+          <View style={s.headerTopRow}>
+            <TouchableOpacity style={s.avatarBtn} onPress={() => navigation.navigate("ClientDetails")}>
+              <Ionicons name="person-circle-outline" size={44} color={C.white} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.notifBtn} onPress={() => navigation.navigate("Notifications")}>
+              <LottieView
+                source={require("../../../assets/animations/notification1.json")}
+                autoPlay
+                loop
+                style={s.notifLottie}
+              />
+              {alerts.length > 0 && (
+                <View style={s.badge}>
+                  <Text style={s.badgeTxt}>{alerts.length > 99 ? "99+" : String(alerts.length)}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
           <Text style={s.title}>OptiFleet User Dashboard</Text>
+          <Text style={s.subtitle}>Smart Fleet Management & Analytics Platform</Text>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
@@ -233,11 +258,20 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
           {/* ── Live Fleet Map ── */}
           <View style={s.section}>
             <View style={s.sectionHeader}>
+              <LottieView
+                source={require("../../../assets/animations/vehicle_animation.json")}
+                autoPlay
+                loop
+                style={{ width: 36, height: 36, marginRight: 6 }}
+              />
               <Text style={s.sectionTitle}>Live Fleet Map</Text>
               <View style={s.liveBadge}>
                 <View style={s.liveDot} />
                 <Text style={s.liveTxt}>Live</Text>
               </View>
+              <TouchableOpacity style={s.expandBtn} onPress={() => navigation.navigate("FullMap")} activeOpacity={0.8}>
+                <Ionicons name="expand-outline" size={16} color={C.blue} />
+              </TouchableOpacity>
             </View>
             <View style={s.mapBox}>
               <WebView
@@ -255,7 +289,12 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
           {/* ── Trip Management ── */}
           <TouchableOpacity style={s.tripCard} onPress={() => navigation.navigate("TripManagement")} activeOpacity={0.82}>
             <View style={s.tripIconBox}>
-              <Ionicons name="location-outline" size={26} color={C.blue} />
+              <LottieView
+                source={require("../../../assets/animations/notification2.json")}
+                autoPlay
+                loop
+                style={s.tripLottie}
+              />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.tripTitle}>Trip Management</Text>
@@ -267,6 +306,12 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
           {/* ── Recent Fleet Alerts (live only) ── */}
           <View style={s.section}>
             <View style={s.sectionHeader}>
+              <LottieView
+                source={require("../../../assets/animations/announcement.json")}
+                autoPlay
+                loop
+                style={{ width: 36, height: 36, marginRight: 6 }}
+              />
               <Text style={s.sectionTitle}>Recent Fleet Alerts</Text>
               <TouchableOpacity onPress={() => navigation.navigate("Notifications" as any)}>
                 <Text style={{ fontSize: 12, fontWeight: "700", color: C.blue }}>View all {">"}</Text>
@@ -319,9 +364,13 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
           <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={closeSheet} />
           <Animated.View style={[s.promptSheet, { transform: [{ translateY: sheetAnim }] }]}>
             <View style={s.sheetBellBg}>
-              <View style={s.sheetBellEmoji}>
-                <Text style={{ fontSize: 72 }}>🔔</Text>
-              </View>
+              <LottieView
+                ref={lottieRef}
+                source={require("../../../assets/animations/notification.json")}
+                autoPlay
+                loop
+                style={s.lottie}
+              />
             </View>
             <Text style={s.promptTitle}>Don't miss Fleet updates!</Text>
             <Text style={s.promptSub}>Enable notifications for real-time fleet updates and alerts.</Text>
@@ -349,12 +398,18 @@ const sc = StyleSheet.create({
 
 const s = StyleSheet.create({
   root:       { flex: 1, backgroundColor: C.bg },
-  headerBg:   { position: "absolute", top: 0, left: 0, right: 0, height: 140 },
+  headerBg:   { position: "absolute", top: 0, left: -40, right: -40, height: 280, overflow: "hidden", borderBottomLeftRadius: 180, borderBottomRightRadius: 180 },
   safe:       { flex: 1 },
-  header:     { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
-  greeting:   { fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: "500" },
-  title:      { fontSize: 18, fontWeight: "800", color: C.white, marginTop: 2 },
-  logoutBtn:  { width: 38, height: 38, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  header:       { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 60 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  avatarBtn:    { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  notifBtn:     { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  notifLottie:  { width: 44, height: 44 },
+  badge:        { position: "absolute", top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.white },
+  badgeTxt:     { fontSize: 9, fontWeight: "800", color: "#fff" },
+  title:        { fontSize: 26, fontWeight: "800", color: C.white, letterSpacing: 0.3, marginBottom: 6 },
+  subtitle:     { fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: "500", letterSpacing: 0.2 },
+  logoutBtn:    { width: 38, height: 38, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   scroll:     { paddingHorizontal: 14, paddingBottom: 80 },
   cardsGrid:  { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 4 },
   section:    { backgroundColor: C.card, borderRadius: 18, padding: 14, marginBottom: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
@@ -363,10 +418,12 @@ const s = StyleSheet.create({
   liveBadge:  { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#DCFCE7", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
   liveDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" },
   liveTxt:    { fontSize: 11, fontWeight: "700", color: "#16A34A" },
+  expandBtn:  { width: 30, height: 30, borderRadius: 8, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginLeft: 8 },
   mapBox:     { height: 200, borderRadius: 12, overflow: "hidden" },
   map:        { flex: 1 },
   tripCard:   { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 18, padding: 16, marginBottom: 14, gap: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   tripIconBox:{ width: 52, height: 52, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  tripLottie: { width: 44, height: 44 },
   tripTitle:  { fontSize: 15, fontWeight: "800", color: C.text },
   tripSub:    { fontSize: 12, color: C.muted, marginTop: 2 },
   alertRow:   { flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#F0F0F0", gap: 10 },
@@ -381,16 +438,14 @@ const s = StyleSheet.create({
   emptyAlertsTxt: { fontSize: 13, color: C.muted },
   promptOverlay:  { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   promptSheet:    { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingBottom: 36, paddingTop: 0, alignItems: "center" },
-  sheetBellBg:    { width: "112%", alignItems: "center", justifyContent: "center", backgroundColor: "#1565C0", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 28, paddingTop: 28, marginBottom: 20 },
-  sheetBellEmoji: { position: "relative", alignItems: "center", justifyContent: "center" },
-  sheetBadge:     { position: "absolute", top: 2, right: -10, width: 22, height: 22, borderRadius: 11, backgroundColor: "#22C55E", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#fff" },
-  sheetBadgeTxt:  { fontSize: 11, fontWeight: "800", color: "#fff" },
+  sheetBellBg:    { width: "112%", alignItems: "center", justifyContent: "center", backgroundColor: "#1565C0", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 12, paddingTop: 12, marginBottom: 20 },
+  lottie:         { width: 220, height: 220 },
   promptTitle:   { fontSize: 20, fontWeight: "800", color: C.text, textAlign: "center", marginBottom: 8 },
-  promptSub:     { fontSize: 14, color: C.muted, textAlign: "center", lineHeight: 20, marginBottom: 24 },
+  promptSub:     { fontSize: 14, color: "#1E3A5F", textAlign: "center", lineHeight: 20, marginBottom: 24 },
   promptBtns:    { flexDirection: "row", gap: 12, width: "100%" },
-  promptGhost:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: "#F3F4F6", alignItems: "center" },
-  promptGhostTxt:{ fontSize: 15, fontWeight: "700", color: "#374151" },
-  promptSolid:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.blueDk, alignItems: "center" },
+  promptGhost:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: "#FEE2E2", alignItems: "center" },
+  promptGhostTxt:{ fontSize: 15, fontWeight: "700", color: "#EF4444" },
+  promptSolid:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: "#22C55E", alignItems: "center" },
   promptSolidTxt:{ fontSize: 15, fontWeight: "700", color: "#fff" },
 });
 

@@ -58,12 +58,6 @@ public class Driver {
     @Column(name = "comments", columnDefinition = "text")
     private String comments;
 
-    @Column(name = "otp", length = 6)
-    private String otp;
-
-    @Column(name = "otp_expiry")
-    private LocalDateTime otpExpiry;
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getDriverName() { return driverName; }
@@ -96,8 +90,4 @@ public class Driver {
     public void setPassword(String password) { this.password = password; }
     public String getComments() { return comments; }
     public void setComments(String comments) { this.comments = comments; }
-    public String getOtp() { return otp; }
-    public void setOtp(String otp) { this.otp = otp; }
-    public LocalDateTime getOtpExpiry() { return otpExpiry; }
-    public void setOtpExpiry(LocalDateTime otpExpiry) { this.otpExpiry = otpExpiry; }
 }

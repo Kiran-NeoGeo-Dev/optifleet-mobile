@@ -19,20 +19,37 @@ const EditDriverPhotosScreen = ({ route, navigation }: Props) => {
   const [rightFace, setRightFace] = useState<string | null>(null);
   const [loading, setLoading]     = useState(false);
   const [modal, setModal]         = useState<{ visible: boolean; setter: (v: string | null) => void }>({ visible: false, setter: () => {} });
+  const [preview, setPreview]     = useState<{ visible: boolean; base64: string; uri: string; setter: (v: string | null) => void }>({
+    visible: false, base64: "", uri: "", setter: () => {},
+  });
   const { toast, showToast, hideToast } = useToast();
 
   const openModal = (setter: (v: string | null) => void) => setModal({ visible: true, setter });
+  const closePreview = () => setPreview({ visible: false, base64: "", uri: "", setter: () => {} });
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") { showToast("Camera permission is required to take photos.", "warning"); return; }
-    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], base64: true, quality: 0.6, allowsEditing: true, aspect: [1,1] });
-    if (!r.canceled && r.assets[0].base64) modal.setter(r.assets[0].base64);
+    // Capture raw — no forced crop, same as DriverPhotosScreen
+    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], base64: true, quality: 0.4, allowsEditing: false });
     setModal({ visible: false, setter: () => {} });
+    if (!r.canceled && r.assets[0].base64) {
+      // Open preview modal — user chooses Save, Crop, or Discard
+      setPreview({ visible: true, base64: r.assets[0].base64, uri: r.assets[0].uri, setter: modal.setter });
+    }
+  };
+
+  const cropPhoto = async () => {
+    const r = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"], base64: true, quality: 0.4,
+      allowsEditing: true, aspect: [1, 1], exif: false,
+    });
+    if (!r.canceled && r.assets[0].base64) preview.setter(r.assets[0].base64);
+    closePreview();
   };
 
   const fromGallery = async () => {
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], base64: true, quality: 0.6, allowsEditing: true, aspect: [1,1] });
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], base64: true, quality: 0.4, allowsEditing: false, selectionLimit: 1, exif: false });
     if (!r.canceled && r.assets[0].base64) modal.setter(r.assets[0].base64);
     setModal({ visible: false, setter: () => {} });
   };
@@ -116,6 +133,42 @@ const EditDriverPhotosScreen = ({ route, navigation }: Props) => {
           </View>
         </View>
       </Modal>
+
+      {/* Photo Preview Modal — same as DriverPhotosScreen: Save / Crop / Discard */}
+      <Modal visible={preview.visible} transparent animationType="fade" onRequestClose={closePreview}>
+        <View style={s.modalBg}>
+          <View style={[s.modalBox, { width: "88%", paddingHorizontal: 16, paddingBottom: 16 }]}>
+            <Text style={s.modalTitle}>Photo Preview</Text>
+            <Image
+              source={{ uri: `data:image/jpeg;base64,${preview.base64}` }}
+              style={s.previewLarge}
+              resizeMode="cover"
+            />
+            <Text style={s.previewHint}>Save to upload as-is, or Crop to adjust the image.</Text>
+            <View style={s.previewBtnRow}>
+              <TouchableOpacity
+                style={[s.previewBtn, s.previewBtnSave]}
+                onPress={() => { preview.setter(preview.base64); closePreview(); }}
+                activeOpacity={0.82}
+              >
+                <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                <Text style={s.previewBtnTxt}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.previewBtn, s.previewBtnCrop]}
+                onPress={cropPhoto}
+                activeOpacity={0.82}
+              >
+                <Ionicons name="crop-outline" size={18} color="#1565C0" />
+                <Text style={[s.previewBtnTxt, { color: "#1565C0" }]}>Crop</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={closePreview} style={{ marginTop: 8, paddingVertical: 8 }}>
+              <Text style={{ color: "#EF4444", fontSize: 14, fontWeight: "700", textAlign: "center" }}>Discard</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -146,6 +199,14 @@ const s = StyleSheet.create({
   modalTitle:   { fontSize: 17, fontWeight: "800", color: "#0D1B3E", marginBottom: 20 },
   modalBtn:     { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, width: "100%", justifyContent: "center" },
   modalBtnTxt:  { fontSize: 15, color: "#0D1B3E", fontWeight: "600" },
+  // Preview modal
+  previewLarge:    { width: "100%", height: 240, borderRadius: 14, marginBottom: 10 },
+  previewHint:     { fontSize: 12, color: "#4A6A8E", textAlign: "center", marginBottom: 14 },
+  previewBtnRow:   { flexDirection: "row", gap: 10, width: "100%" },
+  previewBtn:      { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 13, borderRadius: 12, borderWidth: 1 },
+  previewBtnSave:  { backgroundColor: "#16A34A", borderColor: "#14532D" },
+  previewBtnCrop:  { backgroundColor: "rgba(21,101,192,0.08)", borderColor: "rgba(21,101,192,0.35)" },
+  previewBtnTxt:   { fontSize: 14, fontWeight: "700", color: "#fff" },
 });
 
 export default EditDriverPhotosScreen;

@@ -66,7 +66,16 @@ const Field = ({
   </View>
 );
 
-// ── Screen ─────────────────────────────────────────────────────────────────────
+// Maps raw backend/DB error messages to clean user-friendly messages
+const friendlyError = (raw: string): string => {
+  const r = (raw || "").toLowerCase();
+  if (r.includes("phone") || r.includes("unique_phone"))     return "Phone number already exists. Please use a different phone number.";
+  if (r.includes("email") || r.includes("unique_email"))     return "Email address already exists. Please use a different email address.";
+  if (r.includes("username") || r.includes("unique_username")) return "Username already exists. Please choose another username.";
+  if (r.includes("duplicate") || r.includes("unique") || r.includes("already exists")) return "A user with these details already exists. Please check and try again.";
+  if (r.includes("constraint"))                              return "This information conflicts with an existing record. Please review your inputs.";
+  return "Failed to create user. Please try again.";
+};
 const CreateClientScreen = ({ navigation }: Props) => {
   const [username,        setUsername]        = useState("");
   const [password,        setPassword]        = useState("");
@@ -113,7 +122,8 @@ const CreateClientScreen = ({ navigation }: Props) => {
       showToast("User account created successfully!", "success");
       setTimeout(() => navigation.goBack(), 1800);
     } catch (e: any) {
-      showToast(e?.response?.data?.error || "Failed to create user.", "error");
+      const raw = e?.response?.data?.error || e?.response?.data?.message || "";
+      showToast(friendlyError(raw), "error");
     } finally {
       setLoading(false);
     }

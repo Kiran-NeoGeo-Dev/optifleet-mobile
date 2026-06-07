@@ -184,39 +184,28 @@ const TripManagementScreen = ({ navigation }: Props) => {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#0A1F44" />
 
-      {/* Gradient background — same as LoginScreen */}
       <LinearGradient
         colors={["#0A1F44", "#0D3B8E", "#1565C0"]}
-        locations={[0, 0.5, 1]}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Subtle grid lines */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {[0.15, 0.30, 0.50, 0.70].map((t, i) => (
-          <View key={`h${i}`} style={[styles.gridH, { top: `${t * 100}%` as any }]} />
-        ))}
-      </View>
-
-      <SafeAreaView style={styles.safe}>
-
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Trip Management</Text>
-            <Text style={styles.headerSub}>Monitor & manage all trips</Text>
-          </View>
-          <View style={styles.headerRight}>
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.headerGrad}
+      >
+        <SafeAreaView edges={["top"]}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitle}>Trip Management</Text>
+              <Text style={styles.headerSub}>Monitor & manage all trips</Text>
+            </View>
             <View style={styles.tripCountBadge}>
               <Text style={styles.tripCountTxt}>{filtered.length}</Text>
             </View>
           </View>
-        </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
 
         {/* ── Search + Filter bar ── */}
         <View style={styles.searchCard}>
@@ -227,7 +216,7 @@ const TripManagementScreen = ({ navigation }: Props) => {
             <TextInput
               style={styles.searchInput}
               placeholder="Search Trip ID, Vehicle, Driver..."
-              placeholderTextColor="#6B7280"
+              placeholderTextColor="#9C6B30"
               value={search}
               onChangeText={setSearch}
             />
@@ -251,7 +240,7 @@ const TripManagementScreen = ({ navigation }: Props) => {
         {/* ── List ── */}
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#fff" />
+            <ActivityIndicator size="large" color="#1565C0" />
             <Text style={styles.loadingTxt}>Loading trips...</Text>
           </View>
         ) : (
@@ -312,22 +301,21 @@ const TripManagementScreen = ({ navigation }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  root:             { flex: 1 },
+  root:             { flex: 1, backgroundColor: "#F3F4F6" },
   safe:             { flex: 1 },
-  gridH:            { position: "absolute", left: 0, right: 0, height: 1, backgroundColor: "rgba(255,255,255,0.025)" },
 
   // Header
-  header:           { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16, gap: 12 },
+  headerGrad:       { paddingHorizontal: 16, paddingBottom: 16 },
+  header:           { flexDirection: "row", alignItems: "center", paddingTop: 10, gap: 12 },
   backBtn:          { width: 42, height: 42, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.15)", borderWidth: 1, borderColor: "rgba(255,255,255,0.20)", alignItems: "center", justifyContent: "center" },
   headerCenter:     { flex: 1 },
   headerTitle:      { fontSize: 22, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
   headerSub:        { fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 2 },
-  headerRight:      { alignItems: "center", justifyContent: "center" },
   tripCountBadge:   { backgroundColor: "rgba(255,255,255,0.20)", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   tripCountTxt:     { fontSize: 16, fontWeight: "800", color: "#fff" },
 
   // Search card
-  searchCard:       { marginHorizontal: 16, marginBottom: 14, flexDirection: "row", gap: 10 },
+  searchCard:       { marginHorizontal: 16, marginTop: 14, marginBottom: 14, flexDirection: "row", gap: 10 },
   searchBox:        { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 11, gap: 10, borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", shadowColor: "#7A4010", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   searchIconBox:    { width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(120,70,20,0.12)", alignItems: "center", justifyContent: "center" },
   searchInput:      { flex: 1, fontSize: 14, color: "#2B1D0E", fontWeight: "500" },
@@ -372,15 +360,15 @@ const styles = StyleSheet.create({
 
   // States
   center:           { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60 },
-  loadingTxt:       { color: "rgba(255,255,255,0.70)", marginTop: 12, fontSize: 14 },
+  loadingTxt:       { color: "#6B7280", marginTop: 12, fontSize: 14 },
   emptyBox:         { alignItems: "center", paddingTop: 60 },
-  emptyIconBox:     { width: 80, height: 80, borderRadius: 24, backgroundColor: "#F6F1E9", alignItems: "center", justifyContent: "center", marginBottom: 16, shadowColor: "#0A1F44", shadowOpacity: 0.12, shadowRadius: 10, elevation: 4 },
-  emptyTitle:       { fontSize: 18, fontWeight: "800", color: "#fff", marginBottom: 6 },
-  emptySubtitle:    { fontSize: 13, color: "rgba(255,255,255,0.60)" },
+  emptyIconBox:     { width: 80, height: 80, borderRadius: 24, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginBottom: 16, elevation: 2 },
+  emptyTitle:       { fontSize: 18, fontWeight: "800", color: "#0D1B3E", marginBottom: 6 },
+  emptySubtitle:    { fontSize: 13, color: "#6B7280" },
 
   // Modal
   modalOverlay:     { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", alignItems: "center" },
-  pickerBox:        { backgroundColor: "#F6F1E9", borderRadius: 24, padding: 8, minWidth: SW * 0.75, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, elevation: 16 },
+  pickerBox:        { backgroundColor: "#FFFFFF", borderRadius: 24, padding: 8, minWidth: SW * 0.75, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, elevation: 16 },
   pickerTitle:      { fontSize: 14, fontWeight: "800", color: "#0D1B3E", paddingHorizontal: 16, paddingVertical: 12, letterSpacing: 0.3 },
   pickerItem:       { flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 16, borderRadius: 14, gap: 8 },
   pickerItemActive: { backgroundColor: "#DBEAFE" },

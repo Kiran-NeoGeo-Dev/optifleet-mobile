@@ -1,5 +1,5 @@
 // Production — public IP, works on any network (mobile data, WiFi, etc.)
-export const API_BASE_URL = "http://192.168.1.199:8083";
+export const API_BASE_URL = "http://10.11.239.165:8083";
 
 //export const API_BASE_URL = "http://192.168.1.199:8880";
 
@@ -30,6 +30,5 @@ export const ENDPOINTS = {
   NOTIFICATIONS: "/api/notifications",
   LIVE_VEHICLES: "/api/dashboard/live-vehicles",
   FLEET_VEHICLES: "/api/fleet/vehicles",
-  DRIVER_OTP_GENERATE: "/api/driver-otp/generate",
-  DRIVER_OTP_VERIFY:   "/api/driver-otp/verify",
+  DRIVER_LOGIN: "/api/driver-auth/login",
 };

@@ -6,6 +6,8 @@ import com.vts.entity.Driver;
 import com.vts.exception.ResourceNotFoundException;
 import com.vts.repository.DriverRepository;
 import com.vts.security.JwtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -18,6 +20,8 @@ import java.util.List;
 
 @Service
 public class DriverService {
+
+    private static final Logger log = LoggerFactory.getLogger(DriverService.class);
 
     private final DriverRepository driverRepository;
     private final AuthService      authService;
@@ -55,11 +59,13 @@ public class DriverService {
         } else if (client != null) {
             driver.setClientId(client.getId());
         }
-        // Auto-set username = phone number for OTP-based login
+        // username = mobile number, password = date of birth (DD/MM/YYYY)
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             driver.setUsername(request.getPhoneNumber().trim());
         }
-        driver.setPassword(null);
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            driver.setPassword(request.getPassword().trim());
+        }
         driver.setCreatedAt(LocalDateTime.now());
         driver.setUpdatedAt(LocalDateTime.now());
         return driverRepository.save(driver);
@@ -94,7 +100,9 @@ public class DriverService {
                     return getDriver(driverId);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.warn("[DriverService] Could not resolve driverId from token: {}", e.getMessage());
+        }
         throw new ResourceNotFoundException("Driver profile not found");
     }
 
@@ -109,9 +117,12 @@ public class DriverService {
         if (request.getClientId() != null) {
             driver.setClientId(request.getClientId());
         }
-        // Keep username in sync with phone number
+        // Keep username in sync with phone number, password = date of birth (DD/MM/YYYY)
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             driver.setUsername(request.getPhoneNumber().trim());
+        }
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            driver.setPassword(request.getPassword().trim());
         }
         driver.setUpdatedAt(LocalDateTime.now());
         return driverRepository.save(driver);

@@ -44,6 +44,9 @@ const C = {
 const fmt = (d: Date) =>
   `${String(d.getDate()).padStart(2,"0")} / ${String(d.getMonth()+1).padStart(2,"0")} / ${d.getFullYear()}`;
 
+const fmtDob = (d: Date) =>
+  `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+
 // ── Reusable field ────────────────────────────────────────────────────────────
 const Field = ({
   icon, label, value, onChangeText, placeholder,
@@ -94,6 +97,9 @@ const AddDriverScreen = ({ navigation }: Props) => {
   const [aadharNumber,   setAadharNumber]   = useState("");
   const [licenseExpiry,  setLicenseExpiry]  = useState<Date | null>(null);
   const [showPicker,     setShowPicker]     = useState(false);
+  const [dob,            setDob]            = useState("");  // DD/MM/YYYY typed
+  const [dobDate,        setDobDate]        = useState<Date>(new Date(1990, 0, 1));
+  const [showDobPicker,  setShowDobPicker]  = useState(false);
   const [status,         setStatus]         = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [comments,       setComments]       = useState("");
   const [errors,         setErrors]         = useState<Record<string, string>>({});
@@ -133,9 +139,12 @@ const AddDriverScreen = ({ navigation }: Props) => {
     else if (licenseExpiry <= today)
       e.licenseExpiry = "Expiry date must be a future date.";
 
-    if (!comments.trim())
-      e.comments = "Please add a short note or comment.";
-    else if (comments.trim().length > 250)
+    if (!dob.trim())
+      e.dob = "Date of birth is required.";
+    else if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dob.trim()))
+      e.dob = "Enter date in DD/MM/YYYY format.";
+
+    if (comments.trim().length > 250)
       e.comments = "Maximum 250 characters allowed.";
 
     setErrors(e);
@@ -160,6 +169,8 @@ const AddDriverScreen = ({ navigation }: Props) => {
         aadharNumber:  aadharNumber.trim(),
         licenseExpiry: licenseExpiry ? licenseExpiry.toISOString() : undefined,
         status,
+        username:      phoneNumber.trim(),
+        password:      dob.trim(),  // Date of Birth in DD/MM/YYYY — stored as password
         clientId:      selectedClient?.id,
       },
     });
@@ -235,6 +246,10 @@ const AddDriverScreen = ({ navigation }: Props) => {
                 placeholder="e.g. Ravi Kumar"
                 autoCapitalize="words" error={errors.driverName}
               />
+
+              {/* ── LOGIN CREDENTIALS: Mobile Number + Date of Birth ── */}
+              <Text style={s.sectionTitle}>Login Credentials</Text>
+
               <Field
                 icon="call-outline" label="Mobile Number"
                 value={phoneNumber}
@@ -242,6 +257,53 @@ const AddDriverScreen = ({ navigation }: Props) => {
                 placeholder="10-digit number starting with 6, 7, 8 or 9"
                 keyboardType="phone-pad" maxLength={10} error={errors.phoneNumber}
               />
+
+              <View style={s.fieldWrap}>
+                <Text style={s.fieldLabel}>Date of Birth</Text>
+                <View style={[s.field, !!errors.dob && s.fieldErr]}>
+                  <View style={s.iconWrap}>
+                    <Ionicons name="gift-outline" size={17} color={C.purple} />
+                  </View>
+                  <TextInput
+                    style={[s.input, { flex: 1 }]}
+                    value={dob}
+                    onChangeText={t => {
+                      const digits = t.replace(/\D/g, "");
+                      let formatted = digits;
+                      if (digits.length > 2)  formatted = digits.slice(0,2) + "/" + digits.slice(2);
+                      if (digits.length > 4)  formatted = digits.slice(0,2) + "/" + digits.slice(2,4) + "/" + digits.slice(4,8);
+                      setDob(formatted);
+                      clrErr("dob");
+                    }}
+                    placeholder="DD/MM/YYYY"
+                    placeholderTextColor={C.placeholder}
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowDobPicker(true)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{ paddingRight: 4 }}
+                  >
+                    <Ionicons name="calendar" size={20} color={C.purple} />
+                  </TouchableOpacity>
+                </View>
+                {!!errors.dob && (
+                  <Text style={s.errTxt}><Ionicons name="alert-circle-outline" size={12} /> {errors.dob}</Text>
+                )}
+              </View>
+              {showDobPicker && (
+                <DateTimePicker
+                  value={dobDate}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  maximumDate={new Date()}
+                  onChange={(_, d) => {
+                    setShowDobPicker(false);
+                    if (d) { setDobDate(d); setDob(fmtDob(d)); clrErr("dob"); }
+                  }}
+                />
+              )}
 
               <Text style={s.sectionTitle}>License & Identity</Text>
 
@@ -294,6 +356,8 @@ const AddDriverScreen = ({ navigation }: Props) => {
                 />
               )}
 
+              {/* ── License Expiry only — DOB moved up to Login Credentials ── */}
+
               <Text style={s.sectionTitle}>Status & Notes</Text>
 
               {/* Status toggle */}
@@ -318,10 +382,10 @@ const AddDriverScreen = ({ navigation }: Props) => {
               </View>
 
               <Field
-                icon="chatbubble-outline" label="Notes / Comments"
+                icon="chatbubble-outline" label="Notes / Comments (Optional)"
                 value={comments}
                 onChangeText={t => { setComments(t); clrErr("comments"); }}
-                placeholder="Add a short note about this driver (e.g. experienced, city routes)"
+                placeholder="Add a short note about this driver (optional)"
                 multiline maxLength={250} error={errors.comments}
               />
 

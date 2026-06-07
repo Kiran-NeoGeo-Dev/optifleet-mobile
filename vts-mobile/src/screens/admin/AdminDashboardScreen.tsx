@@ -6,6 +6,7 @@ import {
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
 import { useAuth } from "../../hooks/useAuth";
@@ -13,13 +14,16 @@ import { fetchDashboardSummary, fetchLiveVehicles } from "../../services/dashboa
 import { fetchNotifications } from "../../services/notificationService";
 import { Toast, useToast } from "../../components/Toast";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import LottieView from "lottie-react-native";
 import * as Speech from "expo-speech";
 import type { LiveVehicle } from "../../types/Dashboard";
 
 const C = {
-  bg:     "#0A1F6E",
+  bg:     "#F0F4FF",
   card:   "#FFFFFF",
   blue:   "#1A3CC8",
+  blueDk: "#0A1F44",
+  blueMd: "#0D3B8E",
   white:  "#FFFFFF",
   text:   "#0D1B3E",
   muted:  "#6B7280",
@@ -149,6 +153,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [enablePrompt, setEnablePrompt] = useState(false);
   const notifEnabled  = useRef(false);
+  const lottieRef    = useRef<LottieView>(null);
   const webViewRef    = useRef<any>(null);
   const mapInitRef    = useRef(false);
   const { toast, showToast, hideToast } = useToast();
@@ -159,6 +164,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
     if (enablePrompt) {
       sheetAnim.setValue(SH);
       Animated.spring(sheetAnim, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start();
+      setTimeout(() => lottieRef.current?.play(), 100);
     }
   }, [enablePrompt]);
 
@@ -220,12 +226,39 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-
+      <StatusBar barStyle="light-content" backgroundColor={C.blueDk} />
+      {/* ── Single curved header ── */}
+      <View style={s.headerBg}>
+        <LinearGradient
+          colors={[C.blueDk, C.blueMd, C.blue]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
       <SafeAreaView style={s.safe} edges={["top"]}>
         {/* ── Header ── */}
         <View style={s.header}>
+          <View style={s.headerTopRow}>
+            <TouchableOpacity style={s.avatarBtn} onPress={() => navigation.navigate("AdminProfile")}>
+              <Ionicons name="person-circle-outline" size={44} color={C.white} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.notifBtn} onPress={() => navigation.navigate("Notifications")}>
+              <LottieView
+                source={require("../../../assets/animations/notification1.json")}
+                autoPlay
+                loop
+                style={s.notifLottie}
+              />
+              {alerts.length > 0 && (
+                <View style={s.badge}>
+                  <Text style={s.badgeTxt}>{alerts.length > 99 ? "99+" : String(alerts.length)}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
           <Text style={s.title}>OptiFleet Admin Dashboard</Text>
+          <Text style={s.subtitle}>Fleet Management & Analytics Platform</Text>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
@@ -245,6 +278,12 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
           {/* ── Live Fleet Map ── */}
           <View style={s.card}>
             <View style={s.cardHeader}>
+              <LottieView
+                source={require("../../../assets/animations/vehicle_animation.json")}
+                autoPlay
+                loop
+                style={{ width: 36, height: 36, marginRight: 6 }}
+              />
               <Text style={s.cardTitle}>Live Fleet Map</Text>
               <View style={s.liveBadge}>
                 <View style={s.liveDot} />
@@ -272,7 +311,12 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
           {/* ── Trip Management ── */}
           <TouchableOpacity style={s.tripCard} onPress={() => navigation.navigate("TripManagement")} activeOpacity={0.82}>
             <View style={s.tripIconBox}>
-              <Ionicons name="location-outline" size={26} color={C.blue} />
+              <LottieView
+                source={require("../../../assets/animations/notification2.json")}
+                autoPlay
+                loop
+                style={s.tripLottie}
+              />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.tripTitle}>Trip Management</Text>
@@ -284,6 +328,12 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
           {/* ── Recent Fleet Alerts (live only) ── */}
           <View style={s.card}>
             <View style={s.cardHeader}>
+              <LottieView
+                source={require("../../../assets/animations/announcement.json")}
+                autoPlay
+                loop
+                style={{ width: 36, height: 36, marginRight: 6 }}
+              />
               <Text style={s.cardTitle}>Recent Fleet Alerts</Text>
               <TouchableOpacity onPress={() => navigation.navigate("Notifications" as any)}>
                 <Text style={s.viewAllTxt}>View all {">"}</Text>
@@ -340,9 +390,13 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
           <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={closeSheet} />
           <Animated.View style={[s.promptSheet, { transform: [{ translateY: sheetAnim }] }]}>
             <View style={s.sheetBellBg}>
-              <View style={s.sheetBellEmoji}>
-                <Text style={{ fontSize: 72 }}>🔔</Text>
-              </View>
+              <LottieView
+                ref={lottieRef}
+                source={require("../../../assets/animations/notification.json")}
+                autoPlay
+                loop
+                style={s.lottie}
+              />
             </View>
             <Text style={s.promptTitle}>Don't miss Fleet updates!</Text>
             <Text style={s.promptSub}>Enable notifications for real-time fleet updates and alerts.</Text>
@@ -373,10 +427,18 @@ const sc = StyleSheet.create({
 
 const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: C.bg },
+  headerBg: { position: "absolute", top: 0, left: -40, right: -40, height: 280, overflow: "hidden", borderBottomLeftRadius: 180, borderBottomRightRadius: 180 },
   safe:   { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
-  title:  { fontSize: 18, fontWeight: "800", color: C.white },
-  logoutBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  header:       { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 60 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  avatarBtn:    { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  notifBtn:     { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  notifLottie:  { width: 44, height: 44 },
+  badge:        { position: "absolute", top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.white },
+  badgeTxt:     { fontSize: 9, fontWeight: "800", color: "#fff" },
+  title:        { fontSize: 26, fontWeight: "800", color: C.white, letterSpacing: 0.3, marginBottom: 6 },
+  subtitle:     { fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: "500", letterSpacing: 0.2 },
+  logoutBtn:    { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
   scroll: { paddingHorizontal: 14, paddingBottom: 80 },
   grid:   { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
   card:       { backgroundColor: C.card, borderRadius: 18, padding: 16, marginBottom: 14, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
@@ -389,6 +451,7 @@ const s = StyleSheet.create({
   mapBox:     { height: 210, borderRadius: 12, overflow: "hidden" },
   tripCard:    { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 18, padding: 16, marginBottom: 14, gap: 14, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   tripIconBox: { width: 52, height: 52, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  tripLottie:  { width: 44, height: 44 },
   tripTitle:   { fontSize: 15, fontWeight: "800", color: C.text },
   tripSub:     { fontSize: 12, color: C.muted, marginTop: 2 },
   viewLink:    { fontSize: 13, fontWeight: "700", color: C.blue },
@@ -405,16 +468,14 @@ const s = StyleSheet.create({
   emptyTxt:    { fontSize: 13, color: C.muted },
   promptOverlay:  { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   promptSheet:    { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingBottom: 36, paddingTop: 0, alignItems: "center" },
-  sheetBellBg:    { width: "112%", alignItems: "center", justifyContent: "center", backgroundColor: "#1A3CC8", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 28, paddingTop: 28, marginBottom: 20 },
-  sheetBellEmoji: { position: "relative", alignItems: "center", justifyContent: "center" },
-  sheetBadge:     { position: "absolute", top: 2, right: -10, width: 22, height: 22, borderRadius: 11, backgroundColor: "#22C55E", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#fff" },
-  sheetBadgeTxt:  { fontSize: 11, fontWeight: "800", color: "#fff" },
+  sheetBellBg:    { width: "112%", alignItems: "center", justifyContent: "center", backgroundColor: "#1A3CC8", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 12, paddingTop: 12, marginBottom: 20 },
+  lottie:         { width: 220, height: 220 },
   promptTitle:   { fontSize: 20, fontWeight: "800", color: C.text, textAlign: "center", marginBottom: 8 },
-  promptSub:     { fontSize: 14, color: C.muted, textAlign: "center", lineHeight: 20, marginBottom: 24 },
+  promptSub:     { fontSize: 14, color: "#1E3A5F", textAlign: "center", lineHeight: 20, marginBottom: 24 },
   promptBtns:    { flexDirection: "row", gap: 12, width: "100%" },
-  promptGhost:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: "#F3F4F6", alignItems: "center" },
-  promptGhostTxt:{ fontSize: 15, fontWeight: "700", color: "#374151" },
-  promptSolid:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.bg, alignItems: "center" },
+  promptGhost:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: "#FEE2E2", alignItems: "center" },
+  promptGhostTxt:{ fontSize: 15, fontWeight: "700", color: "#EF4444" },
+  promptSolid:   { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: "#22C55E", alignItems: "center" },
   promptSolidTxt:{ fontSize: 15, fontWeight: "700", color: "#fff" },
 });
 

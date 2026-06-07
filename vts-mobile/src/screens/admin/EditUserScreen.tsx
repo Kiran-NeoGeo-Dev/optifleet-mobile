@@ -6,6 +6,17 @@ import { fetchUser, updateUser } from "../../services/adminService";
 import { FormScreen, GlassCard, GlassField, GlassButton } from "../../components/GlassUI";
 import { Toast, useToast } from "../../components/Toast";
 
+// Maps raw backend/DB error messages to clean user-friendly messages
+const friendlyError = (raw: string): string => {
+  const r = (raw || "").toLowerCase();
+  if (r.includes("phone") || r.includes("unique_phone"))       return "Phone number already exists. Please use a different phone number.";
+  if (r.includes("email") || r.includes("unique_email"))       return "Email address already exists. Please use a different email address.";
+  if (r.includes("username") || r.includes("unique_username")) return "Username already exists. Please choose another username.";
+  if (r.includes("duplicate") || r.includes("unique") || r.includes("already exists")) return "A user with these details already exists. Please check and try again.";
+  if (r.includes("constraint"))                                return "This information conflicts with an existing record. Please review your inputs.";
+  return "Failed to update user. Please try again.";
+};
+
 type Props = NativeStackScreenProps<AdminStackParamList, "EditUser">;
 
 const EditUserScreen = ({ route, navigation }: Props) => {
@@ -60,8 +71,8 @@ const EditUserScreen = ({ route, navigation }: Props) => {
       showToast("User updated successfully.", "success");
       setTimeout(() => navigation.goBack(), 1500);
     } catch (e: any) {
-      const msg = e?.response?.data?.error || "Failed to update user. Please try again.";
-      showToast(msg, "error");
+      const raw = e?.response?.data?.error || e?.response?.data?.message || "";
+      showToast(friendlyError(raw), "error");
     } finally {
       setLoading(false);
     }
@@ -86,7 +97,7 @@ const EditUserScreen = ({ route, navigation }: Props) => {
 
         {/* ── Login Credentials Section ── */}
         <GlassField icon="person-add-outline"    label="New Username (optional)"  value={newUsername}     onChangeText={setNewUsername}     placeholder="Enter new username"  autoCapitalize="none" autoCorrect={false} />
-        <GlassField icon="lock-open-outline"     label="New Password (optional)"  value={newPassword}     onChangeText={setNewPassword}     placeholder="Min 6 characters"   secureTextEntry autoCapitalize="none" />
+        <GlassField icon="lock-open-outline"     label="New Password"  value={newPassword}     onChangeText={setNewPassword}     placeholder="Min 6 characters"   secureTextEntry autoCapitalize="none" />
         <GlassField icon="lock-closed-outline"   label="Confirm Password"         value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter new password" secureTextEntry autoCapitalize="none" />
 
         <GlassButton label="Save Changes" onPress={onSave} loading={loading} color="#16A34A" icon="checkmark" />

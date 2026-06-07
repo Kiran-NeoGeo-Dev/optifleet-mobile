@@ -14,26 +14,24 @@ import { fetchMyDriverProfile } from "../../services/driverService";
 type Props = NativeStackScreenProps<DriverStackParamList, "DriverProfile">;
 
 const C = {
-  bgDark:   "#0A1F44",
-  bgMid:    "#0D3B8E",
-  bgBright: "#1565C0",
-  cream:    "#F6F1E9",
-  white:    "#FFFFFF",
-  accent:   "#38BDF8",
-  muted:    "rgba(255,255,255,0.55)",
+  bg:     "#F0F4FF",
+  blueDk: "#0A1F44",
+  blueMd: "#0D3B8E",
+  blue:   "#1565C0",
+  white:  "#FFFFFF",
 };
 
 const INFO_ROWS = [
-  { key: "username",      label: "USERNAME",       icon: "person-outline",       color: "#7B2CBF" },
-  { key: "phoneNumber",   label: "PHONE NUMBER",   icon: "call-outline",         color: "#22C55E" },
-  { key: "aadharNumber",  label: "AADHAAR NUMBER", icon: "card-outline",         color: "#3B82F6" },
-  { key: "licenseNumber", label: "LICENSE NUMBER", icon: "id-card-outline",      color: "#F59E0B" },
-  { key: "licenseExpiry", label: "LICENSE EXPIRY", icon: "calendar-outline",     color: "#EC4899" },
-  { key: "comments",      label: "COMMENTS",       icon: "chatbubble-outline",   color: "#0D9488" },
+  { key: "username",      label: "Username",       icon: "person-outline",     iconBg: "#EDE7F6", iconColor: "#7B2CBF" },
+  { key: "phoneNumber",   label: "Phone Number",   icon: "call-outline",       iconBg: "#E8F5E9", iconColor: "#2E7D32" },
+  { key: "aadharNumber",  label: "Aadhaar Number", icon: "card-outline",       iconBg: "#E3F2FD", iconColor: "#1565C0" },
+  { key: "licenseNumber", label: "License Number", icon: "id-card-outline",    iconBg: "#FFF3E0", iconColor: "#F57C00" },
+  { key: "licenseExpiry", label: "License Expiry", icon: "calendar-outline",   iconBg: "#FCE4EC", iconColor: "#C2185B" },
+  { key: "comments",      label: "Comments",       icon: "chatbubble-outline", iconBg: "#E0F2F1", iconColor: "#0D9488" },
 ] as const;
 
 const DriverProfileScreen = ({ navigation }: Props) => {
-  const [driver, setDriver] = useState<Driver | null>(null);
+  const [driver,  setDriver]  = useState<Driver | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,79 +47,79 @@ const DriverProfileScreen = ({ navigation }: Props) => {
     if (!v) return "—";
     if (key === "licenseExpiry") {
       try {
-        const d = new Date(v);
-        return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+        return new Date(v).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
       } catch { return v; }
     }
     return String(v);
   };
 
+  const initials = (driver?.driverName || "D")
+    .split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+
+  const hasPhoto = !!driver?.frontFaceImage && driver.frontFaceImage.length > 4;
+
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bgDark} />
-      <LinearGradient
-        colors={[C.bgDark, C.bgMid, C.bgBright]}
-        locations={[0, 0.5, 1]}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+      <StatusBar barStyle="light-content" backgroundColor={C.blueDk} />
 
-      {/* Dot grid decoration */}
-      {[...Array(6)].map((_, i) => (
-        <View key={i} style={[s.dot, { top: 60 + i * 18, right: 18 + (i % 2) * 10, opacity: 0.12 + i * 0.02 }]} />
-      ))}
+      {/* Curved blue header background — same as AdminProfileScreen */}
+      <View style={s.headerBg}>
+        <LinearGradient
+          colors={[C.blueDk, C.blueMd, C.blue]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
 
-      <SafeAreaView style={s.safe}>
-        {/* Header */}
-        <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={22} color={C.white} />
-          </TouchableOpacity>
-          <View style={s.headerCenter}>
-            <Text style={s.headerTitle}>Driver Profile</Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-
+      <SafeAreaView style={s.safe} edges={["top"]}>
         {loading ? (
-          <View style={s.center}>
-            <ActivityIndicator size="large" color={C.accent} />
+          <View style={s.loader}>
+            <ActivityIndicator size="large" color={C.white} />
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
 
-            {/* Avatar card */}
-            <View style={s.avatarCard}>
-              {driver?.frontFaceImage ? (
+            {/* Top nav row */}
+            <View style={s.navRow}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+                <Ionicons name="chevron-back" size={22} color={C.white} />
+              </TouchableOpacity>
+              <Text style={s.navTitle}>Driver Profile</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            {/* Hero area — photo or initials avatar */}
+            <View style={s.heroArea}>
+              {hasPhoto ? (
                 <Image
-                  source={{ uri: `data:image/jpeg;base64,${driver.frontFaceImage}` }}
+                  source={{ uri: `data:image/jpeg;base64,${driver!.frontFaceImage}` }}
                   style={s.avatarImg}
                 />
               ) : (
-                <View style={s.avatarFallback}>
-                  <Ionicons name="person" size={48} color={C.accent} />
+                <View style={s.avatarRing}>
+                  <Text style={s.avatarTxt}>{initials}</Text>
                 </View>
               )}
-              <Text style={s.driverName}>{driver?.driverName ?? "—"}</Text>
-              <View style={[s.statusBadge, { backgroundColor: driver?.status ? "#14532D" : "#7F1D1D" }]}>
+              <Text style={s.heroName}>{driver?.driverName ?? "—"}</Text>
+              <View style={[s.heroBadge, { backgroundColor: driver?.status ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)" }]}>
                 <View style={[s.statusDot, { backgroundColor: driver?.status ? "#22C55E" : "#EF4444" }]} />
-                <Text style={s.statusTxt}>{driver?.status ? "Active" : "Inactive"}</Text>
+                <Text style={s.heroBadgeTxt}>{driver?.status ? "ACTIVE" : "INACTIVE"}</Text>
               </View>
             </View>
 
-            {/* Info rows */}
-            <View style={s.infoCard}>
+            {/* White info card */}
+            <View style={s.card}>
+              <Text style={s.sectionTitle}>Driver Details</Text>
               {INFO_ROWS.map((row, idx) => (
-                <View key={row.key} style={[s.infoRow, idx < INFO_ROWS.length - 1 && s.infoRowBorder]}>
-                  <View style={[s.infoIconBox, { backgroundColor: row.color + "18" }]}>
-                    <Ionicons name={row.icon as any} size={18} color={row.color} />
+                <View key={row.key} style={[f.row, idx < INFO_ROWS.length - 1 && f.rowBorder]}>
+                  <View style={[f.iconBox, { backgroundColor: row.iconBg }]}>
+                    <Ionicons name={row.icon as any} size={18} color={row.iconColor} />
                   </View>
-                  <View style={s.infoText}>
-                    <Text style={s.infoLabel}>{row.label}</Text>
-                    <Text style={s.infoValue}>{getValue(row.key)}</Text>
+                  <View style={f.textWrap}>
+                    <Text style={f.label}>{row.label}</Text>
+                    <Text style={f.value}>{getValue(row.key)}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color="rgba(0,0,0,0.18)" />
                 </View>
               ))}
             </View>
@@ -133,34 +131,37 @@ const DriverProfileScreen = ({ navigation }: Props) => {
   );
 };
 
+const f = StyleSheet.create({
+  row:       { flexDirection: "row", alignItems: "center", paddingVertical: 13, gap: 12 },
+  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(0,0,0,0.07)" },
+  iconBox:   { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  textWrap:  { flex: 1 },
+  label:     { fontSize: 11, fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
+  value:     { fontSize: 14, fontWeight: "600", color: "#0D1B3E" },
+});
+
 const s = StyleSheet.create({
-  root:          { flex: 1 },
-  safe:          { flex: 1 },
-  center:        { flex: 1, alignItems: "center", justifyContent: "center" },
-  dot:           { position: "absolute", width: 6, height: 6, borderRadius: 3, backgroundColor: C.white },
+  root:      { flex: 1, backgroundColor: "#F0F4FF" },
+  headerBg:  { position: "absolute", top: 0, left: -40, right: -40, height: 260, overflow: "hidden", borderBottomLeftRadius: 180, borderBottomRightRadius: 180 },
+  safe:      { flex: 1 },
+  loader:    { flex: 1, alignItems: "center", justifyContent: "center" },
+  scroll:    { paddingHorizontal: 16, paddingBottom: 40 },
 
-  header:        { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12 },
-  headerCenter:  { flex: 1, alignItems: "center" },
-  headerTitle:   { fontSize: 18, fontWeight: "800", color: C.white },
-  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" },
+  navRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 8 },
+  backBtn:  { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
+  navTitle: { fontSize: 18, fontWeight: "800", color: "#FFFFFF" },
 
-  scroll:        { paddingHorizontal: 16, paddingBottom: 40 },
+  heroArea:   { alignItems: "center", paddingTop: 8, paddingBottom: 50 },
+  avatarImg:  { width: 84, height: 84, borderRadius: 42, borderWidth: 3, borderColor: "rgba(255,255,255,0.80)", marginBottom: 12 },
+  avatarRing: { width: 84, height: 84, borderRadius: 42, backgroundColor: "rgba(255,255,255,0.22)", borderWidth: 2.5, borderColor: "rgba(255,255,255,0.60)", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  avatarTxt:  { fontSize: 28, fontWeight: "800", color: "#FFFFFF" },
+  heroName:   { fontSize: 20, fontWeight: "800", color: "#FFFFFF", marginBottom: 8, letterSpacing: 0.2 },
+  heroBadge:  { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, borderWidth: 1, borderColor: "rgba(255,255,255,0.30)" },
+  statusDot:  { width: 8, height: 8, borderRadius: 4 },
+  heroBadgeTxt: { fontSize: 11, fontWeight: "800", color: "#FFFFFF", letterSpacing: 1.2 },
 
-  avatarCard:    { alignItems: "center", paddingVertical: 28, marginBottom: 16 },
-  avatarImg:     { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: C.accent, marginBottom: 14 },
-  avatarFallback:{ width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(56,189,248,0.15)", borderWidth: 3, borderColor: C.accent, alignItems: "center", justifyContent: "center", marginBottom: 14 },
-  driverName:    { fontSize: 22, fontWeight: "800", color: C.white, marginBottom: 10 },
-  statusBadge:   { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  statusDot:     { width: 8, height: 8, borderRadius: 4 },
-  statusTxt:     { fontSize: 13, fontWeight: "700", color: C.white },
-
-  infoCard:      { backgroundColor: C.cream, borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
-  infoRow:       { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, gap: 12 },
-  infoRowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(0,0,0,0.07)" },
-  infoIconBox:   { width: 40, height: 40, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  infoText:      { flex: 1 },
-  infoLabel:     { fontSize: 10, fontWeight: "700", color: "#6B7280", letterSpacing: 0.8, marginBottom: 2 },
-  infoValue:     { fontSize: 15, fontWeight: "700", color: "#0D1B3E" },
+  card:         { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 16, marginTop: -28, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: "800", color: "#0D1B3E", marginBottom: 4, letterSpacing: 0.3 },
 });
 
 export default DriverProfileScreen;

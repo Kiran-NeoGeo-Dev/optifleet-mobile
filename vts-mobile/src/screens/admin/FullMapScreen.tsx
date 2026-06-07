@@ -134,7 +134,7 @@ const FullMapScreen = ({ navigation }: Props) => {
     <View style={s.root}>
       {loading && liveVehicles.length === 0 ? (
         <View style={s.loadingContainer}>
-          <ActivityIndicator size="large" color="#3D0D7A" />
+          <ActivityIndicator size="large" color="#1565C0" />
         </View>
       ) : (
         <WebView
@@ -173,10 +173,10 @@ const s = StyleSheet.create({
   root:              { flex: 1 },
   map:               { flex: 1 },
   overlay:           { position: "absolute", top: 0, left: 0, right: 0 },
-  backBtn:           { margin: 14, width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(61,13,122,0.80)", alignItems: "center", justifyContent: "center" },
+  backBtn:           { margin: 14, width: 44, height: 44, borderRadius: 12, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", shadowColor: "#1565C0", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
   zoomControls:      { position: "absolute", top: 14, right: 14, flexDirection: "column", gap: 8 },
-  zoomBtn:           { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(61,13,122,0.80)", alignItems: "center", justifyContent: "center" },
-  loadingContainer:  { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#e8e0f0" },
+  zoomBtn:           { width: 44, height: 44, borderRadius: 12, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", shadowColor: "#1565C0", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
+  loadingContainer:  { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F0F4FF" },
 });
 
 export default FullMapScreen;

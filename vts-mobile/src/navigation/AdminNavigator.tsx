@@ -84,13 +84,11 @@ const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 // ── Bottom Tab Bar ────────────────────────────────────────────────────────────
 const TAB_ITEMS = [
-  { key: "Dashboard",     label: "Dashboard",       icon: "pulse-outline"         },
-  { key: "Management",    label: "Management",      icon: "grid-outline"          },
-  { key: "FleetDrivers",  label: "Fleet Drivers",   icon: "people-outline"        },
-  { key: "Create",        label: "Create",          icon: "add"                   },
-  { key: "FleetVehicles", label: "Fleet Vehicles",  icon: "bus-outline"           },
-  { key: "Notifications", label: "Notifications",   icon: "notifications-outline" },
-  { key: "Profile",       label: "Profile",         icon: "person-outline"        },
+  { key: "Dashboard",     label: "Dashboard",       icon: "pulse-outline"  },
+  { key: "Management",    label: "Management",      icon: "grid-outline"   },
+  { key: "FleetDrivers",  label: "Drivers",   icon: "people-outline" },
+  { key: "Create",        label: "Create",     icon: "add"            },
+  { key: "FleetVehicles", label: "Vehicles",   icon: "bus-outline"    },
 ] as const;
 
 interface BottomBarProps {
@@ -160,8 +158,6 @@ const AdminNavigator = () => {
     if (key === "Dashboard")     navigationRef.current?.navigate("AdminDashboard");
     if (key === "FleetVehicles") navigationRef.current?.navigate("FleetVehicles");
     if (key === "FleetDrivers")  navigationRef.current?.navigate("FleetDrivers");
-    if (key === "Notifications") navigationRef.current?.navigate("Notifications");
-    if (key === "Profile")       navigationRef.current?.navigate("AdminProfile");
   };
 
   // Wrapper component to capture navigation ref
@@ -182,8 +178,6 @@ const AdminNavigator = () => {
             if (current === "AdminDashboard")    setActiveTab("Dashboard");
             else if (current === "FleetVehicles" || current === "VehicleDetails")   setActiveTab("FleetVehicles");
             else if (current === "FleetDrivers"  || current === "DriverScorecard")  setActiveTab("FleetDrivers");
-            else if (current === "Notifications") setActiveTab("Notifications");
-            else if (current === "AdminProfile")  setActiveTab("Profile");
           },
         }}
       >

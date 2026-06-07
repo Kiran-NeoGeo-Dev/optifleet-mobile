@@ -28,6 +28,7 @@ import FleetVehiclesScreen  from "../screens/fleet/FleetVehiclesScreen";
 import VehicleDetailsScreen from "../screens/fleet/VehicleDetailsScreen";
 import FleetDriversScreen   from "../screens/fleet/FleetDriversScreen";
 import DriverScorecardScreen from "../screens/fleet/DriverScorecardScreen";
+import FullMapScreen         from "../screens/admin/FullMapScreen";
 import type { TripItem } from "../screens/trips/TripManagementScreen";
 
 export type MainStackParamList = {
@@ -81,18 +82,17 @@ export type MainStackParamList = {
   VehicleDetails:   { vehicle: any };
   FleetDrivers:     undefined;
   DriverScorecard:  { driver: any };
+  FullMap:          undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
 const TAB_ITEMS = [
-  { key: "Dashboard",     label: "Dashboard",       icon: "pulse-outline"         },
-  { key: "Management",    label: "Management",      icon: "grid-outline"          },
-  { key: "FleetDrivers",  label: "Fleet Drivers",   icon: "people-outline"        },
-  { key: "Create",        label: "Create",          icon: "add"                   },
-  { key: "FleetVehicles", label: "Fleet Vehicles",  icon: "bus-outline"           },
-  { key: "Notifications", label: "Notifications",   icon: "notifications-outline" },
-  { key: "Profile",       label: "Profile",         icon: "person-outline"        },
+  { key: "Dashboard",     label: "Dashboard",       icon: "pulse-outline"  },
+  { key: "Management",    label: "Management",      icon: "grid-outline"   },
+  { key: "FleetDrivers",  label: "Drivers",   icon: "people-outline" },
+  { key: "Create",        label: "Create",     icon: "add"            },
+  { key: "FleetVehicles", label: "Vehicles",   icon: "bus-outline"    },
 ] as const;
 
 interface BottomBarProps {
@@ -315,8 +315,6 @@ const MainNavigator = () => {
     if (key === "Dashboard")     navigationRef.current?.navigate("Dashboard");
     if (key === "FleetVehicles") navigationRef.current?.navigate("FleetVehicles");
     if (key === "FleetDrivers")  navigationRef.current?.navigate("FleetDrivers");
-    if (key === "Notifications") navigationRef.current?.navigate("Notifications");
-    if (key === "Profile")       navigationRef.current?.navigate("ClientDetails");
   };
 
   // Wrapper component to capture navigation ref
@@ -337,8 +335,6 @@ const MainNavigator = () => {
             if (current === "Dashboard")            setActiveTab("Dashboard");
             else if (current === "FleetVehicles" || current === "VehicleDetails")   setActiveTab("FleetVehicles");
             else if (current === "FleetDrivers"  || current === "DriverScorecard")  setActiveTab("FleetDrivers");
-            else if (current === "Notifications")  setActiveTab("Notifications");
-            else if (current === "ClientDetails")  setActiveTab("Profile");
           },
         }}
       >
@@ -364,6 +360,7 @@ const MainNavigator = () => {
         <Stack.Screen name="VehicleDetails" component={VehicleDetailsScreen} />
         <Stack.Screen name="FleetDrivers"   component={FleetDriversScreen} />
         <Stack.Screen name="DriverScorecard" component={DriverScorecardScreen} />
+        <Stack.Screen name="FullMap"          component={FullMapScreen} />
       </Stack.Navigator>
 
       <BottomBar activeTab={activeTab} onTabPress={handleTabPress} />

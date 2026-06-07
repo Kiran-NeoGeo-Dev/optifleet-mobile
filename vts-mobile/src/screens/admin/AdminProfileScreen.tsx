@@ -13,20 +13,17 @@ import { Client } from "../../types/Client";
 
 type Props = NativeStackScreenProps<AdminStackParamList, "AdminProfile">;
 
-// ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
-  bgDark:   "#0A1F44",
-  bgMid:    "#0D3B8E",
-  bgBright: "#1565C0",
-  cream:    "#FFF3EC",       // warm peach-cream card
-  cardText: "#1A1A2E",
-  labelTxt: "#8A8A9A",
-  valueTxt: "#1A1A2E",
-  white:    "#FFFFFF",
-  accent:   "#38BDF8",
+  bg:     "#F0F4FF",
+  card:   "#FFFFFF",
+  blueDk: "#0A1F44",
+  blueMd: "#0D3B8E",
+  blue:   "#1565C0",
+  text:   "#0D1B3E",
+  muted:  "#6B7280",
+  white:  "#FFFFFF",
 };
 
-// ── Field row (matches screenshot layout) ─────────────────────────────────────
 const FieldRow = ({
   icon, iconBg, iconColor, label, value, last,
 }: {
@@ -35,7 +32,7 @@ const FieldRow = ({
 }) => (
   <View style={[f.row, !last && f.rowBorder]}>
     <View style={[f.iconBox, { backgroundColor: iconBg }]}>
-      <Ionicons name={icon} size={22} color={iconColor} />
+      <Ionicons name={icon} size={18} color={iconColor} />
     </View>
     <View style={f.textWrap}>
       <Text style={f.label}>{label}</Text>
@@ -44,7 +41,6 @@ const FieldRow = ({
   </View>
 );
 
-// ── Screen ────────────────────────────────────────────────────────────────────
 const AdminProfileScreen = ({ navigation }: Props) => {
   const [client,  setClient]  = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,106 +49,83 @@ const AdminProfileScreen = ({ navigation }: Props) => {
     fetchClientDetails().then(setClient).finally(() => setLoading(false));
   }, []);
 
+  const initials = (client?.fullName || client?.username || "A")
+    .split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bgDark} />
+      <StatusBar barStyle="light-content" backgroundColor={C.blueDk} />
 
-      {/* Dark blue gradient background */}
-      <LinearGradient
-        colors={[C.bgDark, C.bgMid, C.bgBright]}
-        locations={[0, 0.55, 1]}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.85, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Subtle grid */}
-      {[0.18, 0.38, 0.58, 0.78].map((t, i) => (
-        <View key={`h${i}`} style={[s.gridH, { top: `${t * 100}%` as any }]} />
-      ))}
-      {[0.15, 0.50, 0.82].map((t, i) => (
-        <View key={`v${i}`} style={[s.gridV, { left: `${t * 100}%` as any }]} />
-      ))}
-      {/* Dot pattern top-right (decorative) */}
-      <View style={s.dotGrid} pointerEvents="none">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <View key={i} style={s.dot} />
-        ))}
+      {/* Curved blue header background */}
+      <View style={s.headerBg}>
+        <LinearGradient
+          colors={[C.blueDk, C.blueMd, C.blue]}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
       </View>
 
-      <SafeAreaView style={{ flex: 1 }}>
-
-        {/* ── Header ── */}
-        <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <Ionicons name="chevron-back" size={22} color={C.white} />
-          </TouchableOpacity>
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text style={s.headerTitle}>Admin Profile</Text>
-            <Text style={s.headerSub}>Manage admin account details</Text>
-          </View>
-          <View style={{ width: 42 }} />
-        </View>
-
+      <SafeAreaView style={s.safe} edges={["top"]}>
         {loading ? (
-          <ActivityIndicator size="large" color={C.accent} style={{ marginTop: 80 }} />
+          <View style={s.loader}>
+            <ActivityIndicator size="large" color={C.white} />
+          </View>
         ) : (
-          <ScrollView
-            contentContainerStyle={s.scroll}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* ── Hero Banner ── */}
-            <View style={s.banner}>
-              {/* Outer glow ring */}
-              <View style={s.ringOuter}>
-                <View style={s.ringInner}>
-                  <View style={s.shieldBox}>
-                    <Ionicons name="shield-checkmark" size={44} color={C.accent} />
-                  </View>
-                </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
+
+            {/* Top nav row */}
+            <View style={s.navRow}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+                <Ionicons name="chevron-back" size={22} color={C.white} />
+              </TouchableOpacity>
+              <Text style={s.navTitle}>Admin Profile</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            {/* Avatar hero — sits inside the blue header area */}
+            <View style={s.heroArea}>
+              <View style={s.avatarRing}>
+                <Text style={s.avatarTxt}>{initials}</Text>
               </View>
-
-              <Text style={s.adminName}>
-                {client?.fullName || client?.username || "Admin"}
-              </Text>
-
-              {/* Role badge */}
-              <View style={s.roleBadge}>
-                <Ionicons name="star" size={13} color={C.accent} />
-                <Text style={s.roleBadgeTxt}>ADMINISTRATOR</Text>
+              <Text style={s.heroName}>{client?.fullName || client?.username || "Admin"}</Text>
+              <View style={s.heroBadge}>
+                <Ionicons name="shield-checkmark" size={12} color={C.white} />
+                <Text style={s.heroBadgeTxt}>ADMINISTRATOR</Text>
               </View>
             </View>
 
-            {/* ── Info Card ── */}
+            {/* White info card */}
             <View style={s.card}>
+              <Text style={s.sectionTitle}>Account Details</Text>
               <FieldRow
                 icon="person-outline"
                 iconBg="#EDE7F6" iconColor="#7B2CBF"
-                label="USERNAME"
+                label="Username"
                 value={client?.username}
               />
               <FieldRow
                 icon="mail-outline"
                 iconBg="#FFF3E0" iconColor="#F57C00"
-                label="EMAIL ADDRESS"
+                label="Email Address"
                 value={client?.emailAddress}
               />
               <FieldRow
                 icon="call-outline"
                 iconBg="#E8F5E9" iconColor="#2E7D32"
-                label="PHONE NUMBER"
+                label="Phone Number"
                 value={client?.phoneNumber}
               />
               <FieldRow
                 icon="briefcase-outline"
                 iconBg="#E3F2FD" iconColor="#1565C0"
-                label="ROLE"
+                label="Role"
                 value={client?.role}
               />
               <FieldRow
                 icon="document-text-outline"
                 iconBg="#FCE4EC" iconColor="#C2185B"
-                label="ROLE DESCRIPTION"
+                label="Role Description"
                 value={client?.roleDescription}
                 last
               />
@@ -165,45 +138,35 @@ const AdminProfileScreen = ({ navigation }: Props) => {
   );
 };
 
-// ── Field styles ──────────────────────────────────────────────────────────────
 const f = StyleSheet.create({
-  row:       { flexDirection: "row", alignItems: "center", paddingVertical: 16, paddingHorizontal: 16, gap: 14 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: "rgba(0,0,0,0.06)" },
-  iconBox:   { width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  row:       { flexDirection: "row", alignItems: "center", paddingVertical: 13, gap: 12 },
+  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(0,0,0,0.07)" },
+  iconBox:   { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   textWrap:  { flex: 1 },
-  label:     { fontSize: 11, fontWeight: "700", color: "#8A8A9A", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 },
-  value:     { fontSize: 15, fontWeight: "600", color: "#1A1A2E" },
+  label:     { fontSize: 11, fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
+  value:     { fontSize: 14, fontWeight: "600", color: "#0D1B3E" },
 });
 
-// ── Screen styles ─────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  root:    { flex: 1 },
-  gridH:   { position: "absolute", left: 0, right: 0, height: 1, backgroundColor: "rgba(255,255,255,0.025)" },
-  gridV:   { position: "absolute", top: 0, bottom: 0, width: 1,  backgroundColor: "rgba(255,255,255,0.025)" },
+  root:      { flex: 1, backgroundColor: "#F0F4FF" },
+  headerBg:  { position: "absolute", top: 0, left: -40, right: -40, height: 260, overflow: "hidden", borderBottomLeftRadius: 180, borderBottomRightRadius: 180 },
+  safe:      { flex: 1 },
+  loader:    { flex: 1, alignItems: "center", justifyContent: "center" },
+  scroll:    { paddingHorizontal: 16, paddingBottom: 40 },
 
-  // Dot pattern top-right
-  dotGrid: { position: "absolute", top: 60, right: 16, flexDirection: "row", flexWrap: "wrap", width: 80, gap: 8, opacity: 0.18 },
-  dot:     { width: 4, height: 4, borderRadius: 2, backgroundColor: C.accent },
+  navRow:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 8 },
+  backBtn:   { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
+  navTitle:  { fontSize: 18, fontWeight: "800", color: "#FFFFFF" },
 
-  // Header
-  header:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 },
-  backBtn:     { width: 42, height: 42, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: C.white },
-  headerSub:   { fontSize: 12, color: "rgba(255,255,255,0.60)", marginTop: 2 },
+  heroArea:    { alignItems: "center", paddingTop: 8, paddingBottom: 50 },
+  avatarRing:  { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.22)", borderWidth: 2.5, borderColor: "rgba(255,255,255,0.60)", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  avatarTxt:   { fontSize: 28, fontWeight: "800", color: "#FFFFFF" },
+  heroName:    { fontSize: 20, fontWeight: "800", color: "#FFFFFF", marginBottom: 8, letterSpacing: 0.2 },
+  heroBadge:   { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, borderWidth: 1, borderColor: "rgba(255,255,255,0.30)" },
+  heroBadgeTxt:{ fontSize: 11, fontWeight: "800", color: "#FFFFFF", letterSpacing: 1.2 },
 
-  scroll: { paddingHorizontal: 16, paddingBottom: 48 },
-
-  // Hero banner
-  banner:    { backgroundColor: "rgba(10,31,68,0.70)", borderRadius: 20, paddingVertical: 32, alignItems: "center", marginBottom: 20, borderWidth: 1, borderColor: "rgba(56,189,248,0.18)" },
-  ringOuter: { width: 110, height: 110, borderRadius: 55, borderWidth: 1.5, borderColor: "rgba(56,189,248,0.35)", alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  ringInner: { width: 88,  height: 88,  borderRadius: 44, borderWidth: 1.5, borderColor: "rgba(56,189,248,0.55)", alignItems: "center", justifyContent: "center" },
-  shieldBox: { width: 70,  height: 70,  borderRadius: 35, backgroundColor: "rgba(56,189,248,0.12)", alignItems: "center", justifyContent: "center" },
-  adminName: { fontSize: 28, fontWeight: "800", color: C.white, marginBottom: 12, letterSpacing: -0.3 },
-  roleBadge: { flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "rgba(56,189,248,0.12)", borderRadius: 20, paddingHorizontal: 18, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(56,189,248,0.30)" },
-  roleBadgeTxt: { fontSize: 12, fontWeight: "800", color: C.accent, letterSpacing: 1.5 },
-
-  // Info card
-  card: { backgroundColor: "#FFF3EC", borderRadius: 24, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  card:         { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 16, marginTop: -28, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: "800", color: "#0D1B3E", marginBottom: 4, letterSpacing: 0.3 },
 });
 
 export default AdminProfileScreen;
