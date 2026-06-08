@@ -247,9 +247,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                       <Ionicons name="calendar" size={21} color="#8B652F" />
                     </TouchableOpacity>
                   </View>
-                  <Text style={s.driverHint}>
-                    Enter your registered mobile number and date of birth to sign in.
-                  </Text>
+
                 </>
               )}
 
@@ -376,8 +374,6 @@ const s = StyleSheet.create({
   fieldInput:    { flex: 1, fontSize: 15, color: "#10204A", paddingVertical: 0 },
   eyeBtn:        { paddingLeft: 8 },
   calendarBtn:   { paddingLeft: 8 },
-
-  driverHint: { fontSize: 12, color: "#43516D", fontWeight: "600", textAlign: "center", marginBottom: 14, lineHeight: 18 },
 
   optRow:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   remRow:    { flexDirection: "row", alignItems: "center" },
