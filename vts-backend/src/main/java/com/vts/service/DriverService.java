@@ -75,7 +75,7 @@ public class DriverService {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();
         if ("Admin".equalsIgnoreCase(client.getRole())) return driverRepository.findAll();
-        return driverRepository.findByClientId(client.getId());
+        return driverRepository.findAvailableByClientId(client.getId());
     }
 
     public List<Driver> getAllDrivers() {

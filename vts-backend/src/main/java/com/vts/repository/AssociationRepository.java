@@ -51,6 +51,10 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
         "JOIN vehicles v ON v.id = a.vehicle_id " +
         "JOIN drivers dr ON dr.id = a.driver_id " +
         "WHERE a.client_id = :clientId " +
+        "AND v.registration_no NOT IN (" +
+        "  SELECT t.vehicle_id FROM trips t " +
+        "  WHERE TRIM(t.status) NOT IN ('Completed', 'Cancelled')" +
+        ") " +
         "ORDER BY v.registration_no", nativeQuery = true)
     List<Map<String, Object>> findVehiclesWithDriverByClientId(@Param("clientId") Long clientId);
 
@@ -61,6 +65,10 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
         "FROM associations a " +
         "JOIN vehicles v ON v.id = a.vehicle_id " +
         "JOIN drivers dr ON dr.id = a.driver_id " +
+        "WHERE v.registration_no NOT IN (" +
+        "  SELECT t.vehicle_id FROM trips t " +
+        "  WHERE TRIM(t.status) NOT IN ('Completed', 'Cancelled')" +
+        ") " +
         "ORDER BY v.registration_no", nativeQuery = true)
     List<Map<String, Object>> findVehiclesWithDriverAllClients();
 }

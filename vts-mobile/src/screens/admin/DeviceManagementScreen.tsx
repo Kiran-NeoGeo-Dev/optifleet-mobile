@@ -303,17 +303,15 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
                     style={[styles.toggleBtn, form.status && styles.toggleActive]}
                     onPress={() => modalMode !== "view" && setForm(f => ({ ...f, status: true }))}
                   >
-                    <Ionicons name="checkmark-circle" size={22} color={form.status ? C.green : C.placeholder} />
-                    <Text style={[styles.toggleBtnTitle, form.status && { color: C.green }]}>Active</Text>
-                    <Text style={styles.toggleBtnSub}>Device is active</Text>
+                    <Ionicons name="checkmark-circle" size={16} color={form.status ? C.green : C.muted} />
+                    <Text style={[styles.toggleTxt, form.status && { color: C.green }]}>Active</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.toggleBtn, !form.status && styles.toggleInactive]}
                     onPress={() => modalMode !== "view" && setForm(f => ({ ...f, status: false }))}
                   >
-                    <Ionicons name="close-circle" size={22} color={!form.status ? C.red : C.placeholder} />
-                    <Text style={[styles.toggleBtnTitle, !form.status && { color: C.red }]}>Inactive</Text>
-                    <Text style={styles.toggleBtnSub}>Device is inactive</Text>
+                    <Ionicons name="close-circle" size={16} color={!form.status ? C.red : C.muted} />
+                    <Text style={[styles.toggleTxt, !form.status && { color: C.red }]}>Inactive</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -403,11 +401,9 @@ const styles = StyleSheet.create({
   fieldInput:    { flex: 1, fontSize: 14, color: C.inputText, paddingVertical: 12, paddingRight: 12 },
   fieldLabel:    { fontSize: 13, fontWeight: "700", color: C.label, marginBottom: 7, marginTop: 4 },
   toggleRow:     { flexDirection: "row", gap: 10, marginBottom: 8 },
-  toggleBtn:     { flex: 1, alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 14, borderRadius: 14, backgroundColor: "rgba(21,101,192,0.06)", borderWidth: 1, borderColor: "rgba(21,101,192,0.14)" },
-  toggleActive:  { backgroundColor: "rgba(34,197,94,0.12)",  borderColor: "#22C55E88" },
-  toggleInactive:{ backgroundColor: "rgba(239,68,68,0.10)",  borderColor: "#EF444466" },
-  toggleBtnTitle:{ fontSize: 14, fontWeight: "700", color: C.muted },
-  toggleBtnSub:  { fontSize: 11, color: C.muted, opacity: 0.75 },
+  toggleBtn:     { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: "rgba(21,101,192,0.06)", borderWidth: 1, borderColor: "rgba(21,101,192,0.14)" },
+  toggleActive:  { backgroundColor: "rgba(34,197,94,0.12)", borderColor: "#22C55E88" },
+  toggleInactive:{ backgroundColor: "rgba(248,113,113,0.12)", borderColor: "#F8717188" },
   toggleTxt:     { fontSize: 14, fontWeight: "700", color: C.muted },
   sheetBtns:     { marginHorizontal: 16, marginTop: 16, marginBottom: 32 },
   saveBtn:       { borderRadius: 16, overflow: "hidden", shadowColor: "#14532D", shadowOpacity: 0.30, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
