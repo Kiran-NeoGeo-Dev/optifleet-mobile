@@ -172,7 +172,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
             showsVerticalScrollIndicator={false}
             bounces
           >
-            <View style={{ height: SH * 0.45 }} />
+            <View style={{ height: SH * 0.46 }} />
 
             <Animated.View style={[s.card, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
 
@@ -313,7 +313,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
 
             </Animated.View>
 
-            <View style={{ height: 32 }} />
+            <View style={{ height: 16 }} />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -346,8 +346,8 @@ const s = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 28,
     paddingHorizontal: 22,
-    paddingTop: 26,
-    paddingBottom: 28,
+    paddingTop: 20,
+    paddingBottom: 20,
     shadowColor: "#0A1F6E",
     shadowOpacity: 0.22,
     shadowRadius: 24,
@@ -356,9 +356,9 @@ const s = StyleSheet.create({
   },
 
   title:    { fontSize: 26, fontWeight: "800", color: "#0D1B3E", textAlign: "center", marginBottom: 5, letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, color: "#43516D", fontWeight: "600", textAlign: "center", marginBottom: 20 },
+  subtitle: { fontSize: 14, color: "#43516D", fontWeight: "600", textAlign: "center", marginBottom: 14 },
 
-  tabWrap: { flexDirection: "row", backgroundColor: "#F0F4FF", borderRadius: 16, padding: 5, marginBottom: 20 },
+  tabWrap: { flexDirection: "row", backgroundColor: "#F0F4FF", borderRadius: 16, padding: 5, marginBottom: 14 },
   tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 11, borderRadius: 12 },
   tabItemActive: { backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "#2D6CFB", shadowColor: "#2D6CFB", shadowOpacity: 0.10, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   tabTxt:       { fontSize: 13, fontWeight: "600", color: "#5F6F8F" },
@@ -369,7 +369,7 @@ const s = StyleSheet.create({
     flexDirection: "row", alignItems: "center",
     backgroundColor: "#E8D0A9", borderRadius: 14,
     borderWidth: 1, borderColor: "#C8AC7A",
-    height: 54, marginBottom: 14, paddingRight: 14,
+    height: 48, marginBottom: 10, paddingRight: 14,
     shadowColor: "#7A5522", shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },
   fieldIconWrap: { width: 48, alignItems: "center", justifyContent: "center" },
@@ -379,7 +379,7 @@ const s = StyleSheet.create({
 
   driverHint: { fontSize: 12, color: "#43516D", fontWeight: "600", textAlign: "center", marginBottom: 14, lineHeight: 18 },
 
-  optRow:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
+  optRow:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   remRow:    { flexDirection: "row", alignItems: "center" },
   cb:        { width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: "#2D6CFB", marginRight: 8, alignItems: "center", justifyContent: "center" },
   cbOn:      { backgroundColor: "#2D6CFB", borderColor: "#2D6CFB" },
@@ -387,7 +387,7 @@ const s = StyleSheet.create({
   forgotTxt: { fontSize: 14, fontWeight: "700", color: "#2D6CFB" },
 
   btnOuter: { borderRadius: 16, overflow: "hidden", shadowColor: "#2D6CFB", shadowOpacity: 0.32, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 10 },
-  btnGrad:  { height: 56, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 20, borderRadius: 16 },
+  btnGrad:  { height: 50, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 20, borderRadius: 16 },
   btnTxt:   { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "800", color: "#FFFFFF", letterSpacing: 0.3, marginLeft: 32 },
   btnArrow: { width: 32, height: 32, borderRadius: 10, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
 });
