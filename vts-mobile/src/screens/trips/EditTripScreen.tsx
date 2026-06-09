@@ -11,6 +11,7 @@ import { Toast, useToast } from "../../components/Toast";
 import { api } from "../../services/api";
 import { ENDPOINTS } from "../../config/apiConfig";
 import type { TripItem } from "./TripManagementScreen";
+import { calculateOsrmRoute } from "../../utils/osrmRoute";
 
 type Suggestion = { display_name: string; lat: string; lon: string };
 type Coords = { lat: number; lng: number };
@@ -108,25 +109,14 @@ const EditTripScreen = ({ navigation, route }: Props) => {
   useEffect(() => {
     if (!startCoords || !endCoords) return;
     (async () => {
-      try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${startCoords.lng},${startCoords.lat};${endCoords.lng},${endCoords.lat}?overview=full&geometries=geojson`;
-        const res  = await fetch(url);
-        const data = await res.json();
-        if (data.routes?.length) {
-          const r = data.routes[0];
-          const km = Number.parseFloat((r.distance / 1000).toFixed(1));
-          const totalMin = Math.round(r.duration / 60);
-          const hrs = Math.floor(totalMin / 60);
-          const mins = totalMin % 60;
-          setDistanceKm(km);
-          setDurationStr(hrs > 0 ? `${hrs}h ${mins}min` : `${mins}min`);
-          const poly = JSON.stringify(r.geometry.coordinates.map((c: number[]) => ({ lat: c[1], lng: c[0] })));
-          setPolylineCoords(poly);
-          const latlngs = r.geometry.coordinates.map((c: number[]) => [c[1], c[0]]);
-          const js = `drawRoute(${JSON.stringify(latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng}); true;`;
-          webViewRef.current?.injectJavaScript(js);
-        }
-      } catch { /* silent */ }
+      const result = await calculateOsrmRoute(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
+      if (result) {
+        setDistanceKm(result.distanceKm);
+        setDurationStr(result.durationStr);
+        setPolylineCoords(result.polylineCoords);
+        const js = `drawRoute(${JSON.stringify(result.latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng}); true;`;
+        webViewRef.current?.injectJavaScript(js);
+      }
     })();
   }, [startCoords, endCoords]);
 

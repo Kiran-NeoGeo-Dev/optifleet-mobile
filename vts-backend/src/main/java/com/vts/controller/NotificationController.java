@@ -37,44 +37,71 @@ public class NotificationController {
 
         List<Map<String, Object>> results = new ArrayList<>();
 
+        // 1. Live telemetry alerts from ThingsBoard
         try {
-            // Query ThingsBoard directly for live telemetry
             List<Map<String, Object>> telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(isAdmin ? null : cid);
-
             String[][] alertFields = {
                 { "overspeed",         "OVERSPEED",    "Overspeed detected"    },
                 { "drowsiness_status", "DROWSINESS",   "Drowsiness detected"   },
                 { "smoking_status",    "SMOKING",       "Smoking detected"      },
                 { "mobile_usage",      "MOBILE_USAGE", "Mobile usage detected" },
             };
-
             for (Map<String, Object> row : telemetryData) {
-                String vehicleId = (String) row.get("vehicle_id");
+                String vehicleId  = (String) row.get("vehicle_id");
                 String driverName = (String) row.get("driver_name");
                 Double lat = row.get("lat") != null ? ((Number) row.get("lat")).doubleValue() : null;
                 Double lng = row.get("lng") != null ? ((Number) row.get("lng")).doubleValue() : null;
-
                 for (String[] af : alertFields) {
-                    String field = af[0];
-                    String alertType = af[1];
-                    String description = af[2];
-                    String alertValue = row.get(field) != null ? row.get(field).toString() : "";
-
-                    // Determine if alert is currently active
-                    boolean isAlertActive = field.equals("drowsiness_status")
+                    String  field       = af[0];
+                    String  alertType   = af[1];
+                    String  description = af[2];
+                    String  alertValue  = row.get(field) != null ? row.get(field).toString() : "";
+                    boolean isActive    = field.equals("drowsiness_status")
                         ? alertValue.equalsIgnoreCase("fatigue") || alertValue.equalsIgnoreCase("yes")
                         : alertValue.equalsIgnoreCase("yes");
-
-                    if (isAlertActive) {
+                    if (isActive) {
                         results.add(buildNotif("live", vehicleId, driverName,
-                            alertType, description, lat, lng,
-                            new java.util.Date(), false));
+                            alertType, description, lat, lng, new java.util.Date(), false));
                     }
                 }
             }
-        } catch (Exception e) {
-            // return empty on error
-        }
+        } catch (Exception ignored) {}
+
+        // 2. Route deviation alerts from DB (last 24 hours)
+        try {
+            String sql = isAdmin
+                ? """
+                  SELECT ta.vehicle_id, ta.driver_name, ta.lat, ta.lng,
+                         ta.description, ta.alerted_at, ta.is_resolved
+                  FROM   public.trip_alerts ta
+                  WHERE  ta.alert_type = 'ROUTE_DEVIATION'
+                    AND  ta.alerted_at > NOW() - INTERVAL '24 hours'
+                  ORDER  BY ta.alerted_at DESC
+                  """
+                : """
+                  SELECT ta.vehicle_id, ta.driver_name, ta.lat, ta.lng,
+                         ta.description, ta.alerted_at, ta.is_resolved
+                  FROM   public.trip_alerts ta
+                  WHERE  ta.alert_type = 'ROUTE_DEVIATION'
+                    AND  ta.client_id  = ?
+                    AND  ta.alerted_at > NOW() - INTERVAL '24 hours'
+                  ORDER  BY ta.alerted_at DESC
+                  """;
+            List<Map<String, Object>> deviations = isAdmin
+                ? jdbc.queryForList(sql)
+                : jdbc.queryForList(sql, cid);
+            for (Map<String, Object> row : deviations) {
+                Double lat = row.get("lat") != null ? ((Number) row.get("lat")).doubleValue() : null;
+                Double lng = row.get("lng") != null ? ((Number) row.get("lng")).doubleValue() : null;
+                Object ts  = row.get("alerted_at");
+                results.add(buildNotif("db",
+                    row.get("vehicle_id"), row.get("driver_name"),
+                    "ROUTE_DEVIATION", row.get("description") != null ? row.get("description").toString() : "Route deviation detected",
+                    lat, lng,
+                    ts instanceof java.sql.Timestamp ? new java.util.Date(((java.sql.Timestamp) ts).getTime()) : new java.util.Date(),
+                    row.get("is_resolved")));
+            }
+        } catch (Exception ignored) {}
 
         return ResponseEntity.ok(results);
     }
@@ -115,7 +142,7 @@ public class NotificationController {
             : null);
         n.put("isResolved",  isResolved);
         n.put("key", vehicleId + "_" + alertType + "_"
-            + (timestamp != null ? timestamp.toString().substring(0, Math.min(16, timestamp.toString().length())) : ""));
+            + (timestamp != null ? String.valueOf(((java.util.Date) timestamp).getTime()) : String.valueOf(System.nanoTime())));
         return n;
     }
 }

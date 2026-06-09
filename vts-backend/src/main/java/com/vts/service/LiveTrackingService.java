@@ -39,10 +39,10 @@ public class LiveTrackingService {
     }
 
     /**
-     * THREE CONDITIONS (all must pass):
+     * TWO CONDITIONS (trip is optional — used for route/progress only):
      *  1. ThingsBoard vehicle_id  →  vehicles.registration_no
      *  2. Association exists      →  associations (status=true)
-     *  3. Trip exists             →  trips (Not Started / In Progress)
+     *  Trip is queried if it exists, but NOT required for telemetry processing.
      */
     public LiveTrackingUpdate processTelemetry(TelemetryPayload p) {
         if (p.getVehicleId() == null || p.getLat() == null || p.getLng() == null) return null;
@@ -59,32 +59,32 @@ public class LiveTrackingService {
         // ── CONDITION 2: association valid ───────────────────────────────────
         if (!assocValid(vehicleDbId, clientId)) { log.warn("C2 FAIL: no assoc for {}", vid); return null; }
 
-        // ── CONDITION 3: active trip exists ──────────────────────────────────
+        // ── CONDITION 3 (optional): active trip for route/progress ───────────
         Map<String, Object> tripData = queryTrip(vid, clientId);
-        if (tripData == null) { log.warn("C3 FAIL: no trip for {}", vid); return null; }
 
-        log.info("ALL 3 CONDITIONS PASSED → live tracking: {}", vid);
+        log.info("CONDITIONS PASSED → live tracking: {} (trip={})", vid, tripData != null ? tripData.get("trip_id") : "none");
 
         // ── Init or get in-memory state ───────────────────────────────────────
         TripStateCache.State state = cache.get(vid);
-        if (state == null) {
-            String polyJson = tripData.get("custom_polyline") != null
+        if (state == null || (tripData != null && !String.valueOf(tripData.get("trip_id")).equals(state.tripId))) {
+            // New state or trip changed — reinitialise
+            String polyJson = tripData != null && tripData.get("custom_polyline") != null
                 ? tripData.get("custom_polyline").toString() : null;
             List<RoutePoint> full = haversine.parsePolyline(polyJson);
             double totalM = haversine.calculateRouteDistance(full);
 
             state = new TripStateCache.State();
-            state.vehicleId         = vid;
-            state.tripId            = (String) tripData.get("trip_id");
-            state.clientId          = clientId;
-            state.driverName        = driverName;
-            state.fullRoute         = full;
-            state.remainingRoute    = full;
-            state.currentPointIndex = 0;
-            state.totalDistanceM    = totalM;
-            state.remainingDistanceM= totalM;
-            state.lastSpeedKmh      = p.getSpeed() != null ? p.getSpeed() : 0;
-            state.lastUpdateTime    = Instant.now();
+            state.vehicleId          = vid;
+            state.tripId             = tripData != null ? (String) tripData.get("trip_id") : null;
+            state.clientId           = clientId;
+            state.driverName         = driverName;
+            state.fullRoute          = full;
+            state.remainingRoute     = full;
+            state.currentPointIndex  = 0;
+            state.totalDistanceM     = totalM;
+            state.remainingDistanceM = totalM;
+            state.lastSpeedKmh       = p.getSpeed() != null ? p.getSpeed() : 0;
+            state.lastUpdateTime     = Instant.now();
             cache.put(vid, state);
         }
 
@@ -110,6 +110,11 @@ public class LiveTrackingService {
         // ── Route deviation check ─────────────────────────────────────────────
         boolean deviated = deviationM > config.getDeviationThreshold();
         if (deviated) saveDeviationAlert(vid, driverName, clientId, p.getLat(), p.getLng(), deviationM);
+
+        // ── Auto-update trip status based on actual progress ──────────────────
+        if (tripData != null && state.tripId != null) {
+            autoUpdateTripStatus(state.tripId, speed, state.progressPct(), state.totalDistanceM);
+        }
 
         // ── Persist telemetry ─────────────────────────────────────────────────
         saveTelemetry(vid, driverName, clientId, p);
@@ -171,32 +176,55 @@ public class LiveTrackingService {
         try {
             Map<String, Object> telemetry = thingsBoardDirectQueryService.fetchSingleVehicleTelemetry(vehicleId);
             if (telemetry != null) {
-                // Get trip data for route calculation
-                Map<String, Object> tripRow = jdbc.queryForMap("""
-                    SELECT t.trip_id, t.vehicle_id, t.driver_name,
-                           t.start_lat, t.start_lng, t.end_lat, t.end_lng,
-                           t.distance_km, t.duration, t.status,
-                           t.custom_polyline::text AS custom_polyline
-                    FROM   public.trips t
-                    WHERE  t.vehicle_id = ?
-                      AND  TRIM(t.status) NOT IN ('Completed', 'Cancelled')
-                    ORDER  BY t.created_at DESC LIMIT 1
-                    """, vehicleId);
-
-                String polyJson = tripRow.get("custom_polyline") != null
-                    ? tripRow.get("custom_polyline").toString() : null;
-                List<RoutePoint> full = haversine.parsePolyline(polyJson);
-                double totalM = haversine.calculateRouteDistance(full);
-
-                Double lat = telemetry.get("lat") != null ? ((Number) telemetry.get("lat")).doubleValue() : 0;
-                Double lng = telemetry.get("lng") != null ? ((Number) telemetry.get("lng")).doubleValue() : 0;
+                Double lat   = telemetry.get("lat")   != null ? ((Number) telemetry.get("lat")).doubleValue()   : 0;
+                Double lng   = telemetry.get("lng")   != null ? ((Number) telemetry.get("lng")).doubleValue()   : 0;
                 Double speed = telemetry.get("speed") != null ? ((Number) telemetry.get("speed")).doubleValue() : 0;
                 String tripStatus = telemetry.get("trip_status") != null ? telemetry.get("trip_status").toString() : "Moving";
                 String driverName = telemetry.get("driver_name") != null ? telemetry.get("driver_name").toString() : "";
 
+                // ── Route/progress/ETA calculation from DB trip ───────────────
+                List<RoutePoint> full       = List.of();
+                double           totalM     = 0;
+                double           remainingM = 0;
+                double           progressPct = 0;
+                double           etaMins     = 0;
+                boolean          deviated   = false;
+                List<RoutePoint> remaining  = List.of();
+
+                try {
+                    Map<String, Object> tripRow = jdbc.queryForMap("""
+                        SELECT custom_polyline::text AS custom_polyline
+                        FROM   public.trips
+                        WHERE  vehicle_id = ?
+                          AND  TRIM(status) NOT IN ('Completed', 'Cancelled')
+                        ORDER  BY created_at DESC LIMIT 1
+                        """, vehicleId);
+                    String polyJson = tripRow.get("custom_polyline") != null
+                        ? tripRow.get("custom_polyline").toString() : null;
+                    full    = haversine.parsePolyline(polyJson);
+                    totalM  = haversine.calculateRouteDistance(full);
+
+                    if (!full.isEmpty() && (lat != 0 || lng != 0)) {
+                        HaversineDistance.NearestPointResult nearest =
+                            haversine.findNearestPointOnRoute(full, lat, lng);
+                        remainingM  = haversine.calculateRemainingDistance(full, nearest.nearestIndex);
+                        remaining   = haversine.getRemainingRoute(full, nearest.nearestIndex);
+                        deviated    = nearest.minDistance > config.getDeviationThreshold();
+                        if (totalM > 0) progressPct = ((totalM - remainingM) / totalM) * 100.0;
+                        if (speed > 0) etaMins = (remainingM / (speed / 3.6)) / 60.0;
+                    } else {
+                        remaining  = full;
+                        remainingM = totalM;
+                    }
+                } catch (Exception ex) {
+                    log.debug("getCurrentState trip query failed for {}: {}", vehicleId, ex.getMessage());
+                    remaining  = full;
+                    remainingM = totalM;
+                }
+
                 String address     = thingsBoardDirectQueryService.reverseGeocode(lat, lng);
                 String coordinates = String.format("%.6f, %.6f", lat, lng);
-                java.time.ZoneId zone = java.time.ZoneId.of("Asia/Kolkata");
+                java.time.ZoneId zone       = java.time.ZoneId.of("Asia/Kolkata");
                 java.time.Instant tsInstant = Instant.now();
                 String lastUpdateTime = java.time.format.DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(tsInstant);
                 String lastUpdateDate = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(tsInstant);
@@ -204,18 +232,17 @@ public class LiveTrackingService {
                 if (telemetry.get("lastUpdateDate") instanceof String s && !s.isEmpty()) lastUpdateDate = s;
                 if (telemetry.get("address")        instanceof String s && !s.isEmpty()) address = s;
 
-                // Build popup data
                 VehiclePopupData popup = new VehiclePopupData();
                 popup.setVehicleId(vehicleId);
                 popup.setStatus(tripStatus);
                 popup.setDriverName(driverName);
                 popup.setSpeed(String.valueOf(speed.intValue()));
                 popup.setLocation(coordinates);
-                popup.setOverspeed(telemetry.get("overspeed")         != null ? telemetry.get("overspeed").toString()         : "No");
-                popup.setSmoking(telemetry.get("smoking_status")      != null ? telemetry.get("smoking_status").toString()    : "No");
-                popup.setMobileUsage(telemetry.get("mobile_usage")    != null ? telemetry.get("mobile_usage").toString()      : "No");
-                popup.setDrowsiness(telemetry.get("drowsiness_status")!= null ? telemetry.get("drowsiness_status").toString() : "Normal");
-                popup.setRouteDeviation("No");
+                popup.setOverspeed(telemetry.get("overspeed")          != null ? telemetry.get("overspeed").toString()         : "No");
+                popup.setSmoking(telemetry.get("smoking_status")       != null ? telemetry.get("smoking_status").toString()    : "No");
+                popup.setMobileUsage(telemetry.get("mobile_usage")     != null ? telemetry.get("mobile_usage").toString()      : "No");
+                popup.setDrowsiness(telemetry.get("drowsiness_status") != null ? telemetry.get("drowsiness_status").toString() : "Normal");
+                popup.setRouteDeviation(deviated ? "Yes" : "No");
                 popup.setLat(lat);
                 popup.setLng(lng);
                 popup.setAddress(address);
@@ -229,12 +256,13 @@ public class LiveTrackingService {
                 u.setLng(lng);
                 u.setSpeed(speed);
                 u.setTripStatus(tripStatus);
-                u.setRemainingRoute(full);
-                u.setRemainingDistanceKm(totalM / 1000.0);
-                u.setEtaMinutes(0);
-                u.setProgressPercentage(0);
+                u.setRemainingRoute(remaining);
+                u.setRemainingDistanceKm(remainingM / 1000.0);
+                u.setEtaMinutes(etaMins);
+                u.setProgressPercentage(progressPct);
                 u.setPopupData(popup);
-                u.setDeviating(false);
+                u.setDeviating(deviated);
+                u.setDeviationDistance(deviated ? haversine.findNearestPointOnRoute(full, lat, lng).minDistance : 0);
                 u.setTimestamp(Instant.now().toEpochMilli());
                 return u;
             }
@@ -305,13 +333,39 @@ public class LiveTrackingService {
     private Map<String, Object> queryTrip(String vehicleId, Long clientId) {
         try {
             return jdbc.queryForMap("""
-                SELECT trip_id, custom_polyline::text AS custom_polyline
+                SELECT trip_id, status, custom_polyline::text AS custom_polyline
                 FROM   public.trips
                 WHERE  vehicle_id = ?
                   AND  TRIM(status) NOT IN ('Completed', 'Cancelled')
                 ORDER  BY created_at DESC LIMIT 1
                 """, vehicleId);
         } catch (Exception e) { return null; }
+    }
+
+    /**
+     * Auto-transition trip status based on vehicle movement:
+     *   Not Started  → In Progress  (vehicle is moving)
+     *   In Progress  → Completed    (progress >= 98%)
+     *   In Progress  → Delayed      (speed=0 for extended time — handled externally via scheduler)
+     */
+    private void autoUpdateTripStatus(String tripId, double speedKmh, double progressPct, double totalDistanceM) {
+        try {
+            String current = jdbc.queryForObject(
+                "SELECT status FROM public.trips WHERE trip_id=?", String.class, tripId);
+            if (current == null) return;
+
+            String next = current;
+            if ("Not Started".equals(current) && speedKmh > 2) {
+                next = "In Progress";
+            } else if ("In Progress".equals(current) && progressPct >= 98.0 && totalDistanceM > 0) {
+                next = "Completed";
+            }
+
+            if (!next.equals(current)) {
+                jdbc.update("UPDATE public.trips SET status=?, updated_at=NOW() WHERE trip_id=?", next, tripId);
+                log.info("Trip {} status auto-updated: {} -> {}", tripId, current, next);
+            }
+        } catch (Exception e) { log.warn("autoUpdateTripStatus failed: {}", e.getMessage()); }
     }
 
     private void saveTelemetry(String vid, String driverName, Long clientId, TelemetryPayload p) {

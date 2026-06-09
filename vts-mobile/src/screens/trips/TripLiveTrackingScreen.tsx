@@ -9,6 +9,7 @@ import { ENDPOINTS } from "../../config/apiConfig";
 import type { TripItem } from "./TripManagementScreen";
 import { useAlertNotifications } from "../../hooks/useAlertNotifications";
 import AlertNotifications from "../../components/AlertNotifications";
+import { calculateOsrmRoute } from "../../utils/osrmRoute";
 
 interface PopupData {
   vehicleId: string; status: string; driverName: string; speed: string;
@@ -76,13 +77,8 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
 
     // Fallback: fetch road route from OSRM — NEVER draw straight line
     if (latlngs.length === 0) {
-      try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${trip.startLng},${trip.startLat};${trip.endLng},${trip.endLat}?overview=full&geometries=geojson`;
-        const res  = await fetch(url);
-        const data = await res.json();
-        if (data.routes?.length)
-          latlngs = data.routes[0].geometry.coordinates.map((c: number[]) => [c[1], c[0]]);
-      } catch { /* silent */ }
+      const result = await calculateOsrmRoute(trip.startLat, trip.startLng, trip.endLat, trip.endLng);
+      if (result) latlngs = result.latlngs;
     }
 
     if (latlngs.length === 0) return; // no route at all — don't draw anything

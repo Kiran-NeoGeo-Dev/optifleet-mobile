@@ -78,18 +78,24 @@ public class DashboardController {
         boolean isAdmin = client != null && "Admin".equalsIgnoreCase(client.getRole());
         Long    cid     = client != null ? client.getId() : null;
 
-        List<Map<String, Object>> result = new ArrayList<>();
-
+        // Pre-load vehicles with recent deviation (last 60 min) for O(1) lookup
+        java.util.Set<String> deviatedVehicles = new java.util.HashSet<>();
         try {
-            // Query ThingsBoard directly for live telemetry
-            List<Map<String, Object>> telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(isAdmin ? null : cid);
+            String devSql = isAdmin
+                ? "SELECT DISTINCT vehicle_id FROM public.trip_alerts WHERE alert_type='ROUTE_DEVIATION' AND alerted_at > NOW() - INTERVAL '60 minutes'"
+                : "SELECT DISTINCT vehicle_id FROM public.trip_alerts WHERE alert_type='ROUTE_DEVIATION' AND client_id=? AND alerted_at > NOW() - INTERVAL '60 minutes'";
+            List<Map<String, Object>> rows = isAdmin ? jdbc.queryForList(devSql) : jdbc.queryForList(devSql, cid);
+            rows.forEach(r -> { if (r.get("vehicle_id") != null) deviatedVehicles.add(r.get("vehicle_id").toString()); });
+        } catch (Exception ignored) {}
 
+        List<Map<String, Object>> result = new ArrayList<>();
+        try {
+            List<Map<String, Object>> telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(isAdmin ? null : cid);
             for (Map<String, Object> row : telemetryData) {
                 String vid = (String) row.get("vehicle_id");
                 if (vid == null || row.get("lat") == null || row.get("lng") == null) continue;
-
-                double lat = row.get("lat") != null ? ((Number) row.get("lat")).doubleValue() : 0;
-                double lng = row.get("lng") != null ? ((Number) row.get("lng")).doubleValue() : 0;
+                double lat = ((Number) row.get("lat")).doubleValue();
+                double lng = ((Number) row.get("lng")).doubleValue();
                 double spd = row.get("speed") != null ? ((Number) row.get("speed")).doubleValue() : 0;
 
                 VehiclePopupData popup = new VehiclePopupData();
@@ -99,21 +105,18 @@ public class DashboardController {
                 popup.setSpeed(String.valueOf((int) spd));
                 popup.setLat(lat);
                 popup.setLng(lng);
-                popup.setOverspeed(row.get("overspeed") != null ? row.get("overspeed").toString() : "No");
-                popup.setSmoking(row.get("smoking_status") != null ? row.get("smoking_status").toString() : "No");
-                popup.setMobileUsage(row.get("mobile_usage") != null ? row.get("mobile_usage").toString() : "No");
-                popup.setDrowsiness(row.get("drowsiness_status") != null ? row.get("drowsiness_status").toString() : "Normal");
-                popup.setRouteDeviation("No");
-                popup.setAddress(row.get("address") != null ? row.get("address").toString() : "");
-                popup.setCoordinates(row.get("coordinates") != null ? row.get("coordinates").toString() : "");
+                popup.setOverspeed(row.get("overspeed")          != null ? row.get("overspeed").toString()          : "No");
+                popup.setSmoking(row.get("smoking_status")       != null ? row.get("smoking_status").toString()     : "No");
+                popup.setMobileUsage(row.get("mobile_usage")     != null ? row.get("mobile_usage").toString()       : "No");
+                popup.setDrowsiness(row.get("drowsiness_status") != null ? row.get("drowsiness_status").toString()  : "Normal");
+                popup.setRouteDeviation(deviatedVehicles.contains(vid) ? "Yes" : "No");
+                popup.setAddress(row.get("address")        != null ? row.get("address").toString()        : "");
+                popup.setCoordinates(row.get("coordinates") != null ? row.get("coordinates").toString()  : "");
                 popup.setLastUpdateTime(row.get("lastUpdateTime") != null ? row.get("lastUpdateTime").toString() : "");
                 popup.setLastUpdateDate(row.get("lastUpdateDate") != null ? row.get("lastUpdateDate").toString() : "");
-
                 result.add(buildVehicleEntry(vid, lat, lng, spd, popup.getDriverName(), popup));
             }
-        } catch (Exception e) {
-            // return empty on error
-        }
+        } catch (Exception ignored) {}
         return ResponseEntity.ok(result);
     }
 

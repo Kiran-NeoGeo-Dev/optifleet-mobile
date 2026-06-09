@@ -16,6 +16,7 @@ import { api } from "../../services/api";
 import { ENDPOINTS } from "../../config/apiConfig";
 import { useAlertNotifications } from "../../hooks/useAlertNotifications";
 import AlertNotifications from "../../components/AlertNotifications";
+import { calculateOsrmRoute } from "../../utils/osrmRoute";
 
 const genTripId = () => {
   const now = new Date();
@@ -189,41 +190,24 @@ const RegisterTripScreen = ({ navigation }: Props) => {
     if (!startCoords || !endCoords) return;
     routeAnnouncedRef.current = false;
     (async () => {
-      try {
-        const url  = `https://router.project-osrm.org/route/v1/driving/${startCoords.lng},${startCoords.lat};${endCoords.lng},${endCoords.lat}?overview=full&geometries=geojson`;
-        const res  = await fetch(url);
-        const data = await res.json();
-        if (data.routes?.length) {
-          const route   = data.routes[0];
-          const km      = Number.parseFloat((route.distance / 1000).toFixed(1));
-          const totalMin = Math.round(route.duration / 60);
-          const hrs     = Math.floor(totalMin / 60);
-          const mins    = totalMin % 60;
-          const durLabel = hrs > 0 ? `${hrs}h ${mins}min` : `${mins}min`;
-          setDistanceKm(km);
-          setDurationStr(durLabel);
-          // Store polyline as JSON [{lat,lng},...] for custom_polyline column
-          const polylineJson = JSON.stringify(
-            route.geometry.coordinates.map((c: number[]) => ({ lat: c[1], lng: c[0] }))
+      const result = await calculateOsrmRoute(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
+      if (result) {
+        setDistanceKm(result.distanceKm);
+        setDurationStr(result.durationStr);
+        setPolylineCoords(result.polylineCoords);
+        const js = `drawRoute(${JSON.stringify(result.latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng}); true;`;
+        webViewRef.current?.injectJavaScript(js);
+        fullScreenWebViewRef.current?.injectJavaScript(js);
+        if (!routeAnnouncedRef.current) {
+          routeAnnouncedRef.current = true;
+          Speech.speak(
+            `Route selected from ${startPlace.split(",")[0]} to ${endPlace.split(",")[0]}. Total distance is ${result.distanceKm} kilometers and estimated duration is ${result.durationStr}.`,
+            { language: "en-IN" }
           );
-          setPolylineCoords(polylineJson);
-          const latlngs = route.geometry.coordinates.map((c: number[]) => [c[1], c[0]]);
-          const js = `drawRoute(${JSON.stringify(latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng}); true;`;
-          webViewRef.current?.injectJavaScript(js);
-          fullScreenWebViewRef.current?.injectJavaScript(js);
-
-          // Task-3: voice announcement (once per route)
-          if (!routeAnnouncedRef.current) {
-            routeAnnouncedRef.current = true;
-            const fromName = startPlace.split(",")[0];
-            const toName   = endPlace.split(",")[0];
-            Speech.speak(
-              `Route selected from ${fromName} to ${toName}. Total distance is ${km} kilometers and estimated duration is ${durLabel}.`,
-              { language: "en-IN" }
-            );
-          }
         }
-      } catch { showToast("Failed to calculate route.", "error"); }
+      } else {
+        showToast("Failed to calculate route.", "error");
+      }
     })();
   }, [startCoords, endCoords]);
 
@@ -688,7 +672,8 @@ const RegisterTripScreen = ({ navigation }: Props) => {
                   {([
                     ["Driver",          livePopup.driverName],
                     ["Speed",           livePopup.speed ? `${livePopup.speed} km/h` : "0 km/h"],
-                    ["Location",        livePopup.location],
+                    ["Coordinates",     livePopup.coordinates || "—"],
+                    ["Last Update",     [livePopup.lastUpdateTime, livePopup.lastUpdateDate].filter(Boolean).join(" · ") || "—"],
                     ["Overspeed",       livePopup.overspeed],
                     ["Smoking",         livePopup.smoking],
                     ["Mobile Usage",    livePopup.mobileUsage],
@@ -702,6 +687,13 @@ const RegisterTripScreen = ({ navigation }: Props) => {
                       </Text>
                     </View>
                   ))}
+                  {/* Address — stacked layout */}
+                  <View style={styles.popupAddressRow}>
+                    <Text style={styles.popupLabel}>Address:</Text>
+                    <Text style={styles.popupAddressValue} numberOfLines={4}>
+                      {livePopup.address || livePopup.location || "—"}
+                    </Text>
+                  </View>
                 </>
               ) : (
                 <Text style={[styles.popupStatus, { textAlign: "center", marginVertical: 16 }]}>

@@ -15,6 +15,7 @@ import { fetchMyDriverProfile } from "../../services/driverService";
 import { Driver } from "../../types/Driver";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { DriverStackParamList } from "../../navigation/DriverNavigator";
+import { calculateOsrmRoute } from "../../utils/osrmRoute";
 
 type Props = NativeStackScreenProps<DriverStackParamList, "DriverMap">;
 
@@ -172,13 +173,8 @@ const DriverMapScreen = ({ navigation }: Props) => {
     }
 
     if (latlngs.length === 0) {
-      try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${trip.startLng},${trip.startLat};${trip.endLng},${trip.endLat}?overview=full&geometries=geojson`;
-        const res  = await fetch(url);
-        const data = await res.json();
-        if (data.routes?.length)
-          latlngs = data.routes[0].geometry.coordinates.map((c: number[]) => [c[1], c[0]]);
-      } catch { /* fall through */ }
+      const result = await calculateOsrmRoute(trip.startLat, trip.startLng, trip.endLat, trip.endLng);
+      if (result) latlngs = result.latlngs;
     }
 
     if (latlngs.length === 0)
