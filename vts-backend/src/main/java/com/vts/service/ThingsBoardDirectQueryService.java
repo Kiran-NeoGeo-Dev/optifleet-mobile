@@ -23,8 +23,12 @@ public class ThingsBoardDirectQueryService {
     private final ThingsBoardAuthService tbAuth;
     private final RestTemplate restTemplate = new RestTemplate();
 
+    private static final long LIVE_THRESHOLD_MS = 120_000L; // 120 seconds
+
     // Cache: vehicleId → ThingsBoard device entity ID (UUID)
     private final Map<String, String> deviceIdCache = new HashMap<>();
+    // Cache: "lat,lng" → address (prevents Nominatim 429 rate-limit)
+    private final Map<String, String> geocodeCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     public ThingsBoardDirectQueryService(JdbcTemplate jdbc, ThingsBoardAuthService tbAuth) {
         this.jdbc = jdbc;
@@ -59,15 +63,28 @@ public class ThingsBoardDirectQueryService {
 
                     // Fetch telemetry from ThingsBoard
                     Map<String, Object> telemetry = fetchTelemetryFromThingsBoard(tbDeviceEntityId, vehicleId, driverName);
-                    if (telemetry != null) {
-                        results.add(telemetry);
+                    if (telemetry == null) continue;
+
+                    // ── LIVE CHECK: only include if telemetry ts is within 120 seconds ──
+                    Long ts = (Long) telemetry.get("telemetryTimestamp");
+                    if (ts == null) {
+                        log.warn("[TB_DIRECT] vehicle={} has no timestamp — OFFLINE", vehicleId);
+                        continue;
                     }
+                    long ageMs = System.currentTimeMillis() - ts;
+                    if (ageMs > LIVE_THRESHOLD_MS) {
+                        log.info("[TB_DIRECT] vehicle={} OFFLINE (age={}s > 120s)", vehicleId, ageMs / 1000);
+                        continue;
+                    }
+                    log.info("[TB_DIRECT] vehicle={} LIVE (age={}s)", vehicleId, ageMs / 1000);
+                    results.add(telemetry);
+
                 } catch (Exception e) {
                     log.error("[TB_DIRECT] Error fetching telemetry for vehicle={}: {}", vehicleId, e.getMessage());
                 }
             }
 
-            log.info("[TB_DIRECT] Fetched live telemetry for {} vehicles", results.size());
+            log.info("[TB_DIRECT] LIVE vehicles: {}/{}", results.size(), vehicles.size());
             return results;
 
         } catch (Exception e) {
@@ -243,6 +260,8 @@ public class ThingsBoardDirectQueryService {
             result.put("coordinates", coordinates);
             result.put("lastUpdateTime", lastUpdateTime);
             result.put("lastUpdateDate", lastUpdateDate);
+            // Internal: used by fetchAllLiveTelemetry for LIVE check — NOT sent to frontend
+            result.put("telemetryTimestamp", ts);
 
             return result;
 
@@ -279,6 +298,9 @@ public class ThingsBoardDirectQueryService {
      */
     @SuppressWarnings("unchecked")
     String reverseGeocode(double lat, double lng) {
+        String cacheKey = String.format("%.3f,%.3f", lat, lng);
+        String cached = geocodeCache.get(cacheKey);
+        if (cached != null) return cached;
         try {
             String url = String.format(
                 "https://nominatim.openstreetmap.org/reverse?lat=%f&lon=%f&format=json", lat, lng);
@@ -289,7 +311,11 @@ public class ThingsBoardDirectQueryService {
             ResponseEntity<Map> res = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
             if (res.getBody() != null) {
                 Object displayName = res.getBody().get("display_name");
-                if (displayName != null) return displayName.toString();
+                if (displayName != null) {
+                    String address = displayName.toString();
+                    geocodeCache.put(cacheKey, address);
+                    return address;
+                }
             }
         } catch (Exception e) {
             log.debug("[TB_DIRECT] reverseGeocode failed for {},{}: {}", lat, lng, e.getMessage());
