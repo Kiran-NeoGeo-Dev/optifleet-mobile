@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, Image, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, Dimensions, StatusBar,
-  Animated, Easing, ScrollView,
+  Animated, Easing, ScrollView, LayoutChangeEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -52,9 +52,18 @@ const LoginScreen = ({ navigation }: LoginProps) => {
   const [dobDate,      setDobDate]      = useState<Date>(new Date(1990, 0, 1));
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const [spacerH, setSpacerH] = useState(SH * 0.42);
+
   const { login: setAuth } = useAuth();
   const { toast, showToast, hideToast } = useToast();
   const submittingRef = useRef(false);
+
+  const onCardLayout = useCallback((e: LayoutChangeEvent) => {
+    const cardH = e.nativeEvent.layout.height;
+    // Spacer = screen height minus card height minus bottom padding, capped to 40–46% of screen
+    const next = Math.min(Math.max(SH - cardH - 16, SH * 0.40), SH * 0.46);
+    setSpacerH(next);
+  }, []);
 
   const cardFade  = useRef(new Animated.Value(0)).current;
   const cardSlide = useRef(new Animated.Value(40)).current;
@@ -172,9 +181,12 @@ const LoginScreen = ({ navigation }: LoginProps) => {
             showsVerticalScrollIndicator={false}
             bounces
           >
-            <View style={{ height: SH * 0.46 }} />
+            <View style={{ height: spacerH }} />
 
-            <Animated.View style={[s.card, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
+            <Animated.View
+              style={[s.card, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}
+              onLayout={onCardLayout}
+            >
 
               <Text style={s.title}>Welcome Back</Text>
               <Text style={s.subtitle}>Sign in to continue with OptiFleet</Text>
@@ -344,8 +356,8 @@ const s = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 28,
     paddingHorizontal: 22,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
     shadowColor: "#0A1F6E",
     shadowOpacity: 0.22,
     shadowRadius: 24,
@@ -353,21 +365,21 @@ const s = StyleSheet.create({
     elevation: 16,
   },
 
-  title:    { fontSize: 26, fontWeight: "800", color: "#0D1B3E", textAlign: "center", marginBottom: 5, letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, color: "#43516D", fontWeight: "600", textAlign: "center", marginBottom: 14 },
+  title:    { fontSize: 26, fontWeight: "800", color: "#0D1B3E", textAlign: "center", marginBottom: 2, letterSpacing: -0.3 },
+  subtitle: { fontSize: 14, color: "#43516D", fontWeight: "600", textAlign: "center", marginBottom: 10 },
 
-  tabWrap: { flexDirection: "row", backgroundColor: "#F0F4FF", borderRadius: 16, padding: 5, marginBottom: 14 },
-  tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 11, borderRadius: 12 },
+  tabWrap: { flexDirection: "row", backgroundColor: "#F0F4FF", borderRadius: 16, padding: 4, marginBottom: 10 },
+  tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 12 },
   tabItemActive: { backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "#2D6CFB", shadowColor: "#2D6CFB", shadowOpacity: 0.10, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   tabTxt:       { fontSize: 13, fontWeight: "600", color: "#5F6F8F" },
   tabTxtActive: { fontSize: 13, fontWeight: "700", color: "#1A56DB" },
 
-  label: { fontSize: 14, fontWeight: "700", color: "#1A2F5C", marginBottom: 8 },
+  label: { fontSize: 14, fontWeight: "700", color: "#1A2F5C", marginBottom: 5 },
   field: {
     flexDirection: "row", alignItems: "center",
     backgroundColor: "#E8D0A9", borderRadius: 14,
     borderWidth: 1, borderColor: "#C8AC7A",
-    height: 48, marginBottom: 10, paddingRight: 14,
+    height: 46, marginBottom: 8, paddingRight: 14,
     shadowColor: "#7A5522", shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },
   fieldIconWrap: { width: 48, alignItems: "center", justifyContent: "center" },
@@ -375,7 +387,7 @@ const s = StyleSheet.create({
   eyeBtn:        { paddingLeft: 8 },
   calendarBtn:   { paddingLeft: 8 },
 
-  optRow:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  optRow:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   remRow:    { flexDirection: "row", alignItems: "center" },
   cb:        { width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: "#2D6CFB", marginRight: 8, alignItems: "center", justifyContent: "center" },
   cbOn:      { backgroundColor: "#2D6CFB", borderColor: "#2D6CFB" },
