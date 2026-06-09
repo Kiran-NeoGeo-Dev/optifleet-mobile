@@ -194,20 +194,34 @@ public class LiveTrackingService {
                 String tripStatus = telemetry.get("trip_status") != null ? telemetry.get("trip_status").toString() : "Moving";
                 String driverName = telemetry.get("driver_name") != null ? telemetry.get("driver_name").toString() : "";
 
+                String address     = thingsBoardDirectQueryService.reverseGeocode(lat, lng);
+                String coordinates = String.format("%.6f, %.6f", lat, lng);
+                java.time.ZoneId zone = java.time.ZoneId.of("Asia/Kolkata");
+                java.time.Instant tsInstant = Instant.now();
+                String lastUpdateTime = java.time.format.DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(tsInstant);
+                String lastUpdateDate = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(tsInstant);
+                if (telemetry.get("lastUpdateTime") instanceof String s && !s.isEmpty()) lastUpdateTime = s;
+                if (telemetry.get("lastUpdateDate") instanceof String s && !s.isEmpty()) lastUpdateDate = s;
+                if (telemetry.get("address")        instanceof String s && !s.isEmpty()) address = s;
+
                 // Build popup data
                 VehiclePopupData popup = new VehiclePopupData();
                 popup.setVehicleId(vehicleId);
                 popup.setStatus(tripStatus);
                 popup.setDriverName(driverName);
                 popup.setSpeed(String.valueOf(speed.intValue()));
-                popup.setLocation(String.format("%.6f, %.6f", lat, lng));
-                popup.setOverspeed(telemetry.get("overspeed") != null ? telemetry.get("overspeed").toString() : "No");
-                popup.setSmoking(telemetry.get("smoking_status") != null ? telemetry.get("smoking_status").toString() : "No");
-                popup.setMobileUsage(telemetry.get("mobile_usage") != null ? telemetry.get("mobile_usage").toString() : "No");
-                popup.setDrowsiness(telemetry.get("drowsiness_status") != null ? telemetry.get("drowsiness_status").toString() : "Normal");
+                popup.setLocation(coordinates);
+                popup.setOverspeed(telemetry.get("overspeed")         != null ? telemetry.get("overspeed").toString()         : "No");
+                popup.setSmoking(telemetry.get("smoking_status")      != null ? telemetry.get("smoking_status").toString()    : "No");
+                popup.setMobileUsage(telemetry.get("mobile_usage")    != null ? telemetry.get("mobile_usage").toString()      : "No");
+                popup.setDrowsiness(telemetry.get("drowsiness_status")!= null ? telemetry.get("drowsiness_status").toString() : "Normal");
                 popup.setRouteDeviation("No");
                 popup.setLat(lat);
                 popup.setLng(lng);
+                popup.setAddress(address);
+                popup.setCoordinates(coordinates);
+                popup.setLastUpdateTime(lastUpdateTime);
+                popup.setLastUpdateDate(lastUpdateDate);
 
                 LiveTrackingUpdate u = new LiveTrackingUpdate();
                 u.setVehicleId(vehicleId);
@@ -337,21 +351,34 @@ public class LiveTrackingService {
 
     private VehiclePopupData buildPopup(TelemetryPayload p, String driverName,
                                         Long clientId, boolean deviated) {
+        double lat = p.getLat();
+        double lng = p.getLng();
+        String address     = thingsBoardDirectQueryService.reverseGeocode(lat, lng);
+        String coordinates = String.format("%.6f, %.6f", lat, lng);
+        java.time.Instant now = java.time.Instant.now();
+        java.time.ZoneId zone = java.time.ZoneId.of("Asia/Kolkata");
+        String lastUpdateTime = java.time.format.DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(now);
+        String lastUpdateDate = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(now);
+
         VehiclePopupData popup = new VehiclePopupData();
         popup.setVehicleId(p.getVehicleId());
         popup.setStatus(p.getTripStatus() != null ? p.getTripStatus() : "Idle");
         popup.setDriverName(driverName != null ? driverName : "Unknown");
-        popup.setSpeed(p.getSpeed() != null ? String.valueOf(p.getSpeed()) : "0");
-        popup.setLocation(String.format("%.6f, %.6f", p.getLat(), p.getLng()));
-        popup.setOverspeed(p.getOverspeed()       != null ? p.getOverspeed()       : "No");
-        popup.setSmoking(p.getSmokingStatus()     != null ? p.getSmokingStatus()   : "No");
-        popup.setMobileUsage(p.getMobileUsage()   != null ? p.getMobileUsage()     : "No");
-        popup.setDrowsiness(p.getDrowsinessStatus()!= null? p.getDrowsinessStatus(): "Normal");
+        popup.setSpeed(p.getSpeed() != null ? String.valueOf(p.getSpeed().intValue()) : "0");
+        popup.setLocation(coordinates);
+        popup.setOverspeed(p.getOverspeed()        != null ? p.getOverspeed()        : "No");
+        popup.setSmoking(p.getSmokingStatus()      != null ? p.getSmokingStatus()    : "No");
+        popup.setMobileUsage(p.getMobileUsage()    != null ? p.getMobileUsage()      : "No");
+        popup.setDrowsiness(p.getDrowsinessStatus()!= null ? p.getDrowsinessStatus() : "Normal");
         popup.setRouteDeviation(deviated ? "Yes" : "No");
-        popup.setLat(p.getLat());
-        popup.setLng(p.getLng());
+        popup.setLat(lat);
+        popup.setLng(lng);
         popup.setClientId(clientId);
-        popup.setTimestamp(Instant.now().toEpochMilli());
+        popup.setAddress(address);
+        popup.setCoordinates(coordinates);
+        popup.setLastUpdateTime(lastUpdateTime);
+        popup.setLastUpdateDate(lastUpdateDate);
+        popup.setTimestamp(now.toEpochMilli());
         return popup;
     }
 

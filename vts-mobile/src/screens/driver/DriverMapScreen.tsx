@@ -46,6 +46,10 @@ interface PopupData {
   mobileUsage:    string;
   drowsiness:     string;
   routeDeviation: string;
+  address?:        string;
+  coordinates?:    string;
+  lastUpdateTime?: string;
+  lastUpdateDate?: string;
 }
 
 interface TrackingUpdate {
@@ -442,7 +446,8 @@ const DriverMapScreen = ({ navigation }: Props) => {
                 {([
                   ["Driver",          popup.driverName ?? "—"],
                   ["Speed",           popup.speed ? `${popup.speed} km/h` : "0 km/h"],
-                  ["Location",        popup.location ?? "—"],
+                  ["Coordinates",     popup.coordinates || "—"],
+                  ["Last Update",     [popup.lastUpdateTime, popup.lastUpdateDate].filter(Boolean).join(" · ") || "—"],
                   ["Overspeed",       popup.overspeed ?? "—"],
                   ["Smoking",         popup.smoking ?? "—"],
                   ["Mobile Usage",    popup.mobileUsage ?? "—"],
@@ -456,6 +461,15 @@ const DriverMapScreen = ({ navigation }: Props) => {
                     ]}>{value ?? "—"}</Text>
                   </View>
                 ))}
+                {/* Address — stacked layout */}
+                {popup && (
+                  <View style={styles.popupAddressRow}>
+                    <Text style={styles.popupLabel}>Address:</Text>
+                    <Text style={styles.popupAddressValue} numberOfLines={4}>
+                      {popup.address || popup.location || "—"}
+                    </Text>
+                  </View>
+                )}
               </>
             ) : (
               <Text style={[styles.popupStatus, { textAlign: "center", marginVertical: 16 }]}>
@@ -546,6 +560,8 @@ const styles = StyleSheet.create({
   popupRow:        { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
   popupLabel:      { fontSize: 13, color: "rgba(255,255,255,0.55)", fontWeight: "600" },
   popupValue:      { fontSize: 13, color: "#fff", fontWeight: "700" },
+  popupAddressRow: { flexDirection: "column", paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
+  popupAddressValue: { fontSize: 12, color: "#fff", fontWeight: "600", marginTop: 2, lineHeight: 17 },
   popupClose:      { alignItems: "center", marginTop: 14 },
 });
 

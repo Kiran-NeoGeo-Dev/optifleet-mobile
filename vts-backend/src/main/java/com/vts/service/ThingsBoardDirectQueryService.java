@@ -3,13 +3,15 @@ package com.vts.service;
 import com.vts.model.TelemetryPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -35,9 +37,9 @@ public class ThingsBoardDirectQueryService {
     public List<Map<String, Object>> fetchAllLiveTelemetry(Long clientId) {
         try {
             // Get active vehicles from trips table
-            List<Map<String, Object>> vehicles = fetchActiveVehicles(clientId);
+            List<Map<String, Object>> vehicles = fetchFleetVehicles(clientId);
             if (vehicles.isEmpty()) {
-                log.info("[TB_DIRECT] No active vehicles found");
+                log.info("[TB_DIRECT] No fleet vehicles found (clientId={})", clientId);
                 return List.of();
             }
 
@@ -93,35 +95,40 @@ public class ThingsBoardDirectQueryService {
         }
     }
 
-    private List<Map<String, Object>> fetchActiveVehicles(Long clientId) {
+    /**
+     * Fetch fleet vehicles from vehicles + associations only — NO trip required.
+     * Admin (clientId=null) → all vehicles. User → only their vehicles.
+     */
+    private List<Map<String, Object>> fetchFleetVehicles(Long clientId) {
         try {
             String sql = clientId != null
                 ? """
                   SELECT DISTINCT
-                      t.vehicle_id,
-                      dr.driver_name
-                  FROM public.trips t
-                  INNER JOIN public.drivers dr ON dr.id = t.driver_id
-                  INNER JOIN public.vehicles v ON v.registration_no = t.vehicle_id
-                  WHERE TRIM(t.status) NOT IN ('Completed', 'Cancelled')
-                    AND t.vehicle_id IS NOT NULL
-                    AND v.client_id = ?
-                  ORDER BY t.vehicle_id
+                      v.registration_no AS vehicle_id,
+                      COALESCE(d.driver_name, '') AS driver_name
+                  FROM public.vehicles v
+                  INNER JOIN public.associations a ON a.vehicle_id = v.id AND a.status = true
+                  LEFT  JOIN public.drivers d      ON d.id = a.driver_id
+                  WHERE v.client_id = ?
+                  ORDER BY v.registration_no
                   """
                 : """
                   SELECT DISTINCT
-                      t.vehicle_id,
-                      dr.driver_name
-                  FROM public.trips t
-                  INNER JOIN public.drivers dr ON dr.id = t.driver_id
-                  WHERE TRIM(t.status) NOT IN ('Completed', 'Cancelled')
-                    AND t.vehicle_id IS NOT NULL
-                  ORDER BY t.vehicle_id
+                      v.registration_no AS vehicle_id,
+                      COALESCE(d.driver_name, '') AS driver_name
+                  FROM public.vehicles v
+                  INNER JOIN public.associations a ON a.vehicle_id = v.id AND a.status = true
+                  LEFT  JOIN public.drivers d      ON d.id = a.driver_id
+                  ORDER BY v.registration_no
                   """;
 
-            return clientId != null ? jdbc.queryForList(sql, clientId) : jdbc.queryForList(sql);
+            List<Map<String, Object>> rows = clientId != null
+                ? jdbc.queryForList(sql, clientId)
+                : jdbc.queryForList(sql);
+            log.info("[TB_DIRECT] fetchFleetVehicles found {} vehicles (clientId={})", rows.size(), clientId);
+            return rows;
         } catch (Exception e) {
-            log.error("[TB_DIRECT] fetchActiveVehicles failed: {}", e.getMessage());
+            log.error("[TB_DIRECT] fetchFleetVehicles failed: {}", e.getMessage());
             return List.of();
         }
     }
@@ -198,16 +205,31 @@ public class ThingsBoardDirectQueryService {
 
             Map<String, Object> data = res.getBody();
 
-            // Check if telemetry is fresh (within 120 seconds)
-            if (!isTelemetryFresh(data, vehicleId)) {
-                return null;
+            // Extract coordinates
+            Double lat = extractDouble(data, "lat");
+            Double lng = extractDouble(data, "lng");
+
+            // Extract last telemetry timestamp
+            Long ts = extractAnyTimestamp(data);
+            String lastUpdateTime = "";
+            String lastUpdateDate = "";
+            if (ts != null) {
+                Instant instant = Instant.ofEpochMilli(ts);
+                ZoneId zone = ZoneId.of("Asia/Kolkata");
+                lastUpdateTime = DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(instant);
+                lastUpdateDate = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(instant);
             }
+
+            // Reverse geocode
+            String address = (lat != null && lng != null) ? reverseGeocode(lat, lng) : "";
+            String coordinates = (lat != null && lng != null)
+                ? String.format("%.6f, %.6f", lat, lng) : "";
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("vehicle_id", vehicleId);
             result.put("driver_name", driverName);
-            result.put("lat", extractDouble(data, "lat"));
-            result.put("lng", extractDouble(data, "lng"));
+            result.put("lat", lat);
+            result.put("lng", lng);
             result.put("speed", extractInt(data, "speed"));
             result.put("trip_status", extractString(data, "trip_status"));
             result.put("overspeed", extractString(data, "overspeed"));
@@ -217,6 +239,10 @@ public class ThingsBoardDirectQueryService {
             result.put("engineRpm", extractInt(data, "engine_rpm"));
             result.put("battery_percentage", extractDouble(data, "battery_percentage"));
             result.put("ignition_status", extractString(data, "ignition_status"));
+            result.put("address", address);
+            result.put("coordinates", coordinates);
+            result.put("lastUpdateTime", lastUpdateTime);
+            result.put("lastUpdateDate", lastUpdateDate);
 
             return result;
 
@@ -226,36 +252,49 @@ public class ThingsBoardDirectQueryService {
         }
     }
 
-    private boolean isTelemetryFresh(Map<String, Object> data, String vehicleId) {
-        try {
-            for (String key : data.keySet()) {
-                Long ts = extractTimestamp(data, key);
-                if (ts != null) {
-                    long tbTimeMs = ts;
-                    long currentTimeMs = System.currentTimeMillis();
-                    long ageSeconds = (currentTimeMs - tbTimeMs) / 1000;
-
-                    if (ageSeconds > 120) {
-                        return false;
+    /**
+     * Extract the most recent timestamp from any telemetry key.
+     * Returns null if no timestamps found.
+     */
+    private Long extractAnyTimestamp(Map<String, Object> data) {
+        Long latest = null;
+        for (String key : data.keySet()) {
+            try {
+                Object val = data.get(key);
+                if (val instanceof List && !((List<?>) val).isEmpty()) {
+                    Object ts = ((Map<?, ?>) ((List<?>) val).get(0)).get("ts");
+                    if (ts != null) {
+                        long t = Long.parseLong(ts.toString());
+                        if (latest == null || t > latest) latest = t;
                     }
-                    return true;
                 }
-            }
-            return false;
-        } catch (Exception e) {
-            return false;
+            } catch (Exception ignored) {}
         }
+        return latest;
     }
 
-    private Long extractTimestamp(Map<String, Object> data, String key) {
+    /**
+     * Reverse geocode lat/lng to a human-readable address via Nominatim.
+     * Falls back to "lat, lng" string on any failure.
+     */
+    @SuppressWarnings("unchecked")
+    String reverseGeocode(double lat, double lng) {
         try {
-            Object val = data.get(key);
-            if (val instanceof List && !((List<?>) val).isEmpty()) {
-                Object ts = ((Map<?, ?>) ((List<?>) val).get(0)).get("ts");
-                if (ts != null) return Long.parseLong(ts.toString());
+            String url = String.format(
+                "https://nominatim.openstreetmap.org/reverse?lat=%f&lon=%f&format=json", lat, lng);
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("User-Agent", "OptiFleet-VTS/1.0");
+            org.springframework.http.HttpEntity<?> entity =
+                new org.springframework.http.HttpEntity<>(headers);
+            ResponseEntity<Map> res = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            if (res.getBody() != null) {
+                Object displayName = res.getBody().get("display_name");
+                if (displayName != null) return displayName.toString();
             }
-        } catch (Exception ignored) {}
-        return null;
+        } catch (Exception e) {
+            log.debug("[TB_DIRECT] reverseGeocode failed for {},{}: {}", lat, lng, e.getMessage());
+        }
+        return String.format("%.6f, %.6f", lat, lng);
     }
 
     private Double extractDouble(Map<String, Object> data, String key) {

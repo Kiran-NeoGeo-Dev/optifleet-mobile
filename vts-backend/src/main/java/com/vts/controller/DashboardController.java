@@ -104,6 +104,10 @@ public class DashboardController {
                 popup.setMobileUsage(row.get("mobile_usage") != null ? row.get("mobile_usage").toString() : "No");
                 popup.setDrowsiness(row.get("drowsiness_status") != null ? row.get("drowsiness_status").toString() : "Normal");
                 popup.setRouteDeviation("No");
+                popup.setAddress(row.get("address") != null ? row.get("address").toString() : "");
+                popup.setCoordinates(row.get("coordinates") != null ? row.get("coordinates").toString() : "");
+                popup.setLastUpdateTime(row.get("lastUpdateTime") != null ? row.get("lastUpdateTime").toString() : "");
+                popup.setLastUpdateDate(row.get("lastUpdateDate") != null ? row.get("lastUpdateDate").toString() : "");
 
                 result.add(buildVehicleEntry(vid, lat, lng, spd, popup.getDriverName(), popup));
             }
@@ -128,6 +132,10 @@ public class DashboardController {
             m.put("mobileUsage",    popup.getMobileUsage());
             m.put("drowsiness",     popup.getDrowsiness());
             m.put("routeDeviation", popup.getRouteDeviation());
+            m.put("address",        popup.getAddress());
+            m.put("coordinates",    popup.getCoordinates());
+            m.put("lastUpdateTime", popup.getLastUpdateTime());
+            m.put("lastUpdateDate", popup.getLastUpdateDate());
         }
         return m;
     }

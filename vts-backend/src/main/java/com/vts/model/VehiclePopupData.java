@@ -15,6 +15,10 @@ public class VehiclePopupData {
     private Double lng;
     private Long   clientId;
     private Long   timestamp;
+    private String address;
+    private String coordinates;
+    private String lastUpdateTime;
+    private String lastUpdateDate;
 
     public String getVehicleId()      { return vehicleId; }
     public void   setVehicleId(String v)    { this.vehicleId = v; }
@@ -44,4 +48,12 @@ public class VehiclePopupData {
     public void   setClientId(Long v)       { this.clientId = v; }
     public Long   getTimestamp()      { return timestamp; }
     public void   setTimestamp(Long v)      { this.timestamp = v; }
+    public String getAddress()        { return address; }
+    public void   setAddress(String v)      { this.address = v; }
+    public String getCoordinates()    { return coordinates; }
+    public void   setCoordinates(String v)  { this.coordinates = v; }
+    public String getLastUpdateTime() { return lastUpdateTime; }
+    public void   setLastUpdateTime(String v){ this.lastUpdateTime = v; }
+    public String getLastUpdateDate() { return lastUpdateDate; }
+    public void   setLastUpdateDate(String v){ this.lastUpdateDate = v; }
 }

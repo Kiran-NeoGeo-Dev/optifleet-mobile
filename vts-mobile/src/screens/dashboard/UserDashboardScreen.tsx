@@ -67,6 +67,10 @@ const buildMapHtml = (vehicles: LiveVehicle[]) => {
     mobileUsage: v.mobileUsage || "No",
     drowsiness: v.drowsiness || "Normal",
     routeDeviation: v.routeDeviation || "No",
+    address: v.address || "",
+    coordinates: v.coordinates || "",
+    lastUpdateTime: v.lastUpdateTime || "",
+    lastUpdateDate: v.lastUpdateDate || "",
   })));
   return `<!DOCTYPE html><html><head>
 <meta charset="utf-8"/>
@@ -80,6 +84,7 @@ const buildMapHtml = (vehicles: LiveVehicle[]) => {
 .pr{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f0f0f0}
 .pk{color:#6B7280;font-size:11px}.pv{font-weight:700;color:#0D1B3E;font-size:11px}
 .pv.yes{color:#EF4444}.pv.no{color:#22C55E}.pv.moving{color:#22C55E}.pv.idle{color:#F59E0B}.pv.parked{color:#EF4444}
+.pa{font-weight:600;color:#0D1B3E;font-size:11px;display:block;margin-top:2px;line-height:15px;word-break:break-word}
 <\/style>
 </head><body><div id="map"></div>
 <script>
@@ -92,8 +97,9 @@ function buildPopup(x){
     '<div class="pr"><span class="pk">Trip Status<\/span><span class="pv '+sc+'">'+x.status+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Driver<\/span><span class="pv">'+(x.driver||'—')+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Speed<\/span><span class="pv">'+x.speed+' km/h<\/span><\/div>'+
-    '<div class="pr"><span class="pk">Latitude<\/span><span class="pv">'+x.lat.toFixed(6)+'<\/span><\/div>'+
-    '<div class="pr"><span class="pk">Longitude<\/span><span class="pv">'+x.lng.toFixed(6)+'<\/span><\/div>'+
+    (x.address?'<div style="padding:3px 0;border-bottom:1px solid #f0f0f0"><span class="pk">Address<\/span><span class="pa">'+x.address+'<\/span><\/div>':'')+
+    (x.coordinates?'<div class="pr"><span class="pk">Coordinates<\/span><span class="pv">'+x.coordinates+'<\/span><\/div>':'')+
+    (x.lastUpdateTime||x.lastUpdateDate?'<div class="pr"><span class="pk">Last Update<\/span><span class="pv">'+(x.lastUpdateTime||'')+(x.lastUpdateDate?' · '+x.lastUpdateDate:'')+'<\/span><\/div>':'')+
     '<div class="pr"><span class="pk">Overspeed<\/span><span class="pv '+(x.overspeed==="Yes"?"yes":"no")+'">'+x.overspeed+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Smoking<\/span><span class="pv '+(x.smoking==="Yes"?"yes":"no")+'">'+x.smoking+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Mobile Usage<\/span><span class="pv '+(x.mobileUsage==="Yes"?"yes":"no")+'">'+x.mobileUsage+'<\/span><\/div>'+
@@ -194,8 +200,9 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
           speed: v.speed || 0, overspeed: v.overspeed || "No",
           smoking: v.smoking || "No", mobileUsage: v.mobileUsage || "No",
           drowsiness: v.drowsiness || "Normal", routeDeviation: v.routeDeviation || "No",
+          address: v.address || "", coordinates: v.coordinates || "",
+          lastUpdateTime: v.lastUpdateTime || "", lastUpdateDate: v.lastUpdateDate || "",
         })));
-        webViewRef.current.injectJavaScript(`window.updateVehicles(${vJson}); true;`);
       }
     } catch {}
   }, []);

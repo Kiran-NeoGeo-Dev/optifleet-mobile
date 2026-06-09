@@ -25,4 +25,8 @@ export interface LiveVehicle {
   mobileUsage:    string;
   drowsiness:     string;
   routeDeviation: string;
+  address?:        string;
+  coordinates?:    string;
+  lastUpdateTime?: string;
+  lastUpdateDate?: string;
 }
