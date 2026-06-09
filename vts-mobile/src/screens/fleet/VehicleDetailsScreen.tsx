@@ -77,11 +77,13 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
   const [speed,        setSpeed]        = useState<number>(vehicle.liveData?.speed ?? 0);
 
   // Extra telemetry (RPM, ignition, signal health) from fleet endpoint
-  const [engineRpm,    setEngineRpm]    = useState<number>(0);
-  const [ignition,     setIgnition]     = useState<string>("—");
-  const [signalHealth, setSignalHealth] = useState<string>("—");
-  const [telLoading,   setTelLoading]   = useState(true);
-  const [imgError,     setImgError]     = useState(false);
+  const [engineRpm,      setEngineRpm]      = useState<number>(0);
+  const [ignition,       setIgnition]       = useState<string>("—");
+  const [signalHealth,   setSignalHealth]   = useState<string>("—");
+  const [lastUpdateTime, setLastUpdateTime] = useState<string>("—");
+  const [lastUpdateDate, setLastUpdateDate] = useState<string>("—");
+  const [telLoading,     setTelLoading]     = useState(true);
+  const [imgError,       setImgError]       = useState(false);
 
   // Refresh live status from the same /api/dashboard/live-vehicles call
   const refreshLive = async () => {
@@ -105,6 +107,8 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
       setEngineRpm(data.engineRpm ?? 0);
       setIgnition((data.ignitionStatus ?? "OFF").toUpperCase());
       setSignalHealth(data.signalHealth ?? "—");
+      setLastUpdateTime(data.lastUpdateTime || "—");
+      setLastUpdateDate(data.lastUpdateDate || "—");
     } catch (_) {
     } finally {
       setTelLoading(false);
@@ -227,7 +231,7 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
               </View>
               <View style={s.infoRow}>
                 <InfoCell iconName="power-outline"         iconBg="#D1FAE5" iconColor="#10B981" label="Ignition"      value={ignition} />
-                <InfoCell iconName="radio-outline"         iconBg="#EDE9FE" iconColor="#7C3AED" label="Last Updated"  value="Live" />
+                <InfoCell iconName="radio-outline"         iconBg="#EDE9FE" iconColor="#7C3AED" label="Last Updated"  value={lastUpdateTime !== "—" ? `${lastUpdateTime}\n${lastUpdateDate}` : "—"} />
               </View>
             </View>
           )}

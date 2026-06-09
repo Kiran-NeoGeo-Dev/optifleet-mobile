@@ -21,6 +21,8 @@ export interface VehicleTelemetry {
   ignitionStatus: string;
   tripStatus:     string;
   signalHealth:   string;
+  lastUpdateTime: string;
+  lastUpdateDate: string;
 }
 
 export const fetchFleetVehicles = async (): Promise<FleetVehicle[]> => {

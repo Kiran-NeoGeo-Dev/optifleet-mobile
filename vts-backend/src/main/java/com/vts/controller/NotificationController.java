@@ -109,7 +109,10 @@ public class NotificationController {
         n.put("description", description);
         n.put("lat",         lat);
         n.put("lng",         lng);
-        n.put("timestamp",   timestamp != null ? timestamp.toString() : null);
+        n.put("timestamp",   timestamp != null
+            ? new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+                .format((java.util.Date) timestamp)
+            : null);
         n.put("isResolved",  isResolved);
         n.put("key", vehicleId + "_" + alertType + "_"
             + (timestamp != null ? timestamp.toString().substring(0, Math.min(16, timestamp.toString().length())) : ""));

@@ -116,21 +116,27 @@ public class FleetController {
         try {
             Map<String, Object> telemetry = tbQuery.fetchSingleVehicleTelemetry(regNo);
             if (telemetry != null) {
-                result.put("speed",         telemetry.getOrDefault("speed", 0));
-                result.put("engineRpm",     telemetry.getOrDefault("engineRpm", 0));
-                result.put("ignitionStatus",telemetry.getOrDefault("ignition_status", "OFF"));
-                result.put("tripStatus",    telemetry.getOrDefault("trip_status", "Parked"));
+                result.put("speed",          telemetry.getOrDefault("speed", 0));
+                result.put("engineRpm",      telemetry.getOrDefault("engineRpm", 0));
+                result.put("ignitionStatus", telemetry.getOrDefault("ignition_status", "OFF"));
+                result.put("tripStatus",     telemetry.getOrDefault("trip_status", "Parked"));
+                result.put("lastUpdateTime", telemetry.getOrDefault("lastUpdateTime", ""));
+                result.put("lastUpdateDate", telemetry.getOrDefault("lastUpdateDate", ""));
             } else {
-                result.put("speed",         0);
-                result.put("engineRpm",     0);
-                result.put("ignitionStatus","OFF");
-                result.put("tripStatus",    "Parked");
+                result.put("speed",          0);
+                result.put("engineRpm",      0);
+                result.put("ignitionStatus", "OFF");
+                result.put("tripStatus",     "Parked");
+                result.put("lastUpdateTime", "");
+                result.put("lastUpdateDate", "");
             }
         } catch (Exception e) {
-            result.put("speed",         0);
-            result.put("engineRpm",     0);
-            result.put("ignitionStatus","OFF");
-            result.put("tripStatus",    "Parked");
+            result.put("speed",          0);
+            result.put("engineRpm",      0);
+            result.put("ignitionStatus", "OFF");
+            result.put("tripStatus",     "Parked");
+            result.put("lastUpdateTime", "");
+            result.put("lastUpdateDate", "");
         }
 
         // Signal health from last 50 trip_status values via ThingsBoard history
