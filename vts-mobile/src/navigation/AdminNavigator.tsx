@@ -84,11 +84,11 @@ const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 // ── Bottom Tab Bar ────────────────────────────────────────────────────────────
 const TAB_ITEMS = [
-  { key: "Dashboard",     label: "Dashboard",       icon: "pulse-outline"  },
-  { key: "Management",    label: "Management",      icon: "grid-outline"   },
-  { key: "FleetDrivers",  label: "Drivers",   icon: "people-outline" },
+  { key: "Dashboard",     label: "Dashboard",  icon: "pulse-outline"  },
+  { key: "Management",    label: "Management", icon: "grid-outline"   },
   { key: "Create",        label: "Create",     icon: "add"            },
   { key: "FleetVehicles", label: "Vehicles",   icon: "bus-outline"    },
+  { key: "FleetDrivers",  label: "Drivers",    icon: "people-outline" },
 ] as const;
 
 interface BottomBarProps {
