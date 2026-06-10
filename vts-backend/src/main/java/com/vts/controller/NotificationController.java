@@ -3,8 +3,8 @@ package com.vts.controller;
 import com.vts.entity.Client;
 import com.vts.service.AuthService;
 import com.vts.service.ThingsBoardDirectQueryService;
+import com.vts.service.TripStateCache;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -14,13 +14,15 @@ import java.util.*;
 public class NotificationController {
 
     private final AuthService  authService;
-    private final JdbcTemplate jdbc;
     private final ThingsBoardDirectQueryService thingsBoardDirectQueryService;
+    private final TripStateCache tripStateCache;
 
-    public NotificationController(AuthService authService, JdbcTemplate jdbc, ThingsBoardDirectQueryService thingsBoardDirectQueryService) {
+    public NotificationController(AuthService authService,
+                                   ThingsBoardDirectQueryService thingsBoardDirectQueryService,
+                                   TripStateCache tripStateCache) {
         this.authService = authService;
-        this.jdbc        = jdbc;
         this.thingsBoardDirectQueryService = thingsBoardDirectQueryService;
+        this.tripStateCache = tripStateCache;
     }
 
     /**
@@ -67,39 +69,28 @@ public class NotificationController {
             }
         } catch (Exception ignored) {}
 
-        // 2. Route deviation alerts from DB (last 24 hours)
+        // 2. Route deviation alerts — only from live in-memory TripStateCache.
+        // A deviation is only present in cache when ALL conditions are true:
+        //   - An active trip with a valid OSRM route polyline exists
+        //   - Fresh ThingsBoard telemetry was received (within 120 seconds)
+        //   - The vehicle's actual GPS position is outside the route deviation threshold
+        // Historical trip_alerts DB records are intentionally excluded.
         try {
-            String sql = isAdmin
-                ? """
-                  SELECT ta.vehicle_id, ta.driver_name, ta.lat, ta.lng,
-                         ta.description, ta.alerted_at, ta.is_resolved
-                  FROM   public.trip_alerts ta
-                  WHERE  ta.alert_type = 'ROUTE_DEVIATION'
-                    AND  ta.alerted_at > NOW() - INTERVAL '24 hours'
-                  ORDER  BY ta.alerted_at DESC
-                  """
-                : """
-                  SELECT ta.vehicle_id, ta.driver_name, ta.lat, ta.lng,
-                         ta.description, ta.alerted_at, ta.is_resolved
-                  FROM   public.trip_alerts ta
-                  WHERE  ta.alert_type = 'ROUTE_DEVIATION'
-                    AND  ta.client_id  = ?
-                    AND  ta.alerted_at > NOW() - INTERVAL '24 hours'
-                  ORDER  BY ta.alerted_at DESC
-                  """;
-            List<Map<String, Object>> deviations = isAdmin
-                ? jdbc.queryForList(sql)
-                : jdbc.queryForList(sql, cid);
-            for (Map<String, Object> row : deviations) {
-                Double lat = row.get("lat") != null ? ((Number) row.get("lat")).doubleValue() : null;
-                Double lng = row.get("lng") != null ? ((Number) row.get("lng")).doubleValue() : null;
-                Object ts  = row.get("alerted_at");
-                results.add(buildNotif("db",
-                    row.get("vehicle_id"), row.get("driver_name"),
-                    "ROUTE_DEVIATION", row.get("description") != null ? row.get("description").toString() : "Route deviation detected",
-                    lat, lng,
-                    ts instanceof java.sql.Timestamp ? new java.util.Date(((java.sql.Timestamp) ts).getTime()) : new java.util.Date(),
-                    row.get("is_resolved")));
+            // TripStateCache exposes its internal map via allEntries()
+            for (Map.Entry<String, TripStateCache.State> entry : tripStateCache.allEntries().entrySet()) {
+                TripStateCache.State state = entry.getValue();
+                if (state == null || state.lastPopup == null) continue;
+                // Only include if cache is fresh (within 120 seconds)
+                long ageSeconds = java.time.Duration.between(state.lastUpdateTime, java.time.Instant.now()).getSeconds();
+                if (ageSeconds > 120) continue;
+                // Only include if deviation is actually flagged in the live popup
+                if (!"Yes".equalsIgnoreCase(state.lastPopup.getRouteDeviation())) continue;
+                // Client scoping: skip vehicles not belonging to this client
+                if (!isAdmin && cid != null && !cid.equals(state.clientId)) continue;
+
+                results.add(buildNotif("live", state.vehicleId, state.driverName,
+                    "ROUTE_DEVIATION", "Deviated from planned route",
+                    state.lastLat, state.lastLng, new java.util.Date(), false));
             }
         } catch (Exception ignored) {}
 

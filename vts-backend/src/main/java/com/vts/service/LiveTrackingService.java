@@ -108,8 +108,12 @@ public class LiveTrackingService {
         }
 
         // ── Route deviation check ─────────────────────────────────────────────
-        boolean deviated = deviationM > config.getDeviationThreshold();
-        if (deviated) saveDeviationAlert(vid, driverName, clientId, p.getLat(), p.getLng(), deviationM);
+        // Only evaluate deviation when an active trip with a valid OSRM route exists
+        boolean deviated = false;
+        if (tripData != null && state.fullRoute != null && !state.fullRoute.isEmpty()) {
+            deviated = deviationM > config.getDeviationThreshold();
+            if (deviated) saveDeviationAlert(vid, driverName, clientId, p.getLat(), p.getLng(), deviationM);
+        }
 
         // ── Auto-update trip status based on actual progress ──────────────────
         if (tripData != null && state.tripId != null) {
@@ -209,12 +213,14 @@ public class LiveTrackingService {
                             haversine.findNearestPointOnRoute(full, lat, lng);
                         remainingM  = haversine.calculateRemainingDistance(full, nearest.nearestIndex);
                         remaining   = haversine.getRemainingRoute(full, nearest.nearestIndex);
+                        // Only flag deviation if a valid active trip with a route exists
                         deviated    = nearest.minDistance > config.getDeviationThreshold();
                         if (totalM > 0) progressPct = ((totalM - remainingM) / totalM) * 100.0;
                         if (speed > 0) etaMins = (remainingM / (speed / 3.6)) / 60.0;
                     } else {
                         remaining  = full;
                         remainingM = totalM;
+                        deviated   = false; // no route = no deviation
                     }
                 } catch (Exception ex) {
                     log.debug("getCurrentState trip query failed for {}: {}", vehicleId, ex.getMessage());

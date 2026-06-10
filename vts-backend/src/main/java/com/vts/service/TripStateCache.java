@@ -46,4 +46,5 @@ public class TripStateCache {
     public void   put(String vehicleId, State state) { cache.put(vehicleId, state); }
     public void   remove(String vehicleId)           { cache.remove(vehicleId); }
     public boolean has(String vehicleId)             { return cache.containsKey(vehicleId); }
+    public Map<String, State> allEntries() { return cache; }
 }

@@ -12,7 +12,6 @@ import com.vts.service.ThingsBoardDirectQueryService;
 import com.vts.service.TripStateCache;
 import com.vts.service.VehicleService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ public class DashboardController {
     private final VehicleService   vehicleService;
     private final TripStateCache   tripStateCache;
     private final AuthService      authService;
-    private final JdbcTemplate     jdbc;
     private final ThingsBoardDirectQueryService thingsBoardDirectQueryService;
 
     public DashboardController(
@@ -37,7 +35,6 @@ public class DashboardController {
             VehicleService vehicleService,
             TripStateCache tripStateCache,
             AuthService authService,
-            JdbcTemplate jdbc,
             ThingsBoardDirectQueryService thingsBoardDirectQueryService
     ) {
         this.dashboardService = dashboardService;
@@ -45,7 +42,6 @@ public class DashboardController {
         this.vehicleService   = vehicleService;
         this.tripStateCache   = tripStateCache;
         this.authService      = authService;
-        this.jdbc             = jdbc;
         this.thingsBoardDirectQueryService = thingsBoardDirectQueryService;
     }
 
@@ -78,16 +74,20 @@ public class DashboardController {
         boolean isAdmin = client != null && "Admin".equalsIgnoreCase(client.getRole());
         Long    cid     = client != null ? client.getId() : null;
 
-        // Pre-load vehicles with recent deviation (last 60 min) for O(1) lookup
+        // Pre-load vehicles currently deviating from live in-memory cache (fresh ≤120s, active trip+route required)
         java.util.Set<String> deviatedVehicles = new java.util.HashSet<>();
         try {
-            String devSql = isAdmin
-                ? "SELECT DISTINCT vehicle_id FROM public.trip_alerts WHERE alert_type='ROUTE_DEVIATION' AND alerted_at > NOW() - INTERVAL '60 minutes'"
-                : "SELECT DISTINCT vehicle_id FROM public.trip_alerts WHERE alert_type='ROUTE_DEVIATION' AND client_id=? AND alerted_at > NOW() - INTERVAL '60 minutes'";
-            List<Map<String, Object>> rows = isAdmin ? jdbc.queryForList(devSql) : jdbc.queryForList(devSql, cid);
-            rows.forEach(r -> { if (r.get("vehicle_id") != null) deviatedVehicles.add(r.get("vehicle_id").toString()); });
+            for (Map.Entry<String, TripStateCache.State> entry : tripStateCache.allEntries().entrySet()) {
+                TripStateCache.State st = entry.getValue();
+                if (st == null || st.lastPopup == null) continue;
+                long ageSeconds = java.time.Duration.between(st.lastUpdateTime, java.time.Instant.now()).getSeconds();
+                if (ageSeconds > 120) continue;
+                if (!isAdmin && cid != null && !cid.equals(st.clientId)) continue;
+                if ("Yes".equalsIgnoreCase(st.lastPopup.getRouteDeviation())) {
+                    deviatedVehicles.add(st.vehicleId);
+                }
+            }
         } catch (Exception ignored) {}
-
         List<Map<String, Object>> result = new ArrayList<>();
         try {
             List<Map<String, Object>> telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(isAdmin ? null : cid);
