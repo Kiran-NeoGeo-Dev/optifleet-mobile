@@ -1,12 +1,16 @@
 package com.vts.service;
 
 import com.vts.entity.AdminAssociation;
+import com.vts.entity.Association;
 import com.vts.entity.Client;
 import com.vts.repository.AdminAssociationRepository;
+import com.vts.repository.AssociationRepository;
 import com.vts.repository.DeviceRepository;
+import com.vts.repository.DriverRepository;
 import com.vts.repository.VehicleRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -14,17 +18,23 @@ import java.util.Map;
 public class AdminAssociationService {
 
     private final AdminAssociationRepository adminAssociationRepository;
+    private final AssociationRepository associationRepository;
     private final VehicleRepository vehicleRepository;
     private final DeviceRepository deviceRepository;
+    private final DriverRepository driverRepository;
     private final AuthService authService;
 
     public AdminAssociationService(AdminAssociationRepository adminAssociationRepository,
+                                   AssociationRepository associationRepository,
                                    VehicleRepository vehicleRepository,
                                    DeviceRepository deviceRepository,
+                                   DriverRepository driverRepository,
                                    AuthService authService) {
         this.adminAssociationRepository = adminAssociationRepository;
+        this.associationRepository = associationRepository;
         this.vehicleRepository = vehicleRepository;
         this.deviceRepository = deviceRepository;
+        this.driverRepository = driverRepository;
         this.authService = authService;
     }
 
@@ -89,6 +99,54 @@ public class AdminAssociationService {
             throw new RuntimeException("Admin association not found");
         }
         adminAssociationRepository.deleteById(id);
+    }
+
+    // ── Vehicle-Device dropdown (all vehicles with admin-linked devices, for full-assoc form) ────────────
+    public List<Map<String, Object>> getVehiclesWithDevice() {
+        return adminAssociationRepository.findVehiclesWithAdminDevice(null);
+    }
+
+    // ── All drivers dropdown (admin can see all drivers) ────────────────────────────────────
+    public List<Map<String, Object>> getAllDrivers() {
+        return driverRepository.findAllDriversForDropdown();
+    }
+
+    // ── Full (Vehicle-Device-Driver) associations CRUD ─────────────────────────────────
+    public Association createFullAssociation(Integer vehicleId, Integer deviceId, Integer driverId,
+                                              String country, Boolean status) {
+        if (associationRepository.findByVehicleIdAndDeviceIdAndDriverId(vehicleId, deviceId, driverId).isPresent()) {
+            throw new IllegalArgumentException("This Vehicle-Device-Driver association already exists");
+        }
+        Association assoc = new Association();
+        assoc.setVehicleId(vehicleId);
+        assoc.setDeviceId(deviceId);
+        assoc.setDriverId(driverId);
+        assoc.setCountry(country != null ? country : "India");
+        assoc.setStatus(status != null ? status : true);
+        assoc.setCreatedAt(LocalDateTime.now());
+        return associationRepository.save(assoc);
+    }
+
+    public List<Map<String, Object>> getAllFullAssociations() {
+        return associationRepository.findAllWithDetails();
+    }
+
+    public Association updateFullAssociation(Integer id, Integer vehicleId, Integer deviceId,
+                                              Integer driverId, String country, Boolean status) {
+        Association assoc = associationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Association not found"));
+        assoc.setVehicleId(vehicleId);
+        assoc.setDeviceId(deviceId);
+        assoc.setDriverId(driverId);
+        assoc.setCountry(country != null ? country : "India");
+        assoc.setStatus(status != null ? status : true);
+        return associationRepository.save(assoc);
+    }
+
+    public void deleteFullAssociation(Integer id) {
+        if (!associationRepository.existsById(id))
+            throw new RuntimeException("Association not found");
+        associationRepository.deleteById(id);
     }
 }
 

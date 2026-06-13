@@ -107,7 +107,27 @@ public class AssociationService {
     public List<Map<String, Object>> getAllAssociationsWithDetails() {
         Client client = authService.getCurrentClient();
         if (client != null && !"Admin".equalsIgnoreCase(client.getRole())) {
-            return associationRepository.findAllWithDetailsByClientId(client.getId());
+            // Full associations (own + admin-created for this client's vehicles)
+            List<Map<String, Object>> full = new java.util.ArrayList<>(
+                associationRepository.findAllWithDetailsByClientId(client.getId()));
+            // Pending: admin linked vehicle+device but no full association yet
+            List<Map<String, Object>> pending = adminAssociationRepository
+                .findVehiclesWithAdminDevice(client.getId())
+                .stream()
+                .map(v -> {
+                    java.util.Map<String, Object> row = new java.util.LinkedHashMap<>(v);
+                    row.put("id", "pending_" + v.get("vehicle_id"));
+                    row.put("driver_id", null);
+                    row.put("driver_name", "Driver Association Pending");
+                    row.put("license_no", "");
+                    row.put("country", "");
+                    row.put("status", false);
+                    row.put("association_status", "PENDING");
+                    return row;
+                })
+                .collect(java.util.stream.Collectors.toList());
+            full.addAll(pending);
+            return full;
         }
         return associationRepository.findAllWithDetails();
     }

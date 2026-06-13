@@ -1,6 +1,7 @@
 package com.vts.controller;
 
 import com.vts.entity.AdminAssociation;
+import com.vts.entity.Association;
 import com.vts.service.AdminAssociationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,66 @@ public class AdminAssociationController {
     @GetMapping("/available-devices")
     public ResponseEntity<List<Map<String, Object>>> availableDevices() {
         return ResponseEntity.ok(service.getAvailableDevices());
+    }
+
+    @GetMapping("/vehicles-with-device")
+    public ResponseEntity<List<Map<String, Object>>> vehiclesWithDevice() {
+        return ResponseEntity.ok(service.getVehiclesWithDevice());
+    }
+
+    @GetMapping("/all-drivers")
+    public ResponseEntity<List<Map<String, Object>>> allDrivers() {
+        return ResponseEntity.ok(service.getAllDrivers());
+    }
+
+    // ── Full (Vehicle-Device-Driver) Associations ──────────────────────────────
+    @PostMapping("/full")
+    public ResponseEntity<?> createFull(@RequestBody Map<String, Object> body) {
+        try {
+            Integer vehicleId = toInt(body.get("vehicleId"));
+            Integer deviceId  = toInt(body.get("deviceId"));
+            Integer driverId  = toInt(body.get("driverId"));
+            String  country   = body.get("country") != null ? body.get("country").toString() : "India";
+            Boolean status    = body.get("status") instanceof Boolean ? (Boolean) body.get("status") : true;
+            if (vehicleId == null || deviceId == null || driverId == null)
+                return ResponseEntity.badRequest().body(Map.of("message", "vehicleId, deviceId and driverId are required"));
+            return ResponseEntity.status(HttpStatus.CREATED).body(service.createFullAssociation(vehicleId, deviceId, driverId, country, status));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/full")
+    public ResponseEntity<List<Map<String, Object>>> getAllFull() {
+        return ResponseEntity.ok(service.getAllFullAssociations());
+    }
+
+    @PutMapping("/full/{id}")
+    public ResponseEntity<?> updateFull(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        try {
+            Integer vehicleId = toInt(body.get("vehicleId"));
+            Integer deviceId  = toInt(body.get("deviceId"));
+            Integer driverId  = toInt(body.get("driverId"));
+            String  country   = body.get("country") != null ? body.get("country").toString() : "India";
+            Boolean status    = body.get("status") instanceof Boolean ? (Boolean) body.get("status") : true;
+            return ResponseEntity.ok(service.updateFullAssociation(id, vehicleId, deviceId, driverId, country, status));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/full/{id}")
+    public ResponseEntity<?> deleteFull(@PathVariable Integer id) {
+        try {
+            service.deleteFullAssociation(id);
+            return ResponseEntity.ok(Map.of("message", "Association deleted successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // ── CRUD ───────────────────────────────────────────────────────────────────

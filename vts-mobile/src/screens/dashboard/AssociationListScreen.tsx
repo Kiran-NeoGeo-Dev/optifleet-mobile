@@ -20,6 +20,8 @@ import { fetchDrivers as fetchClientDrivers } from "../../services/driverService
 import {
   fetchAdminAssociations, fetchVehiclesDropdown, fetchAvailableDevices,
   createAdminAssociation, updateAdminAssociation, deleteAdminAssociation,
+  fetchAdminFullAssociations, fetchVehiclesWithAdminDevice, fetchAllDrivers,
+  createAdminFullAssociation, updateAdminFullAssociation, deleteAdminFullAssociation,
 } from "../../services/adminAssociationService";
 import { useAuth } from "../../hooks/useAuth";
 import { COLORS, SHADOWS } from "../../components/ScreenBg";
@@ -86,14 +88,17 @@ type AssociationForm = {
   status?: boolean;
 };
 
-type Props = NativeStackScreenProps<MainStackParamList, "AssociationList">;
+type Props = NativeStackScreenProps<MainStackParamList, "AssociationList"> | NativeStackScreenProps<any, "AdminFullAssociationList">;
 
 const CLIENT_FORM: AssociationForm = { vehicleId: 0, deviceId: 0, driverId: 0, country: "India", status: true };
 const ADMIN_FORM: AssociationForm = { vehicleId: 0, deviceId: 0 };
+const ADMIN_FULL_FORM: AssociationForm = { vehicleId: 0, deviceId: 0, driverId: 0, country: "India", status: true };
 
 const AssociationListScreen = ({ navigation, route }: Props) => {
   const { isAdmin } = useAuth();
   const isAdminMode = isAdmin;
+  // Detect if this is the Vehicle-Device-Driver (full) admin screen
+  const isAdminFullMode = isAdmin && (route as any)?.name === "AdminFullAssociationList";
   const shouldOpenAddModal = route.params?.openAddModal ?? false;
   
   const [associations, setAssociations] = useState<ClientAssociation[] | AdminAssociation[]>([]);
@@ -120,7 +125,17 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
   const load = async () => {
     setLoading(true);
     try {
-      if (isAdminMode) {
+      if (isAdminFullMode) {
+        // Vehicle-Device-Driver full associations (admin managing associations table)
+        const [assocs, vehs, drvs] = await Promise.all([
+          fetchAdminFullAssociations(),
+          fetchVehiclesWithAdminDevice(),
+          fetchAllDrivers(),
+        ]);
+        setAssociations(assocs as ClientAssociation[]);
+        setVehicles(vehs as VehicleWithDevice[]);
+        setDrivers(drvs as DriverOption[]);
+      } else if (isAdminMode) {
         const [assocs, vehs, devs] = await Promise.all([
           fetchAdminAssociations(),
           fetchVehiclesDropdown(),
@@ -150,7 +165,9 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
   // Initialize form when modal opens via openAddModal parameter
   useEffect(() => {
     if (shouldOpenAddModal && modalVisible) {
-      if (isAdminMode) {
+      if (isAdminFullMode) {
+        setForm(ADMIN_FULL_FORM);
+      } else if (isAdminMode) {
         setForm(ADMIN_FORM);
       } else {
         setForm(CLIENT_FORM);
@@ -160,17 +177,23 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
       setSelDeviceCode("");
       setModalMode("add");
     }
-  }, [shouldOpenAddModal, modalVisible, isAdminMode]);
+  }, [shouldOpenAddModal, modalVisible, isAdminMode, isAdminFullMode]);
 
 
   const loadClientDrivers = async () => {
     try {
-      const list = await fetchClientDrivers();
-      setDrivers(list.map(d => ({
-        driver_id: d.id,
-        driver_name: d.driverName,
-        license_no: d.licenseNumber || ""
-      })));
+      if (isAdminFullMode) {
+        // Admin can see all drivers
+        const list = await fetchAllDrivers();
+        setDrivers(list);
+      } else {
+        const list = await fetchClientDrivers();
+        setDrivers(list.map(d => ({
+          driver_id: d.id,
+          driver_name: d.driverName,
+          license_no: d.licenseNumber || ""
+        })));
+      }
     } catch (error) {
       console.error("Driver load error:", error);
       setDrivers([]);
@@ -194,7 +217,9 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
         ...( 'status' in item && { status: item.status }),
       });
     } else {
-      if (isAdminMode) {
+      if (isAdminFullMode) {
+        setForm(ADMIN_FULL_FORM);
+      } else if (isAdminMode) {
         setForm(ADMIN_FORM);
       } else {
         setForm(CLIENT_FORM);
@@ -205,7 +230,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
       setDrivers([]);
     }
 
-    if (!isAdminMode) {
+    if (!isAdminMode || isAdminFullMode) {
       await loadClientDrivers();
     }
 
@@ -220,9 +245,14 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
     const vehicleId = v.vehicle_id || v.id;
     const deviceId = v.device_id || v.deviceId || 0;
     
+    // In admin full mode the vehicle already carries a device from admin_associations
+    if (isAdminFullMode && v.device_code) {
+      setSelDeviceCode(v.device_code);
+    }
+    
     setForm(prev => ({ ...prev, vehicleId, deviceId }));
 
-    if (!isAdminMode && deviceId) {
+    if ((!isAdminMode || isAdminFullMode) && deviceId) {
       await loadClientDrivers();
     }
   };
@@ -246,29 +276,33 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
     }
 
     try {
-      if (isAdminMode) {
-        const payload = { vehicle_id: form.vehicleId, device_id: form.deviceId };
+      if (isAdminFullMode) {
+        if (!form.driverId) { showToast("Please select a driver", "error"); return; }
+        const payload = {
+          vehicleId: form.vehicleId!, deviceId: form.deviceId!, driverId: form.driverId!,
+          country: form.country || "India", status: form.status !== undefined ? form.status : true,
+        };
+        if (modalMode === "add") {
+          await createAdminFullAssociation(payload);
+          showToast("Vehicle-Device-Driver association created", "success");
+        } else if (form.id !== undefined) {
+          await updateAdminFullAssociation(form.id, payload);
+          showToast("Association updated", "success");
+        } else { showToast("Invalid association ID", "error"); return; }
+      } else if (isAdminMode) {
+        const payload = { vehicle_id: form.vehicleId!, device_id: form.deviceId! };
         if (modalMode === "add") {
           await createAdminAssociation(payload);
           showToast("Vehicle-Device association created", "success");
         } else if (form.id !== undefined) {
           await updateAdminAssociation(form.id, payload);
           showToast("Association updated", "success");
-        } else {
-          showToast("Invalid association ID", "error");
-          return;
-        }
+        } else { showToast("Invalid association ID", "error"); return; }
       } else {
-        if (!form.driverId) {
-          showToast("Please select a driver", "error");
-          return;
-        }
+        if (!form.driverId) { showToast("Please select a driver", "error"); return; }
         const payload = {
-          vehicleId: form.vehicleId,
-          deviceId: form.deviceId,
-          driverId: form.driverId,
-          country: form.country || "India",
-          status: form.status !== undefined ? form.status : true
+          vehicleId: form.vehicleId!, deviceId: form.deviceId!, driverId: form.driverId!,
+          country: form.country || "India", status: form.status !== undefined ? form.status : true,
         };
         if (modalMode === "add") {
           await createAssociation(payload);
@@ -276,10 +310,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
         } else if (form.id !== undefined) {
           await updateAssociation(form.id, payload);
           showToast("Association updated", "success");
-        } else {
-          showToast("Invalid association ID", "error");
-          return;
-        }
+        } else { showToast("Invalid association ID", "error"); return; }
       }
       setModalVisible(false);
       load();
@@ -289,9 +320,11 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || typeof deleteTarget !== "number") return;
     try {
-      if (isAdminMode) {
+      if (isAdminFullMode) {
+        await deleteAdminFullAssociation(deleteTarget);
+      } else if (isAdminMode) {
         await deleteAdminAssociation(deleteTarget);
       } else {
         await deleteAssociation(deleteTarget);
@@ -315,12 +348,17 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
   });
 
   const AssocCard = ({ item }: { item: any }) => {
+    const isPending = item.association_status === "PENDING";
     const hasStatus = 'status' in item;
-    const statusColor = hasStatus ? (item.status ? "#16A34A" : "#DC2626") : "#1565C0";
-    const statusBg    = hasStatus ? (item.status ? "rgba(22,163,74,0.12)" : "rgba(220,38,38,0.12)") : "rgba(21,101,192,0.12)";
-    const statusBorder= hasStatus ? (item.status ? "rgba(22,163,74,0.35)" : "rgba(220,38,38,0.35)") : "rgba(21,101,192,0.35)";
-    const accentColor = hasStatus ? statusColor : "#1565C0";
-    
+    const statusColor = isPending ? "#D97706"
+      : hasStatus ? (item.status ? "#16A34A" : "#DC2626") : "#1565C0";
+    const statusBg    = isPending ? "rgba(217,119,6,0.12)"
+      : hasStatus ? (item.status ? "rgba(22,163,74,0.12)" : "rgba(220,38,38,0.12)") : "rgba(21,101,192,0.12)";
+    const statusBorder= isPending ? "rgba(217,119,6,0.35)"
+      : hasStatus ? (item.status ? "rgba(22,163,74,0.35)" : "rgba(220,38,38,0.35)") : "rgba(21,101,192,0.35)";
+    const accentColor = isPending ? "#D97706" : hasStatus ? statusColor : "#1565C0";
+    const statusLabel = isPending ? "Pending" : (item.status ? "Active" : "Inactive");
+
     return (
       <View style={[styles.card, SHADOWS.card]}>
         <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
@@ -328,14 +366,12 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
           <View style={styles.topRow}>
             <View style={styles.idWrap}>
               <Ionicons name="git-network-outline" size={14} color="#7B2CBF" />
-              <Text style={styles.idTxt}>#{item.id}  {item.registration_no}</Text>
+              <Text style={styles.idTxt}>{isPending ? "" : `#${item.id}  `}{item.registration_no}</Text>
             </View>
-            {hasStatus && (
-              <View style={[styles.statusPill, { backgroundColor: statusBg, borderColor: statusBorder }]}>
-                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                <Text style={[styles.statusTxt, { color: statusColor }]}>{item.status ? "Active" : "Inactive"}</Text>
-              </View>
-            )}
+            <View style={[styles.statusPill, { backgroundColor: statusBg, borderColor: statusBorder }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.statusTxt, { color: statusColor }]}>{statusLabel}</Text>
+            </View>
           </View>
 
           <View style={styles.detailGrid}>
@@ -343,33 +379,48 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
               <Text style={styles.detailLabel}>Device</Text>
               <Text style={styles.detailVal}>{item.device_code || "—"}</Text>
             </View>
-            {hasStatus && (
-              <>
-                <View style={styles.detailCol}>
-                  <Text style={styles.detailLabel}>Driver</Text>
-                  <Text style={styles.detailVal}>{item.driver_name || "—"}</Text>
-                </View>
-                <View style={styles.detailCol}>
-                  <Text style={styles.detailLabel}>Country</Text>
-                  <Text style={styles.detailVal}>{item.country || "—"}</Text>
-                </View>
-              </>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>Driver</Text>
+              <Text style={[styles.detailVal, isPending && { color: "#D97706", fontSize: 11 }]}>
+                {isPending ? "Driver Association Pending" : (item.driver_name || "—")}
+              </Text>
+            </View>
+            {!isPending && (
+              <View style={styles.detailCol}>
+                <Text style={styles.detailLabel}>Country</Text>
+                <Text style={styles.detailVal}>{item.country || "—"}</Text>
+              </View>
             )}
           </View>
 
           <View style={styles.cardActions}>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(99,102,241,0.10)", borderColor: "rgba(99,102,241,0.30)" }]} onPress={() => openModal("view", item)}>
-              <Ionicons name="eye-outline" size={14} color="#6366f1" />
-              <Text style={[styles.actionTxt, { color: "#6366f1" }]}>View</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(21,101,192,0.10)", borderColor: "rgba(21,101,192,0.30)" }]} onPress={() => openModal("edit", item)}>
-              <Ionicons name="create-outline" size={14} color="#1565C0" />
-              <Text style={[styles.actionTxt, { color: "#1565C0" }]}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)" }]} onPress={() => setDeleteTarget(item.id)}>
-              <Ionicons name="trash-outline" size={14} color="#EF4444" />
-              <Text style={[styles.actionTxt, { color: "#EF4444" }]}>Delete</Text>
-            </TouchableOpacity>
+            {!isPending && (
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(99,102,241,0.10)", borderColor: "rgba(99,102,241,0.30)" }]} onPress={() => openModal("view", item)}>
+                <Ionicons name="eye-outline" size={14} color="#6366f1" />
+                <Text style={[styles.actionTxt, { color: "#6366f1" }]}>View</Text>
+              </TouchableOpacity>
+            )}
+            {!isPending && (
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(21,101,192,0.10)", borderColor: "rgba(21,101,192,0.30)" }]} onPress={() => openModal("edit", item)}>
+                <Ionicons name="create-outline" size={14} color="#1565C0" />
+                <Text style={[styles.actionTxt, { color: "#1565C0" }]}>Edit</Text>
+              </TouchableOpacity>
+            )}
+            {!isPending && (
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)" }]} onPress={() => setDeleteTarget(item.id)}>
+                <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                <Text style={[styles.actionTxt, { color: "#EF4444" }]}>Delete</Text>
+              </TouchableOpacity>
+            )}
+            {isPending && (
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: "rgba(217,119,6,0.10)", borderColor: "rgba(217,119,6,0.35)" }]}
+                onPress={() => openModal("add")}
+              >
+                <Ionicons name="person-add-outline" size={14} color="#D97706" />
+                <Text style={[styles.actionTxt, { color: "#D97706" }]}>Assign Driver</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -397,7 +448,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
             <Ionicons name="chevron-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>{isAdminMode ? "Vehicle-Device Links" : "Associations"}</Text>
+            <Text style={styles.headerTitle}>{isAdminFullMode ? "Vehicle-Device-Driver" : isAdminMode ? "Vehicle-Device Links" : "Associations"}</Text>
             <Text style={styles.headerSub}>{filtered.length} record{filtered.length !== 1 ? "s" : ""}</Text>
           </View>
           <View style={{ width: 42 }} />
@@ -451,8 +502,8 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
               {modalMode === "view"
                 ? "Association Details"
                 : modalMode === "edit"
-                  ? "Edit " + (isAdminMode ? "Link" : "Association")
-                  : "New " + (isAdminMode ? "Link" : "Association")}
+                  ? "Edit " + (isAdminFullMode ? "Association" : isAdminMode ? "Link" : "Association")
+                  : "New " + (isAdminFullMode ? "Association" : isAdminMode ? "Link" : "Association")},
             </Text>
             <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollContent}>
               
@@ -473,12 +524,12 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
               )}
 
               {/* Device Selection */}
-              <Text style={styles.fieldLabel}>2. Device {isAdminMode ? "*" : "(Auto)"}</Text>
+              <Text style={styles.fieldLabel}>2. Device {isAdminMode && !isAdminFullMode ? "*" : "(Auto)"}</Text>
               {modalMode === "view" ? (
                 <View style={styles.readOnly}>
                   <Text style={styles.readOnlyTxt}>{selDeviceCode || form.deviceId ? `Device ID: ${form.deviceId}` : "—"}</Text>
                 </View>
-              ) : isAdminMode ? (
+              ) : isAdminMode && !isAdminFullMode ? (
                 <TouchableOpacity style={styles.selector} onPress={() => setDeviceSheet(true)}>
                   <Ionicons name="phone-portrait-outline" size={16} color="#7B2CBF" />
                   <Text style={[styles.selectorTxt, !selDeviceCode && { color: "#9C7A52" }]}>
@@ -494,8 +545,8 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
                 </View>
               )}
 
-              {/* Client-only fields */}
-              {!isAdminMode && (
+              {/* Driver + country + status: shown for client mode AND admin full mode */}
+              {(!isAdminMode || isAdminFullMode) && (
                 <>
                   <Text style={styles.fieldLabel}>3. Assign Driver *</Text>
                   {modalMode === "view" ? (

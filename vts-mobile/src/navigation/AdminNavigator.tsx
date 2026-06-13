@@ -67,6 +67,7 @@ export type AdminStackParamList = {
   AddVehicle:       undefined;
   EditVehicle:      { vehicleId: number };
   AssociationList:  { openAddModal?: boolean } | undefined;
+  AdminFullAssociationList: { openAddModal?: boolean } | undefined;
   DeviceManagement: { openAddModal?: boolean } | undefined;
   RegisterTrip:     undefined;
   TripManagement:   undefined;
@@ -199,6 +200,7 @@ const AdminNavigator = () => {
         <Stack.Screen name="AddVehicle"       component={AddVehicleScreen} />
         <Stack.Screen name="EditVehicle"      component={EditVehicleScreen} />
         <Stack.Screen name="AssociationList"  component={AssociationListScreen} />
+        <Stack.Screen name="AdminFullAssociationList" component={AssociationListScreen} />
         <Stack.Screen name="RegisterTrip"     component={RegisterTripScreen} />
         <Stack.Screen name="TripManagement"   component={TripManagementScreen} />
         <Stack.Screen name="TripList"         component={TripManagementScreen} />

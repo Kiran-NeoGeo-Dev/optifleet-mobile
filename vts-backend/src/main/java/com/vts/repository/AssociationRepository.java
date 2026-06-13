@@ -40,9 +40,16 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
         "JOIN vehicles v ON v.id = a.vehicle_id " +
         "JOIN devices d ON d.id = a.device_id " +
         "JOIN drivers dr ON dr.id = a.driver_id " +
-        "WHERE a.client_id = :clientId " +
+        "WHERE a.client_id = :clientId OR (a.client_id IS NULL AND v.client_id = :clientId) " +
         "ORDER BY a.created_at DESC", nativeQuery = true)
     List<Map<String, Object>> findAllWithDetailsByClientId(@Param("clientId") Long clientId);
+
+    // Vehicles that belong to client and have a full association (for exclusion check)
+    @Query(value =
+        "SELECT a.vehicle_id FROM associations a " +
+        "JOIN vehicles v ON v.id = a.vehicle_id " +
+        "WHERE v.client_id = :clientId", nativeQuery = true)
+    List<Integer> findAssociatedVehicleIdsByClientId(@Param("clientId") Long clientId);
     @Query(value =
         "SELECT a.id, a.vehicle_id, v.registration_no, " +
         "a.driver_id, dr.driver_name, dr.license_no, " +

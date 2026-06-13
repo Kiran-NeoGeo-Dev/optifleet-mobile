@@ -30,13 +30,14 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
     List<Map<String, Object>> findAllWithDetails();
 
     // ── For client: vehicles with admin-linked devices, not yet fully associated ─
+    // Excludes vehicles that already have a full association (by anyone, including admin with null clientId)
     @Query(value = "SELECT DISTINCT v.id as vehicle_id, v.registration_no as registration_no, " +
                "d.id as device_id, d.device_id as device_code " +
                "FROM vehicles v " +
                "JOIN admin_associations aa ON aa.vehicle_id = v.id " +
                "JOIN devices d ON d.id = aa.device_id " +
                "WHERE (:clientId IS NULL OR v.client_id = :clientId) " +
-               "AND v.id NOT IN (SELECT a.vehicle_id FROM associations a WHERE :clientId IS NULL OR a.client_id = :clientId)", nativeQuery = true)
+               "AND v.id NOT IN (SELECT a.vehicle_id FROM associations a)", nativeQuery = true)
     List<Map<String, Object>> findVehiclesWithAdminDevice(@Param("clientId") Long clientId);
 
     // ── Available devices (not linked by admin) ───────────────────────────────
@@ -54,15 +55,17 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
                "ORDER BY d.device_id", nativeQuery = true)
     List<Map<String, Object>> findAvailableDevicesByClientUsername(@Param("createdBy") String createdBy);
 
-    // ── Vehicles dropdown (exclude already-linked vehicles) ─────────────────
+    // ── Vehicles dropdown (exclude already-linked vehicles in both tables) ───────────
     @Query(value = "SELECT id, registration_no, vehicle_make, vehicle_model FROM vehicles " +
                "WHERE id NOT IN (SELECT aa.vehicle_id FROM admin_associations aa) " +
+               "AND id NOT IN (SELECT a.vehicle_id FROM associations a) " +
                "ORDER BY registration_no", nativeQuery = true)
     List<Map<String, Object>> findVehiclesDropdown();
 
     @Query(value = "SELECT id, registration_no, vehicle_make, vehicle_model FROM vehicles " +
                "WHERE client_id = :clientId " +
                "AND id NOT IN (SELECT aa.vehicle_id FROM admin_associations aa) " +
+               "AND id NOT IN (SELECT a.vehicle_id FROM associations a) " +
                "ORDER BY registration_no", nativeQuery = true)
     List<Map<String, Object>> findVehiclesDropdownByClientId(@Param("clientId") Long clientId);
 

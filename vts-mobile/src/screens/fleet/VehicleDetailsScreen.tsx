@@ -223,15 +223,15 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
             <View style={s.infoGrid}>
               <View style={s.infoRow}>
                 <InfoCell iconName="car-sport-outline"     iconBg="#EDE9FE" iconColor="#7C3AED" label="Model"         value={model} />
-                <InfoCell iconName="speedometer-outline"   iconBg="#DBEAFE" iconColor="#3B82F6" label="Speed"         value={`${speed} km/h`} />
+                <InfoCell iconName="speedometer-outline"   iconBg="#DBEAFE" iconColor="#2563EB" label="Speed"         value={`${speed} km/h`} />
               </View>
               <View style={s.infoRow}>
-                <InfoCell iconName="construct-outline"     iconBg="#FFEDD5" iconColor="#F97316" label="Engine RPM"    value={`${engineRpm} RPM`} />
-                <InfoCell iconName="cellular-outline"      iconBg="#D1FAE5" iconColor="#10B981" label="Signal Health" value={signalHealth} />
+                <InfoCell iconName="construct-outline"     iconBg="#FEF9C3" iconColor="#CA8A04" label="Engine RPM"    value={`${engineRpm} RPM`} />
+                <InfoCell iconName="cellular-outline"      iconBg="#FCE7F3" iconColor="#DB2777" label="Signal Health" value={signalHealth} />
               </View>
               <View style={s.infoRow}>
-                <InfoCell iconName="power-outline"         iconBg="#D1FAE5" iconColor="#10B981" label="Ignition"      value={ignition} />
-                <InfoCell iconName="radio-outline"         iconBg="#EDE9FE" iconColor="#7C3AED" label="Last Updated"  value={lastUpdateTime !== "—" ? `${lastUpdateTime}\n${lastUpdateDate}` : "—"} />
+                <InfoCell iconName="power-outline"         iconBg="#DCFCE7" iconColor="#16A34A" label="Ignition"      value={ignition} />
+                <InfoCell iconName="radio-outline"         iconBg="#FDF3E7" iconColor="#92400E" label="Last Updated"  value={lastUpdateTime !== "—" ? `${lastUpdateTime}\n${lastUpdateDate}` : "—"} />
               </View>
             </View>
           )}

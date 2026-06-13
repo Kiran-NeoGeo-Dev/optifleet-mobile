@@ -90,9 +90,9 @@ const Stack = createNativeStackNavigator<MainStackParamList>();
 const TAB_ITEMS = [
   { key: "Dashboard",     label: "Dashboard",       icon: "pulse-outline"  },
   { key: "Management",    label: "Management",      icon: "grid-outline"   },
-  { key: "FleetDrivers",  label: "Drivers",   icon: "people-outline" },
   { key: "Create",        label: "Create",     icon: "add"            },
   { key: "FleetVehicles", label: "Vehicles",   icon: "bus-outline"    },
+  { key: "FleetDrivers",  label: "Drivers",    icon: "people-outline" },
 ] as const;
 
 interface BottomBarProps {
@@ -259,35 +259,35 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
             {USER_MGMT_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.label}
-                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, marginVertical: 6, backgroundColor: "#fff", borderRadius: 16, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 3 }, elevation: 4, minHeight: 72 }}
+                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, marginVertical: 4, backgroundColor: "#fff", borderRadius: 14, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, minHeight: 60 }}
                 onPress={() => navigate(item.nav)}
                 activeOpacity={0.75}
               >
-                <View style={[{ width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon as any} size={24} color={item.iconColor} />
+                <View style={[{ width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
+                  <Ionicons name={item.icon as any} size={22} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
-                  <Text style={{ fontSize: 13, color: "#4B5563", marginTop: 3, fontWeight: "500" }}>{item.sub}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
+                  <Text style={{ fontSize: 12, color: "#4B5563", marginTop: 2, fontWeight: "500" }}>{item.sub}</Text>
                 </View>
-                <Text style={[{ fontSize: 14, fontWeight: "700" }, { color: item.accent }]}>View {"\u003E"}</Text>
+                <Text style={[{ fontSize: 13, fontWeight: "700" }, { color: item.accent }]}>View {"\u003E"}</Text>
               </TouchableOpacity>
             ))}
           </SV>
 
           {/* Footer */}
-          <View style={{ flexDirection: "row", alignItems: "center", padding: 18, margin: 16, marginBottom: 24, backgroundColor: "#F8FAFF", borderRadius: 20, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}>
-            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 14 }}>
-              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="person-outline" size={24} color="#1565C0" />
+          <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, marginHorizontal: 14, marginBottom: 14, marginTop: 4, backgroundColor: "#F8FAFF", borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="person-outline" size={22} color="#1565C0" />
               </View>
               <View>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet User</Text>
-                <Text style={{ fontSize: 12, color: "#6B7280" }}>Version 1.0.0</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet User</Text>
+                <Text style={{ fontSize: 11, color: "#6B7280" }}>Version 1.0.0</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={logout} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+            <TouchableOpacity onPress={logout} style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </SafeAreaView>

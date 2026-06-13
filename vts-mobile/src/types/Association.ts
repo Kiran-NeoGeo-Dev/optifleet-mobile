@@ -66,6 +66,14 @@ export interface ClientAssociationPayload {
 
 export type AssociationPayload = ClientAssociationPayload;
 
+export interface AdminAssociationFullPayload {
+  vehicleId: number;
+  deviceId: number;
+  driverId: number;
+  country: string;
+  status: boolean;
+}
+
 export interface AdminAssociationPayload {
   vehicle_id: number;
   device_id: number;

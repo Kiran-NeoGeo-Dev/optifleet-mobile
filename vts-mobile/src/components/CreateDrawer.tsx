@@ -11,17 +11,18 @@ import { useAuth } from "../hooks/useAuth";
 
 const { width: SW } = Dimensions.get("window");
 const DRAWER_W = SW * 0.72;
-const CARD_H   = 68;
-const CTA_W    = 105;
+const CARD_H   = 58;
+const CTA_W    = 100;
 
 // ── Item definitions ──────────────────────────────────────────────────────────
 const ADMIN_ITEMS = [
-  { label: "Create New User", icon: "person-add-outline",     color: "#7C3AED", bg: "#EDE9FE", nav: "CreateClient",    params: undefined },
-  { label: "Add Driver",      icon: "people-outline",         color: "#16A34A", bg: "#DCFCE7", nav: "AddDriver",        params: undefined },
-  { label: "Add Vehicle",     icon: "car-outline",            color: "#EA580C", bg: "#FFEDD5", nav: "AddVehicle",       params: undefined },
-  { label: "Add Device",      icon: "phone-portrait-outline", color: "#2563EB", bg: "#DBEAFE", nav: "DeviceManagement", params: { openAddModal: true } },
-  { label: "Add Association", icon: "link-outline",           color: "#E11D48", bg: "#FFE4E6", nav: "AssociationList",  params: { openAddModal: true } },
-  { label: "Register Trip",   icon: "clipboard-outline",      color: "#0891B2", bg: "#CFFAFE", nav: "RegisterTrip",     params: undefined },
+  { label: "Create New User",                  icon: "person-add-outline",     color: "#7C3AED", bg: "#EDE9FE", nav: "CreateClient",             params: undefined },
+  { label: "Add Driver",                       icon: "people-outline",         color: "#16A34A", bg: "#DCFCE7", nav: "AddDriver",               params: undefined },
+  { label: "Add Vehicle",                      icon: "car-outline",            color: "#EA580C", bg: "#FFEDD5", nav: "AddVehicle",              params: undefined },
+  { label: "Add Device",                       icon: "phone-portrait-outline", color: "#2563EB", bg: "#DBEAFE", nav: "DeviceManagement",        params: { openAddModal: true } },
+  { label: "Vehicle - Device Association",     icon: "link-outline",           color: "#E11D48", bg: "#FFE4E6", nav: "AssociationList",         params: { openAddModal: true } },
+  { label: "Vehicle - Device - Driver Assoc.", icon: "git-network-outline",    color: "#0891B2", bg: "#CFFAFE", nav: "AdminFullAssociationList", params: { openAddModal: true } },
+  { label: "Register Trip",                    icon: "clipboard-outline",      color: "#7C3AED", bg: "#EDE9FE", nav: "RegisterTrip",            params: undefined },
 ] as const;
 
 const USER_ITEMS = [
@@ -256,21 +257,21 @@ const s = StyleSheet.create({
 
   // Cards
   scroll:       { flex: 1 },
-  scrollContent:{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 8, gap: 16 },
-  card:         { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 18, height: CARD_H, overflow: "hidden", elevation: 4, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  iconBox:      { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center", marginLeft: 14 },
-  accentBar:    { width: 3, height: 28, borderRadius: 2, marginLeft: 10 },
-  cardLabel:    { flex: 1, fontSize: 15, fontWeight: "700", color: "#0D1B3E", marginLeft: 10 },
+  scrollContent:{ paddingHorizontal: 14, paddingTop: 6, paddingBottom: 6, gap: 10 },
+  card:         { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, height: CARD_H, overflow: "hidden", elevation: 3, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  iconBox:      { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", marginLeft: 12 },
+  accentBar:    { width: 3, height: 24, borderRadius: 2, marginLeft: 8 },
+  cardLabel:    { flex: 1, fontSize: 14, fontWeight: "700", color: "#0D1B3E", marginLeft: 8 },
 
   // Footer
-  footer:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F8F9FC", paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: "#E5E7EB" },
-  footerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar:     { width: 46, height: 46, borderRadius: 23, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center" },
-  footerName: { fontSize: 15, fontWeight: "700", color: "#0D1B3E" },
-  footerVer:  { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  divider:    { width: 1, height: 36, backgroundColor: "#D1D5DB", marginHorizontal: 14 },
-  logoutRow:  { flexDirection: "row", alignItems: "center", gap: 6 },
-  logoutTxt:  { fontSize: 15, fontWeight: "700", color: "#2563EB" },
+  footer:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F8F9FC", paddingVertical: 10, paddingHorizontal: 14, marginHorizontal: 14, marginBottom: 14, marginTop: 4, borderRadius: 14, borderWidth: 1, borderTopColor: "#E5E7EB", borderColor: "#E5E7EB" },
+  footerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  avatar:     { width: 38, height: 38, borderRadius: 19, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center" },
+  footerName: { fontSize: 14, fontWeight: "700", color: "#0D1B3E" },
+  footerVer:  { fontSize: 11, color: "#6B7280", marginTop: 1 },
+  divider:    { width: 1, height: 28, backgroundColor: "#D1D5DB", marginHorizontal: 10 },
+  logoutRow:  { flexDirection: "row", alignItems: "center", gap: 5 },
+  logoutTxt:  { fontSize: 14, fontWeight: "700", color: "#2563EB" },
 });
 
 export default CreateDrawer;
