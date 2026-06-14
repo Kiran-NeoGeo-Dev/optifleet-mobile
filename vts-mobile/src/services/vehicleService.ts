@@ -41,3 +41,8 @@ export const fetchVehicle = async (id: number) => {
   const res = await api.get<Vehicle>(`${ENDPOINTS.VEHICLES}/${id}`);
   return res.data;
 };
+
+export const deleteVehicle = async (id: number) => {
+  const res = await api.delete(`${ENDPOINTS.VEHICLES}/${id}`);
+  return res.data;
+};

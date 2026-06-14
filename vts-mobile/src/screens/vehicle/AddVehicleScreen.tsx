@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ScrollView, KeyboardAvoidingView, Platform, StatusBar, Image, Modal,
+  ScrollView, KeyboardAvoidingView, Platform, StatusBar, Image, Modal, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +15,8 @@ import { createVehicle } from "../../services/vehicleService";
 import { Toast, useToast } from "../../components/Toast";
 import ClientSelector, { ClientOption } from "../../components/ClientSelector";
 import { useAuth } from "../../hooks/useAuth";
+import { pickAndParseFile } from "../../utils/importParser";
+import ImportResultModal, { ImportResult } from "../../components/ImportResultModal";
 
 type Props =
   | NativeStackScreenProps<AdminStackParamList, "AddVehicle">
@@ -129,6 +131,78 @@ const AddVehicleScreen = ({ navigation }: Props) => {
   const [loading,      setLoading]      = useState(false);
   const [errors,       setErrors]       = useState<Record<string, string>>({});
   const { toast, showToast, hideToast } = useToast();
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importing, setImporting]       = useState(false);
+
+  // Parses date strings from Excel/CSV: "10-Jan-2020", "2020-01-10", serial numbers, etc.
+  const parseImportDate = (s: string): string => {
+    if (!s || !s.trim()) return "";
+    const trimmed = s.trim();
+    // xlsx with raw:false returns serial numbers as formatted strings like "10-Jan-2020" or "2020-01-10"
+    // Try direct JS parse first (handles ISO and most locale formats)
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+    // Try DD-Mon-YYYY e.g. "10-Jan-2020"
+    const monthMap: Record<string, string> = {
+      jan:"01",feb:"02",mar:"03",apr:"04",may:"05",jun:"06",
+      jul:"07",aug:"08",sep:"09",oct:"10",nov:"11",dec:"12",
+    };
+    const m1 = trimmed.match(/^(\d{1,2})[\-\/](\w{3})[\-\/](\d{4})$/);
+    if (m1) {
+      const mo = monthMap[m1[2].toLowerCase()];
+      if (mo) return `${m1[3]}-${mo}-${m1[1].padStart(2,"0")}`;
+    }
+    // Try DD/MM/YYYY or DD-MM-YYYY
+    const m2 = trimmed.match(/^(\d{1,2})[\-\/](\d{1,2})[\-\/](\d{4})$/);
+    if (m2) return `${m2[3]}-${m2[2].padStart(2,"0")}-${m2[1].padStart(2,"0")}`;
+    return "";
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const rows = await pickAndParseFile();
+      if (!rows.length) { showToast("No data found in file.", "warning"); setImporting(false); return; }
+
+      let success = 0;
+      const failures: ImportResult["failures"] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        try {
+          await createVehicle({
+            licensePlate:         (r["VehicleRegistrationNumber"] || "").trim().toUpperCase(),
+            ownerName:            (r["OwnerName"]            || "").trim(),
+            vehicleMake:          (r["VehicleMake"]          || "").trim(),
+            vehicleModel:         (r["VehicleModel"]         || "").trim(),
+            fuelType:             (r["FuelType"]             || "").trim(),
+            manufactureDate:      parseImportDate(r["DateOfRegistration"] || ""),
+            registrationValidity: parseImportDate(r["RegistrationValidity"] || ""),
+            dateOfManufacturing:  parseImportDate(r["DateOfManufacturing"] || ""),
+            chassisNumber:        (r["ChassisNumberVIN"] || "").trim().toUpperCase(),
+            engineNumber:         (r["EngineNumber"] || "").trim().toUpperCase(),
+            insuranceNumber:      (r["InsuranceNumber"] || "").trim().toUpperCase(),
+            vehicleInsuranceDate: parseImportDate(r["InsuranceDate"] || ""),
+            lastPucDate:          parseImportDate(r["LastPUCDate"] || ""),
+            pucDueOn:             parseImportDate(r["PUCDueOn"] || ""),
+            clientId:             isAdmin ? selectedClient?.id : (authClientId ?? undefined),
+          });
+          success++;
+        } catch (e: any) {
+          const msg = e?.response?.data?.errors
+            ? Object.values(e.response.data.errors).join(", ")
+            : e?.response?.data?.message || e?.message || "Unknown error";
+          failures.push({ row: i + 2, reason: msg });
+        }
+      }
+
+      setImportResult({ total: rows.length, success, failures });
+    } catch (e: any) {
+      showToast(e?.message || "Failed to read file.", "error");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const clrErr = (k: string) => setErrors(p => ({ ...p, [k]: "" }));
   const today  = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
@@ -256,7 +330,19 @@ const AddVehicleScreen = ({ navigation }: Props) => {
               />
 
               {/* ── VEHICLE INFORMATION ── */}
-              <Section title="Vehicle Information" />
+              <View style={s.sectionHeaderRow}>
+                <View style={s.sectionWrap}>
+                  <Text style={s.sectionTitle}>Vehicle Information</Text>
+                  <View style={s.sectionLine} />
+                </View>
+                <TouchableOpacity style={s.importBtn} onPress={handleImport} disabled={importing}>
+                  {importing
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Ionicons name="cloud-upload-outline" size={13} color="#fff" />
+                  }
+                  <Text style={s.importBtnTxt}>{importing ? "Importing…" : "Import Excel / CSV"}</Text>
+                </TouchableOpacity>
+              </View>
 
               {isAdmin && (
                 <View style={s.fieldWrap}>
@@ -413,6 +499,11 @@ const AddVehicleScreen = ({ navigation }: Props) => {
         </View>
       </Modal>
 
+      <ImportResultModal
+        visible={!!importResult}
+        result={importResult}
+        onClose={() => setImportResult(null)}
+      />
       <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </View>
   );
@@ -440,7 +531,11 @@ const s = StyleSheet.create({
   },
   cardEdge: { position: "absolute", top: 0, left: 0, right: 0, height: 5, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
 
-  sectionWrap:  { marginTop: 8, marginBottom: 14 },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 8, marginBottom: 4 },
+  importBtn:     { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#0D3B8E", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, marginTop: 2, alignSelf: "flex-start" },
+  importBtnTxt:  { color: "#fff", fontSize: 11, fontWeight: "700" },
+
+  sectionWrap:  { flex: 1, marginTop: 8, marginBottom: 14 },
   sectionTitle: { fontSize: 13, fontWeight: "800", color: C.purple, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 },
   sectionLine:  { height: 1, backgroundColor: "rgba(21,101,192,0.12)" },
 

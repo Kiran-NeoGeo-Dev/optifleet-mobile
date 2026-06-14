@@ -8,9 +8,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import { AdminStackParamList } from "../../navigation/AdminNavigator";
 import { Vehicle } from "../../types/Vehicle";
 import { fetchAllVehiclesAdmin } from "../../services/adminService";
+import { deleteVehicle } from "../../services/vehicleService";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Toast, useToast } from "../../components/Toast";
-import { api } from "../../services/api";
 
 type Props = NativeStackScreenProps<AdminStackParamList, "AdminVehicleList">;
 
@@ -38,7 +38,7 @@ const AdminVehicleListScreen = ({ navigation }: Props) => {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await api.delete(`/api/vehicles/${deleteTarget}`);
+      await deleteVehicle(deleteTarget);
       showToast("Vehicle deleted", "success");
       load();
     } catch { showToast("Delete failed", "error"); }

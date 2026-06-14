@@ -49,4 +49,16 @@ public class VehicleController {
     public ResponseEntity<Vehicle> updateVehicle(@PathVariable Long id, @Valid @RequestBody VehicleRequest request) {
         return ResponseEntity.ok(vehicleService.updateVehicle(id, request));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteVehicle(@PathVariable Long id) {
+        try {
+            vehicleService.deleteVehicle(id);
+            return ResponseEntity.ok(java.util.Map.of("message", "Vehicle deleted successfully"));
+        } catch (com.vts.exception.ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : "Delete failed"));
+        }
+    }
 }

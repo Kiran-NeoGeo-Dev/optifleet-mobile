@@ -17,6 +17,8 @@ import {
 } from "../../services/deviceService";
 import ClientSelector, { ClientOption } from "../../components/ClientSelector";
 import { useAuth } from "../../hooks/useAuth";
+import { pickAndParseFile } from "../../utils/importParser";
+import ImportResultModal, { ImportResult } from "../../components/ImportResultModal";
 
 const C = {
   bgDark:      "#0A1F44",
@@ -52,6 +54,8 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const { toast, showToast, hideToast } = useToast();
   const openAddModal = route.params?.openAddModal;
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importing, setImporting]       = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -119,6 +123,47 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
       navigation.goBack();
     } else {
       setModalVisible(false);
+    }
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const rows = await pickAndParseFile();
+      if (!rows.length) { showToast("No data found in file.", "warning"); setImporting(false); return; }
+
+      let success = 0;
+      const failures: ImportResult["failures"] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const statusRaw   = (r["Status"]     || "").toLowerCase();
+        const deviceType  = (r["DeviceType"] || EMPTY.deviceType).trim();
+        const payload: DevicePayload = {
+          deviceId:     (r["DeviceId"]      || "").trim(),
+          deviceType:   deviceType || EMPTY.deviceType,
+          mobileNumber: (r["MobileNumber"]  || "").trim(),
+          imeiNumber:   (r["IMEINumber"]    || "").trim(),
+          deviceModel:  (r["DeviceModel"]   || "").trim(),
+          status:       statusRaw !== "inactive",
+        };
+        try {
+          await createDevice(payload);
+          success++;
+        } catch (e: any) {
+          failures.push({
+            row: i + 2,
+            reason: e?.response?.data?.message || e?.message || "Unknown error",
+          });
+        }
+      }
+
+      setImportResult({ total: rows.length, success, failures });
+      if (success > 0) load();
+    } catch (e: any) {
+      showToast(e?.message || "Failed to read file.", "error");
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -232,9 +277,26 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
               {/* ── Card ── */}
               <View style={styles.formCard}>
 
-                {/* Client selector — add and edit modes */}
+                {/* Client selector + Import button — add and edit modes */}
                 {isAdmin && (modalMode === "add" || modalMode === "edit") && (
-                  <ClientSelector selectedClientId={selectedClient?.id ?? null} onSelect={setSelectedClient} />
+                  <View style={styles.selectorRow}>
+                    <View style={{ flex: 1 }}>
+                      <ClientSelector selectedClientId={selectedClient?.id ?? null} onSelect={setSelectedClient} />
+                    </View>
+                    {modalMode === "add" && (
+                      <TouchableOpacity
+                        style={styles.importBtn}
+                        onPress={handleImport}
+                        disabled={importing}
+                      >
+                        {importing
+                          ? <ActivityIndicator size="small" color="#fff" />
+                          : <Ionicons name="cloud-upload-outline" size={15} color="#fff" />
+                        }
+                        <Text style={styles.importBtnTxt}>{importing ? "Importing…" : "Import Excel / CSV"}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 )}
 
                 {/* Device ID */}
@@ -343,6 +405,11 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
         </View>
       </Modal>
 
+      <ImportResultModal
+        visible={!!importResult}
+        result={importResult}
+        onClose={() => setImportResult(null)}
+      />
       <ConfirmDialog
         visible={!!deleteTarget}
         title="Delete Device"
@@ -405,6 +472,9 @@ const styles = StyleSheet.create({
   toggleActive:  { backgroundColor: "rgba(34,197,94,0.12)", borderColor: "#22C55E88" },
   toggleInactive:{ backgroundColor: "rgba(248,113,113,0.12)", borderColor: "#F8717188" },
   toggleTxt:     { fontSize: 14, fontWeight: "700", color: C.muted },
+  selectorRow:   { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 4 },
+  importBtn:     { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#0D3B8E", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginTop: 4, alignSelf: "flex-start" },
+  importBtnTxt:  { color: "#fff", fontSize: 12, fontWeight: "700" },
   sheetBtns:     { marginHorizontal: 16, marginTop: 16, marginBottom: 32 },
   saveBtn:       { borderRadius: 16, overflow: "hidden", shadowColor: "#14532D", shadowOpacity: 0.30, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   saveBtnGrad:   { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 18, borderRadius: 16, overflow: "hidden" },

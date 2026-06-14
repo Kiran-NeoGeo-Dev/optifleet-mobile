@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ScrollView, KeyboardAvoidingView, Platform, StatusBar, Dimensions,
+  ScrollView, KeyboardAvoidingView, Platform, StatusBar, Dimensions, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +13,9 @@ import { MainStackParamList } from "../../navigation/MainNavigator";
 import { Toast, useToast } from "../../components/Toast";
 import ClientSelector, { ClientOption } from "../../components/ClientSelector";
 import { useAuth } from "../../hooks/useAuth";
+import { createDriver } from "../../services/driverService";
+import { pickAndParseFile } from "../../utils/importParser";
+import ImportResultModal, { ImportResult } from "../../components/ImportResultModal";
 
 type Props =
   | NativeStackScreenProps<AdminStackParamList, "AddDriver">
@@ -104,6 +107,78 @@ const AddDriverScreen = ({ navigation }: Props) => {
   const [comments,       setComments]       = useState("");
   const [errors,         setErrors]         = useState<Record<string, string>>({});
   const { toast, showToast, hideToast }     = useToast();
+  const [importResult, setImportResult]     = useState<ImportResult | null>(null);
+  const [importing, setImporting]           = useState(false);
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const rows = await pickAndParseFile();
+      if (!rows.length) { showToast("No data found in file.", "warning"); setImporting(false); return; }
+
+      let success = 0;
+      const failures: ImportResult["failures"] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const fullName = (r["FullName"] || "").trim();
+        const mobile   = (r["MobileNumber"] || "").trim();
+        const dobRaw   = (r["DateOfBirth"] || "").trim();
+        const license  = (r["DrivingLicenseNumber"] || "").trim();
+        const aadhar   = (r["AadhaarNumber"] || "").trim();
+        const expiry   = (r["LicenseExpiryDate"] || "").trim();
+        const statusRaw= (r["DriverStatus"] || "").toLowerCase();
+        const notes    = (r["Notes / Comments"] || r["Notes"] || "").trim();
+
+        // Parse date strings: "12-Jun-1988", "15-Aug-2030", "2030-08-15", "15/08/2030"
+        const parseImportDate = (s: string): string | undefined => {
+          if (!s || !s.trim()) return undefined;
+          const t = s.trim();
+          const d = new Date(t);
+          if (!isNaN(d.getTime())) return d.toISOString();
+          const months: Record<string, string> = {
+            jan:"01",feb:"02",mar:"03",apr:"04",may:"05",jun:"06",
+            jul:"07",aug:"08",sep:"09",oct:"10",nov:"11",dec:"12",
+          };
+          const m1 = t.match(/^(\d{1,2})[\-\/](\w{3})[\-\/](\d{4})$/);
+          if (m1) {
+            const mo = months[m1[2].toLowerCase()];
+            if (mo) return new Date(`${m1[3]}-${mo}-${m1[1].padStart(2,"0")}`).toISOString();
+          }
+          const m2 = t.match(/^(\d{1,2})[\-\/](\d{1,2})[\-\/](\d{4})$/);
+          if (m2) return new Date(`${m2[3]}-${m2[2].padStart(2,"0")}-${m2[1].padStart(2,"0")}`).toISOString();
+          return undefined;
+        };
+
+        try {
+          await createDriver({
+            driverName:    fullName,
+            phoneNumber:   mobile,
+            licenseNumber: license.toUpperCase(),
+            aadharNumber:  aadhar,
+            licenseExpiry: parseImportDate(expiry),
+            status:        statusRaw === "inactive" ? "INACTIVE" : "ACTIVE",
+            comments:      notes,
+            username:      mobile,
+            password:      dobRaw,
+            clientId:      isAdmin ? selectedClient?.id : undefined,
+          });
+          success++;
+        } catch (e: any) {
+          const msg = e?.response?.data?.errors
+            ? Object.values(e.response.data.errors).join(", ")
+            : e?.response?.data?.message || e?.message || "Unknown error";
+          failures.push({ row: i + 2, reason: msg });
+        }
+      }
+
+      setImportResult({ total: rows.length, success, failures });
+    } catch (e: any) {
+      showToast(e?.message || "Failed to read file.", "error");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const clrErr = (field: string) =>
     setErrors(prev => ({ ...prev, [field]: "" }));
@@ -227,7 +302,16 @@ const AddDriverScreen = ({ navigation }: Props) => {
                 style={s.cardEdge}
               />
 
-              <Text style={s.sectionTitle}>Driver Information</Text>
+              <View style={s.sectionHeaderRow}>
+                <Text style={s.sectionTitle}>Driver Information</Text>
+                <TouchableOpacity style={s.importBtn} onPress={handleImport} disabled={importing}>
+                  {importing
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Ionicons name="cloud-upload-outline" size={13} color="#fff" />
+                  }
+                  <Text style={s.importBtnTxt}>{importing ? "Importing…" : "Import Excel / CSV"}</Text>
+                </TouchableOpacity>
+              </View>
 
               {/* Client selector — admin only */}
               {isAdmin && (
@@ -413,6 +497,11 @@ const AddDriverScreen = ({ navigation }: Props) => {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
+      <ImportResultModal
+        visible={!!importResult}
+        result={importResult}
+        onClose={() => setImportResult(null)}
+      />
       <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </View>
   );
@@ -451,6 +540,10 @@ const s = StyleSheet.create({
     position: "absolute", top: 0, left: 0, right: 0, height: 5,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
   },
+
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: "rgba(21,101,192,0.12)", paddingBottom: 8 },
+  importBtn:     { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#0D3B8E", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
+  importBtnTxt:  { color: "#fff", fontSize: 11, fontWeight: "700" },
 
   // Section title inside card
   sectionTitle: {

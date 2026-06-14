@@ -71,6 +71,11 @@ public class VehicleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
     }
 
+    public void deleteVehicle(Long vehicleId) {
+        Vehicle vehicle = getVehicle(vehicleId);
+        vehicleRepository.delete(vehicle);
+    }
+
     public Vehicle updateVehicle(Long vehicleId, VehicleRequest request) {
         Vehicle vehicle = getVehicle(vehicleId);
         mapRequestToEntity(request, vehicle);
