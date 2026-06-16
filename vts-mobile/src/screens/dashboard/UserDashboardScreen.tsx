@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   StatusBar, Modal, Animated, Dimensions,
 } from "react-native";
+import RightDrawer from "../../components/RightDrawer";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -143,6 +144,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   const [liveVehicles, setLiveVehicles] = useState<LiveVehicle[]>([]);
   const [alerts, setAlerts]             = useState<any[]>([]);
   const [logoutDialog, setLogoutDialog] = useState(false);
+  const [drawerOpen,   setDrawerOpen]   = useState(false);
   const [enablePrompt, setEnablePrompt] = useState(false);
   const notifEnabled = useRef(false);
   const lottieRef   = useRef<LottieView>(null);
@@ -229,17 +231,18 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
           style={StyleSheet.absoluteFill}
         />
       </View>
-      <SafeAreaView style={s.safe} edges={["top"]}>
+      <SafeAreaView style={s.safe} edges={["top"]} pointerEvents="box-none">
         <View style={s.header}>
           <View style={s.headerTopRow}>
-            <TouchableOpacity style={s.avatarBtn} onPress={() => navigation.navigate("ClientDetails")}>
-              <Ionicons name="person-circle-outline" size={44} color={C.white} />
+            {/* Hamburger — top LEFT */}
+            <TouchableOpacity style={s.menuBtn} onPress={() => setDrawerOpen(true)} activeOpacity={0.8}>
+              <Ionicons name="menu" size={28} color={C.white} />
             </TouchableOpacity>
+            {/* Notification bell — top RIGHT (unchanged) */}
             <TouchableOpacity style={s.notifBtn} onPress={() => navigation.navigate("Notifications")}>
               <LottieView
                 source={require("../../../assets/animations/notification1.json")}
-                autoPlay
-                loop
+                autoPlay loop
                 style={s.notifLottie}
               />
               {alerts.length > 0 && (
@@ -358,11 +361,17 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
         </ScrollView>
       </SafeAreaView>
 
+      <RightDrawer
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onMyProfile={() => navigation.navigate("ClientDetails")}
+      />
+
       <ConfirmDialog
-        visible={logoutDialog} title="Logout" message="Are you sure you want to logout?"
+        visible={logoutDialog} title="Logout" message="Are you sure you want to logout from OptiFleet?"
         confirmText="Logout" cancelText="Cancel" confirmColor={C.red} icon="log-out-outline"
         onCancel={() => setLogoutDialog(false)}
-        onConfirm={() => { setLogoutDialog(false); showToast("Logged out.", "info"); setTimeout(logout, 1200); }}
+        onConfirm={() => { setLogoutDialog(false); setTimeout(logout, 300); }}
       />
       <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
 
@@ -410,6 +419,7 @@ const s = StyleSheet.create({
   header:       { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 36 },
   headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
   avatarBtn:    { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  menuBtn:      { width: 52, height: 52, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" },
   notifBtn:     { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
   notifLottie:  { width: 44, height: 44 },
   badge:        { position: "absolute", top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.white },
