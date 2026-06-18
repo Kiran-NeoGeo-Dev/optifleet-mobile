@@ -9,6 +9,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -18,6 +20,12 @@ import java.util.*;
 public class ThingsBoardDirectQueryService {
 
     private static final Logger log = LoggerFactory.getLogger(ThingsBoardDirectQueryService.class);
+
+    private enum DeviceState {
+        ACTIVE,
+        INACTIVE,
+        UNKNOWN
+    }
 
     private final JdbcTemplate jdbc;
     private final ThingsBoardAuthService tbAuth;
@@ -61,11 +69,18 @@ public class ThingsBoardDirectQueryService {
                         continue;
                     }
 
+                    DeviceState nativeState = fetchNativeDeviceState(tbDeviceEntityId, vehicleId);
+                    if (nativeState == DeviceState.INACTIVE) {
+                        log.info("[TB_DIRECT] vehicle={} OFFLINE (ThingsBoard state=INACTIVE)", vehicleId);
+                        continue;
+                    }
+
                     // Fetch telemetry from ThingsBoard
                     Map<String, Object> telemetry = fetchTelemetryFromThingsBoard(tbDeviceEntityId, vehicleId, driverName);
                     if (telemetry == null) continue;
+                    telemetry.put("thingsBoardState", nativeState.name());
 
-                    // ── LIVE CHECK: only include if telemetry ts is within 120 seconds ──
+                    // Priority 2: ThingsBoard telemetry timestamp (>120s -> OFFLINE)
                     Long ts = (Long) telemetry.get("telemetryTimestamp");
                     if (ts == null) {
                         log.warn("[TB_DIRECT] vehicle={} has no timestamp — OFFLINE", vehicleId);
@@ -76,7 +91,7 @@ public class ThingsBoardDirectQueryService {
                         log.info("[TB_DIRECT] vehicle={} OFFLINE (age={}s > 120s)", vehicleId, ageMs / 1000);
                         continue;
                     }
-                    log.info("[TB_DIRECT] vehicle={} LIVE (age={}s)", vehicleId, ageMs / 1000);
+                    log.info("[TB_DIRECT] vehicle={} LIVE (tbState={}, age={}s, lat={}, lng={})", vehicleId, nativeState, ageMs / 1000, telemetry.get("lat"), telemetry.get("lng"));
                     results.add(telemetry);
 
                 } catch (Exception e) {
@@ -104,12 +119,38 @@ public class ThingsBoardDirectQueryService {
                 return null;
             }
 
-            return fetchTelemetryFromThingsBoard(tbDeviceEntityId, vehicleId, null);
+            DeviceState nativeState = fetchNativeDeviceState(tbDeviceEntityId, vehicleId);
+            if (nativeState == DeviceState.INACTIVE) {
+                log.info("[TB_DIRECT] vehicle={} OFFLINE (ThingsBoard state=INACTIVE)", vehicleId);
+                return null;
+            }
+
+            Map<String, Object> telemetry = fetchTelemetryFromThingsBoard(tbDeviceEntityId, vehicleId, null);
+            if (telemetry == null) return null;
+            telemetry.put("thingsBoardState", nativeState.name());
+
+            Long ts = (Long) telemetry.get("telemetryTimestamp");
+            if (ts == null) {
+                log.warn("[TB_DIRECT] vehicle={} has no timestamp — OFFLINE", vehicleId);
+                return null;
+            }
+
+            long ageMs = System.currentTimeMillis() - ts;
+            if (ageMs > LIVE_THRESHOLD_MS) {
+                log.info("[TB_DIRECT] vehicle={} OFFLINE (age={}s > 120s)", vehicleId, ageMs / 1000);
+                return null;
+            }
+
+            return telemetry;
 
         } catch (Exception e) {
             log.error("[TB_DIRECT] Error fetching telemetry for vehicle={}: {}", vehicleId, e.getMessage());
             return null;
         }
+    }
+
+    public boolean isVehicleLive(String vehicleId) {
+        return fetchSingleVehicleTelemetry(vehicleId) != null;
     }
 
     /**
@@ -155,7 +196,8 @@ public class ThingsBoardDirectQueryService {
         if (deviceIdCache.containsKey(vehicleId)) return deviceIdCache.get(vehicleId);
 
         try {
-            String url = tbAuth.activeUrl() + "/api/tenant/devices?deviceName=" + vehicleId;
+            String encodedVehicleId = URLEncoder.encode(vehicleId, StandardCharsets.UTF_8);
+            String url = tbAuth.activeUrl() + "/api/tenant/devices?deviceName=" + encodedVehicleId;
             ResponseEntity<Map> res = restTemplate.exchange(
                 url, HttpMethod.GET, tbAuth.authEntity(), Map.class);
 
@@ -179,8 +221,9 @@ public class ThingsBoardDirectQueryService {
     @SuppressWarnings("unchecked")
     private String searchDeviceByName(String vehicleId) {
         try {
+            String encodedVehicleId = URLEncoder.encode(vehicleId, StandardCharsets.UTF_8);
             String url = tbAuth.activeUrl()
-                + "/api/tenant/devices?pageSize=100&page=0&textSearch=" + vehicleId;
+                + "/api/tenant/devices?pageSize=100&page=0&textSearch=" + encodedVehicleId;
             ResponseEntity<Map> res = restTemplate.exchange(
                 url, HttpMethod.GET, tbAuth.authEntity(), Map.class);
 
@@ -206,12 +249,128 @@ public class ThingsBoardDirectQueryService {
     }
 
     @SuppressWarnings("unchecked")
+    private DeviceState fetchNativeDeviceState(String entityId, String vehicleId) {
+        List<String> urls = List.of(
+            tbAuth.activeUrl() + "/api/device/" + entityId,
+            tbAuth.activeUrl() + "/api/devices/" + entityId
+        );
+
+        for (String url : urls) {
+            try {
+                ResponseEntity<Map> res = restTemplate.exchange(
+                    url, HttpMethod.GET, tbAuth.authEntity(), Map.class);
+                DeviceState parsed = parseNativeDeviceState(res.getBody());
+                if (parsed != DeviceState.UNKNOWN) {
+                    return parsed;
+                }
+            } catch (Exception e) {
+                log.debug("[TB_DIRECT] device state fetch failed for vehicle={} url={}: {}",
+                    vehicleId, url, e.getMessage());
+            }
+        }
+
+        DeviceState attrState = fetchNativeDeviceStateFromServerAttributes(entityId, vehicleId);
+        if (attrState != DeviceState.UNKNOWN) return attrState;
+
+        log.warn("[TB_DIRECT] Native ThingsBoard state unavailable for vehicle={} entityId={} - falling back to telemetry age only",
+            vehicleId, entityId);
+        return DeviceState.UNKNOWN;
+    }
+
+    @SuppressWarnings("unchecked")
+    private DeviceState fetchNativeDeviceStateFromServerAttributes(String entityId, String vehicleId) {
+        try {
+            String url = tbAuth.activeUrl()
+                + "/api/plugins/telemetry/DEVICE/" + entityId
+                + "/values/attributes/SERVER_SCOPE?keys=active,state,lastActivityTime";
+            ResponseEntity<List> res = restTemplate.exchange(
+                url, HttpMethod.GET, tbAuth.authEntity(), List.class);
+            List<?> attrs = res.getBody();
+            if (attrs == null) return DeviceState.UNKNOWN;
+            for (Object attr : attrs) {
+                if (!(attr instanceof Map)) continue;
+                Map<?, ?> m = (Map<?, ?>) attr;
+                Object key = m.get("key");
+                if (key == null) continue;
+                if ("active".equalsIgnoreCase(key.toString()) || "state".equalsIgnoreCase(key.toString())) {
+                    DeviceState parsed = parseStateValue(m.get("value"));
+                    if (parsed != DeviceState.UNKNOWN) return parsed;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[TB_DIRECT] server-scope device state fetch failed for vehicle={}: {}",
+                vehicleId, e.getMessage());
+        }
+        return DeviceState.UNKNOWN;
+    }
+
+    private DeviceState parseNativeDeviceState(Map<?, ?> body) {
+        if (body == null) return DeviceState.UNKNOWN;
+
+        DeviceState fromState = parseStateValue(findValueIgnoreCase(body, "state", 0));
+        if (fromState != DeviceState.UNKNOWN) return fromState;
+
+        DeviceState fromActive = parseStateValue(findValueIgnoreCase(body, "active", 0));
+        if (fromActive != DeviceState.UNKNOWN) return fromActive;
+
+        return DeviceState.UNKNOWN;
+    }
+
+    private Object findValueIgnoreCase(Object node, String key, int depth) {
+        if (node == null || depth > 6) return null;
+        if (node instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getKey() != null && key.equalsIgnoreCase(entry.getKey().toString())) {
+                    return entry.getValue();
+                }
+            }
+            for (Object value : map.values()) {
+                Object match = findValueIgnoreCase(value, key, depth + 1);
+                if (match != null) return match;
+            }
+        } else if (node instanceof List<?> list) {
+            for (Object value : list) {
+                Object match = findValueIgnoreCase(value, key, depth + 1);
+                if (match != null) return match;
+            }
+        }
+        return null;
+    }
+
+    private DeviceState parseStateValue(Object value) {
+        if (value == null) return DeviceState.UNKNOWN;
+        if (value instanceof Boolean b) return b ? DeviceState.ACTIVE : DeviceState.INACTIVE;
+        if (value instanceof Number n) return n.intValue() != 0 ? DeviceState.ACTIVE : DeviceState.INACTIVE;
+
+        String s = value.toString().trim();
+        if (s.isEmpty()) return DeviceState.UNKNOWN;
+        if ("ACTIVE".equalsIgnoreCase(s) ||
+            "ONLINE".equalsIgnoreCase(s) ||
+            "CONNECTED".equalsIgnoreCase(s) ||
+            "STARTED".equalsIgnoreCase(s) ||
+            "TRUE".equalsIgnoreCase(s) ||
+            "1".equals(s)) {
+            return DeviceState.ACTIVE;
+        }
+        if ("INACTIVE".equalsIgnoreCase(s) ||
+            "OFFLINE".equalsIgnoreCase(s) ||
+            "DISCONNECTED".equalsIgnoreCase(s) ||
+            "STOPPED".equalsIgnoreCase(s) ||
+            "FALSE".equalsIgnoreCase(s) ||
+            "0".equals(s)) {
+            return DeviceState.INACTIVE;
+        }
+        return DeviceState.UNKNOWN;
+    }
+
+    @SuppressWarnings("unchecked")
     private Map<String, Object> fetchTelemetryFromThingsBoard(String entityId, String vehicleId, String driverName) {
         try {
             String url = tbAuth.activeUrl()
                 + "/api/plugins/telemetry/DEVICE/" + entityId
                 + "/values/timeseries?keys=lat,lng,speed,trip_status,overspeed,"
-                + "smoking_status,mobile_usage,drowsiness_status,engine_rpm,battery_percentage,ignition_status";
+                + "smoking_status,mobile_usage,drowsiness_status,engineRpm,engine_rpm,rpm,battery_percentage,ignition_status,"
+                + "device_status,hdop,gps_accuracy,last_telemetry_timestamp";
 
             ResponseEntity<Map> res = restTemplate.exchange(
                 url, HttpMethod.GET, tbAuth.authEntity(), Map.class);
@@ -253,9 +412,13 @@ public class ThingsBoardDirectQueryService {
             result.put("smoking_status", extractString(data, "smoking_status"));
             result.put("mobile_usage", extractString(data, "mobile_usage"));
             result.put("drowsiness_status", extractString(data, "drowsiness_status"));
-            result.put("engineRpm", extractInt(data, "engine_rpm"));
+            result.put("engineRpm", extractFirstInt(data, "engineRpm", "engine_rpm", "rpm"));
             result.put("battery_percentage", extractDouble(data, "battery_percentage"));
             result.put("ignition_status", extractString(data, "ignition_status"));
+            result.put("device_status", extractString(data, "device_status"));
+            result.put("hdop", extractDouble(data, "hdop"));
+            result.put("gps_accuracy", extractDouble(data, "gps_accuracy"));
+            result.put("last_telemetry_timestamp", ts);
             result.put("address", address);
             result.put("coordinates", coordinates);
             result.put("lastUpdateTime", lastUpdateTime);
@@ -326,11 +489,47 @@ public class ThingsBoardDirectQueryService {
     private Double extractDouble(Map<String, Object> data, String key) {
         try {
             Object val = data.get(key);
-            if (val instanceof List && !((List<?>) val).isEmpty()) {
-                Object v = ((Map<?, ?>) ((List<?>) val).get(0)).get("value");
-                if (v != null) return Double.parseDouble(v.toString());
+            if (val == null) {
+                log.debug("[TB_EXTRACT] Key '{}' not found in telemetry data", key);
+                return null;
             }
-        } catch (Exception ignored) {}
+            
+            // Handle array format: [{ "ts": ..., "value": ... }]
+            if (val instanceof List) {
+                List<?> list = (List<?>) val;
+                if (!list.isEmpty()) {
+                    Object firstItem = list.get(0);
+                    if (firstItem instanceof Map) {
+                        Object v = ((Map<?, ?>) firstItem).get("value");
+                        if (v != null) {
+                            try {
+                                return Double.parseDouble(v.toString());
+                            } catch (NumberFormatException e) {
+                                log.warn("[TB_EXTRACT] Failed to parse '{}' as Double: value='{}', error: {}", 
+                                    key, v, e.getMessage());
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+            // Handle direct numeric value
+            else if (val instanceof Number) {
+                return ((Number) val).doubleValue();
+            }
+            // Try to parse string
+            else {
+                try {
+                    return Double.parseDouble(val.toString());
+                } catch (NumberFormatException e) {
+                    log.debug("[TB_EXTRACT] Failed to parse '{}' as Double: value='{}', type={}", 
+                        key, val, val.getClass().getName());
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[TB_EXTRACT] Exception extracting Double for key '{}': {}", key, e.getMessage());
+        }
         return null;
     }
 
@@ -339,14 +538,40 @@ public class ThingsBoardDirectQueryService {
         return d != null ? d.intValue() : null;
     }
 
+    private Integer extractFirstInt(Map<String, Object> data, String... keys) {
+        for (String key : keys) {
+            Integer value = extractInt(data, key);
+            if (value != null) return value;
+        }
+        return null;
+    }
+
     private String extractString(Map<String, Object> data, String key) {
         try {
             Object val = data.get(key);
-            if (val instanceof List && !((List<?>) val).isEmpty()) {
-                Object v = ((Map<?, ?>) ((List<?>) val).get(0)).get("value");
-                return v != null ? v.toString() : null;
+            if (val == null) {
+                log.debug("[TB_EXTRACT] Key '{}' not found in telemetry data", key);
+                return null;
             }
-        } catch (Exception ignored) {}
+            
+            // Handle array format: [{ "ts": ..., "value": ... }]
+            if (val instanceof List) {
+                List<?> list = (List<?>) val;
+                if (!list.isEmpty()) {
+                    Object firstItem = list.get(0);
+                    if (firstItem instanceof Map) {
+                        Object v = ((Map<?, ?>) firstItem).get("value");
+                        return v != null ? v.toString() : null;
+                    }
+                }
+            }
+            // Handle direct string value
+            else {
+                return val.toString();
+            }
+        } catch (Exception e) {
+            log.warn("[TB_EXTRACT] Exception extracting String for key '{}': {}", key, e.getMessage());
+        }
         return null;
     }
 }

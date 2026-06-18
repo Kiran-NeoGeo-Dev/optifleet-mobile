@@ -168,7 +168,7 @@ public class TelemetryPollingScheduler {
             String url = tbAuth.activeUrl()
                 + "/api/plugins/telemetry/DEVICE/" + entityId
                 + "/values/timeseries?keys=lat,lng,speed,trip_status,overspeed,"
-                + "smoking_status,mobile_usage,drowsiness_status,engine_rpm,battery_percentage";
+                + "smoking_status,mobile_usage,drowsiness_status,engineRpm,engine_rpm,rpm,battery_percentage";
 
             log.info("[POLL] Fetching telemetry: {}", url);
             ResponseEntity<Map> res = restTemplate.exchange(
@@ -200,7 +200,7 @@ public class TelemetryPollingScheduler {
             p.setSmokingStatus(extractString(data, "smoking_status"));
             p.setMobileUsage(extractString(data, "mobile_usage"));
             p.setDrowsinessStatus(extractString(data, "drowsiness_status"));
-            p.setEngineRpm(extractInt(data, "engine_rpm"));
+            p.setEngineRpm(extractFirstInt(data, "engineRpm", "engine_rpm", "rpm"));
             p.setBatteryPercentage(extractDouble(data, "battery_percentage"));
 
             if (p.getLat() == null || p.getLng() == null) {
@@ -230,6 +230,14 @@ public class TelemetryPollingScheduler {
     private Integer extractInt(Map<String, Object> data, String key) {
         Double d = extractDouble(data, key);
         return d != null ? d.intValue() : null;
+    }
+
+    private Integer extractFirstInt(Map<String, Object> data, String... keys) {
+        for (String key : keys) {
+            Integer value = extractInt(data, key);
+            if (value != null) return value;
+        }
+        return null;
     }
 
     private String extractString(Map<String, Object> data, String key) {

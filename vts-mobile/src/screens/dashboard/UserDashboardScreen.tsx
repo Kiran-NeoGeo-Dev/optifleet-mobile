@@ -211,7 +211,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
 
   useFocusEffect(useCallback(() => {
     loadAll();
-    const t = setInterval(loadAll, 10000);
+    const t = setInterval(loadAll, 5_000);
     return () => clearInterval(t);
   }, [loadAll]));
 

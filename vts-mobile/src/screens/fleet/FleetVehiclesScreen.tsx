@@ -17,6 +17,7 @@ const STATUS_MAP: Record<string, { label: string; dot: string; bg: string; text:
   moving: { label: "Moving",  dot: "#22C55E", bg: "#DCFCE7", text: "#16A34A" },
   idle:   { label: "Idling",  dot: "#F59E0B", bg: "#FEF3C7", text: "#D97706" },
   parked: { label: "Parked",  dot: "#EF4444", bg: "#FEE2E2", text: "#DC2626" },
+  offline:{ label: "Offline", dot: "#EF4444", bg: "#FEE2E2", text: "#DC2626" },
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -88,7 +89,7 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
           clientId:     v.clientId,
           driverName:   live?.driverName ?? "—",
           // tripStatus comes from the SAME LiveVehicle data the Dashboard map uses
-          tripStatus:   live?.tripStatus ?? "Parked",
+          tripStatus:   live?.tripStatus ?? "Offline",
           liveData:     live,
         };
       });
@@ -104,7 +105,7 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
   // Refresh every time screen gains focus (same pattern as Dashboard)
   useFocusEffect(useCallback(() => {
     load();
-    const t = setInterval(() => load(true), 10_000);
+    const t = setInterval(() => load(true), 5_000);
     return () => clearInterval(t);
   }, [load]));
 

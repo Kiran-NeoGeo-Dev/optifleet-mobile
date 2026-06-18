@@ -151,7 +151,11 @@ const DriverMapScreen = ({ navigation }: Props) => {
             Speech.speak(`Continue on route. ${km} kilometres remaining. Estimated arrival in ${eta} minutes.`, { language: "en-IN" });
           }
         }
-      } catch { /* silent — server may not have telemetry yet */ }
+      } catch {
+        setLiveSpeed(0);
+        setIsDeviating(false);
+        webViewRef.current?.injectJavaScript("window.clearLiveTracking && window.clearLiveTracking(); true;");
+      }
     };
 
     pollRef.current = setInterval(poll, 5000);
@@ -273,6 +277,9 @@ const DriverMapScreen = ({ navigation }: Props) => {
     if(remainingLatlngs && remainingLatlngs.length > 0) {
       routeLayer = L.polyline(remainingLatlngs, {color:'#38BDF8', weight:5, opacity:0.9}).addTo(map);
     }
+  };
+  window.clearLiveTracking = function() {
+    if(vehicleMarker) { map.removeLayer(vehicleMarker); vehicleMarker = null; }
   };
 </script>
 </body></html>`;

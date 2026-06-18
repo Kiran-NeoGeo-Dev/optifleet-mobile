@@ -155,6 +155,11 @@ public class LiveTrackingService {
     }
 
     public LiveTrackingUpdate getCurrentState(String vehicleId) {
+        if (!thingsBoardDirectQueryService.isVehicleLive(vehicleId)) {
+            log.info("getCurrentState: {} is offline by ThingsBoard state/telemetry age", vehicleId);
+            return null;
+        }
+
         // ── Try cache first ─────────────────────────────────────────────────────
         TripStateCache.State state = cache.get(vehicleId);
         if (state != null) {
@@ -277,40 +282,9 @@ public class LiveTrackingService {
         }
 
         // ── Final fallback: DB trip data only (no live telemetry) ─────────────
-        try {
-            Map<String, Object> tripRow = jdbc.queryForMap("""
-                SELECT t.trip_id, t.vehicle_id, t.driver_name,
-                       t.start_lat, t.start_lng, t.end_lat, t.end_lng,
-                       t.distance_km, t.duration, t.status,
-                       t.custom_polyline::text AS custom_polyline
-                FROM   public.trips t
-                WHERE  t.vehicle_id = ?
-                  AND  TRIM(t.status) NOT IN ('Completed', 'Cancelled')
-                ORDER  BY t.created_at DESC LIMIT 1
-                """, vehicleId);
-
-            String polyJson = tripRow.get("custom_polyline") != null
-                ? tripRow.get("custom_polyline").toString() : null;
-            List<RoutePoint> full = haversine.parsePolyline(polyJson);
-            double totalM = haversine.calculateRouteDistance(full);
-
-            LiveTrackingUpdate u = new LiveTrackingUpdate();
-            u.setVehicleId(vehicleId);
-            u.setLat(tripRow.get("start_lat") != null ? ((Number) tripRow.get("start_lat")).doubleValue() : 0);
-            u.setLng(tripRow.get("start_lng") != null ? ((Number) tripRow.get("start_lng")).doubleValue() : 0);
-            u.setSpeed(0);
-            u.setTripStatus((String) tripRow.get("status"));
-            u.setRemainingRoute(full);
-            u.setRemainingDistanceKm(totalM / 1000.0);
-            u.setEtaMinutes(0);
-            u.setProgressPercentage(0);
-            u.setDeviating(false);
-            u.setTimestamp(Instant.now().toEpochMilli());
-            return u;
-        } catch (Exception e) {
-            log.debug("getCurrentState DB fallback failed for {}: {}", vehicleId, e.getMessage());
-            return null;
-        }
+        // No DB fallback here: returning trip start coordinates without live ThingsBoard
+        // validation makes offline vehicles appear live in Admin/User/Driver maps.
+        return null;
     }
 
     // ── DB helpers ────────────────────────────────────────────────────────────

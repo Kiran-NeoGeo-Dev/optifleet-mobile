@@ -64,15 +64,15 @@ export const fetchNotifications = async (
 };
 
 /**
- * Mark all notifications as read (resolved)
+ * Notifications are now queried directly from ThingsBoard in real-time.
+ * The mark-as-read and clear functionality has been disabled as notifications
+ * are derived from live telemetry updates rather than persisted in the database.
  */
+
 export const markAllNotificationsRead = async (): Promise<void> => {
-  await api.post(`${ENDPOINTS.NOTIFICATIONS}/mark-all-read`);
+  console.log('Notification read status is not persisted - use dashboard for alert management');
 };
 
-/**
- * Clear all notifications
- */
 export const clearAllNotifications = async (): Promise<void> => {
-  await api.post(`${ENDPOINTS.NOTIFICATIONS}/clear`);
+  console.log('Notifications cannot be cleared - they reflect live telemetry state');
 };

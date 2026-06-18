@@ -9,6 +9,8 @@ import com.vts.service.AuthService;
 import com.vts.service.ThingsBoardAuthService;
 import com.vts.service.ThingsBoardDirectQueryService;
 import com.vts.service.VehicleService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -20,6 +22,8 @@ import java.util.*;
 @RequestMapping("/api/fleet")
 public class FleetController {
 
+    private static final Logger log = LoggerFactory.getLogger(FleetController.class);
+    
     private final VehicleService                vehicleService;
     private final AssociationRepository         associationRepository;
     private final DriverRepository              driverRepository;
@@ -117,12 +121,20 @@ public class FleetController {
             Map<String, Object> telemetry = tbQuery.fetchSingleVehicleTelemetry(regNo);
             if (telemetry != null) {
                 result.put("speed",          telemetry.getOrDefault("speed", 0));
-                result.put("engineRpm",      telemetry.getOrDefault("engineRpm", 0));
+                result.put("engineRpm",      telemetry.getOrDefault("engineRpm", 0));  // Now using correct key
                 result.put("ignitionStatus", telemetry.getOrDefault("ignition_status", "OFF"));
                 result.put("tripStatus",     telemetry.getOrDefault("trip_status", "Parked"));
                 result.put("lastUpdateTime", telemetry.getOrDefault("lastUpdateTime", ""));
                 result.put("lastUpdateDate", telemetry.getOrDefault("lastUpdateDate", ""));
+                
+                // Log telemetry for debugging
+                log.info("[FLEET] Vehicle {} telemetry: speed={}, engineRpm={}, status={}", 
+                    regNo, 
+                    telemetry.get("speed"), 
+                    telemetry.get("engineRpm"), 
+                    telemetry.get("trip_status"));
             } else {
+                log.warn("[FLEET] No telemetry found for vehicle {}", regNo);
                 result.put("speed",          0);
                 result.put("engineRpm",      0);
                 result.put("ignitionStatus", "OFF");
@@ -131,6 +143,7 @@ public class FleetController {
                 result.put("lastUpdateDate", "");
             }
         } catch (Exception e) {
+            log.error("[FLEET] Error fetching telemetry for vehicle {}: {}", regNo, e.getMessage());
             result.put("speed",          0);
             result.put("engineRpm",      0);
             result.put("ignitionStatus", "OFF");
@@ -147,52 +160,77 @@ public class FleetController {
     }
 
     /**
-     * Fetch last 50 trip_status values for vehicleId from ThingsBoard and compute health score.
+     * Calculate signal health based on:
+     * Priority 1: device_status (Inactive → Offline)
+     * Priority 2: last_telemetry_timestamp (> 120s → Offline)
+     * Priority 3: HDOP (GPS accuracy)
+     * 
+     * Returns: Offline / Ideal / Excellent / Good / Moderate / Poor / VeryPoor
      */
     @SuppressWarnings("unchecked")
     private String calcSignalHealth(String vehicleId) {
         try {
-            // Resolve TB device entity ID via existing service
-            String url = tbAuth.activeUrl() + "/api/tenant/devices?deviceName=" + vehicleId;
-            var res = restTemplate.exchange(url, HttpMethod.GET, tbAuth.authEntity(), Map.class);
-            if (res.getBody() == null) return "Fair";
-            Object idObj = res.getBody().get("id");
-            if (!(idObj instanceof Map)) return "Fair";
-            String entityId = (String) ((Map<?, ?>) idObj).get("id");
-            if (entityId == null) return "Fair";
-
-            // Fetch last 50 trip_status time-series values
-            long endTs   = System.currentTimeMillis();
-            long startTs = endTs - 7L * 24 * 60 * 60 * 1000; // last 7 days
-            String histUrl = tbAuth.activeUrl()
-                + "/api/plugins/telemetry/DEVICE/" + entityId
-                + "/values/timeseries?keys=trip_status&startTs=" + startTs
-                + "&endTs=" + endTs + "&limit=50&orderBy=DESC";
-
-            var histRes = restTemplate.exchange(histUrl, HttpMethod.GET, tbAuth.authEntity(), Map.class);
-            if (histRes.getBody() == null) return "Fair";
-
-            Object raw = histRes.getBody().get("trip_status");
-            if (!(raw instanceof List)) return "Fair";
-
-            int moving = 0, idle = 0, parked = 0;
-            for (Object entry : (List<?>) raw) {
-                if (!(entry instanceof Map)) continue;
-                Object val = ((Map<?, ?>) entry).get("value");
-                if (val == null) continue;
-                String s = val.toString().trim().toLowerCase();
-                if ("moving".equals(s))      moving++;
-                else if ("idle".equals(s))   idle++;
-                else if ("parked".equals(s)) parked++;
+            // Fetch LIVE telemetry for this vehicle
+            Map<String, Object> telemetry = tbQuery.fetchSingleVehicleTelemetry(vehicleId);
+            if (telemetry == null) {
+                log.warn("[SIGNAL_HEALTH] No telemetry for vehicle {}", vehicleId);
+                return "Offline";
             }
-
-            int score = (moving * 5) + (idle * 3) + (parked * 1);
-            if (score >= 40)  return "Excellent";
-            if (score >= 25)  return "Good";
-            if (score >= 15)  return "Fair";
-            return "Poor";
+            
+            // PRIORITY 1: Check device_status attribute
+            String deviceStatus = (String) telemetry.get("device_status");
+            log.debug("[SIGNAL_HEALTH] Vehicle {} device_status: {}", vehicleId, deviceStatus);
+            if ("Inactive".equalsIgnoreCase(deviceStatus)) {
+                log.info("[SIGNAL_HEALTH] Vehicle {} OFFLINE - device_status=Inactive", vehicleId);
+                return "Offline";
+            }
+            
+            // PRIORITY 2: Check timestamp (> 120s = OFFLINE)
+            Long timestamp = (Long) telemetry.get("telemetryTimestamp");
+            if (timestamp == null) {
+                log.warn("[SIGNAL_HEALTH] Vehicle {} has no telemetry timestamp - marking OFFLINE", vehicleId);
+                return "Offline";
+            }
+            
+            long ageMs = System.currentTimeMillis() - timestamp;
+            long ageSeconds = ageMs / 1000;
+            if (ageMs > 120_000L) {
+                log.info("[SIGNAL_HEALTH] Vehicle {} OFFLINE - telemetry age={}s > 120s", vehicleId, ageSeconds);
+                return "Offline";
+            }
+            
+            // PRIORITY 3: Check HDOP (GPS accuracy)
+            Double hdop = (Double) telemetry.get("hdop");
+            if (hdop == null) {
+                hdop = (Double) telemetry.get("gps_accuracy");
+            }
+            
+            if (hdop == null) {
+                log.debug("[SIGNAL_HEALTH] Vehicle {} has no HDOP/gps_accuracy - defaulting to Moderate", vehicleId);
+                hdop = 5.0;  // Default: Moderate
+            }
+            
+            log.debug("[SIGNAL_HEALTH] Vehicle {} HDOP={}", vehicleId, hdop);
+            
+            // HDOP Ranges (lower = better accuracy)
+            // 0.5 – 1.0     → Ideal 🟢
+            // 1.0 – 2.0     → Excellent 🟢
+            // 2.0 – 5.0     → Good 🔵
+            // 5.0 – 10.0    → Moderate 🟡
+            // 10.0 – 20.0   → Poor 🟠
+            // > 20.0        → Very Poor 🔴
+            if (hdop >= 0.5 && hdop < 1.0)   return "Ideal";
+            if (hdop >= 1.0 && hdop < 2.0)   return "Excellent";
+            if (hdop >= 2.0 && hdop < 5.0)   return "Good";
+            if (hdop >= 5.0 && hdop < 10.0)  return "Moderate";
+            if (hdop >= 10.0 && hdop < 20.0) return "Poor";
+            if (hdop >= 20.0)                return "VeryPoor";
+            
+            return "Moderate";
+            
         } catch (Exception e) {
-            return "Fair";
+            log.error("[SIGNAL_HEALTH] Error calculating signal health for vehicle {}: {}", vehicleId, e.getMessage());
+            return "Offline";
         }
     }
 }

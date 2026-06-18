@@ -194,7 +194,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
         fetchNotifications(new Set()).catch(() => []),
       ]);
 
-      // Use backend-computed live counts (from vehicle_tracking last 5 min)
+      // Use backend-computed live counts from ThingsBoard state + telemetry freshness.
       setSummary({
         activeVehicles: (sum as any).activeVehicles ?? 0,
         idleVehicles:   (sum as any).idleVehicles   ?? 0,
@@ -225,7 +225,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
 
   useFocusEffect(useCallback(() => {
     loadAll();
-    const t = setInterval(loadAll, 10000);
+    const t = setInterval(loadAll, 5_000);
     return () => clearInterval(t);
   }, [loadAll]));
 

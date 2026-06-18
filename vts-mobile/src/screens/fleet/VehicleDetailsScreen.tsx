@@ -16,6 +16,7 @@ const STATUS_MAP: Record<string, { label: string; dot: string; bg: string; text:
   moving: { label: "Moving",  dot: "#22C55E", bg: "#DCFCE7", text: "#16A34A" },
   idle:   { label: "Idling",  dot: "#F59E0B", bg: "#FEF3C7", text: "#D97706" },
   parked: { label: "Parked",  dot: "#EF4444", bg: "#FEE2E2", text: "#DC2626" },
+  offline:{ label: "Offline", dot: "#EF4444", bg: "#FEE2E2", text: "#DC2626" },
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -96,6 +97,9 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
         setLiveStatus(match.tripStatus ?? "Parked");
         setDriverName(match.driverName ?? vehicle.driverName);
         setSpeed(match.speed ?? 0);
+      } else {
+        setLiveStatus("Offline");
+        setSpeed(0);
       }
     } catch (_) {}
   };
@@ -115,11 +119,11 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
     }
   };
 
-  // Poll both on focus — same 10s interval as Dashboard
+  // Poll both on focus — 5s interval for faster telemetry updates
   useFocusEffect(() => {
     refreshLive();
     refreshTelemetry();
-    const t = setInterval(() => { refreshLive(); refreshTelemetry(); }, 10_000);
+    const t = setInterval(() => { refreshLive(); refreshTelemetry(); }, 5_000);
     return () => clearInterval(t);
   });
 
@@ -133,6 +137,7 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
     : null;
 
   const statusCfg = STATUS_MAP[(liveStatus ?? "").toLowerCase().trim()] ?? STATUS_MAP.parked;
+  const isVehicleLive = (liveStatus ?? "").toLowerCase().trim() !== "offline";
 
   return (
     <View style={s.root}>
@@ -152,9 +157,14 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
               <Text style={s.headerSub}>Real-time vehicle information</Text>
             </View>
             {/* Live pill */}
-            <View style={s.livePill}>
-              <View style={s.liveDot} />
-              <Text style={s.liveTxt}>LIVE</Text>
+            <View style={[
+              s.livePill,
+              !isVehicleLive && { backgroundColor: "rgba(239,68,68,0.20)", borderColor: "rgba(239,68,68,0.40)" },
+            ]}>
+              <View style={[s.liveDot, !isVehicleLive && { backgroundColor: "#EF4444" }]} />
+              <Text style={[s.liveTxt, !isVehicleLive && { color: "#EF4444" }]}>
+                {isVehicleLive ? "LIVE" : "OFFLINE"}
+              </Text>
             </View>
           </View>
         </SafeAreaView>

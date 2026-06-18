@@ -59,7 +59,11 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
           const js = `updateLiveTracking(${u.lat},${u.lng},${JSON.stringify(latlngs)},"${trip.vehicleId}"); true;`;
           webViewRef.current?.injectJavaScript(js);
         }
-      } catch { /* silent */ }
+      } catch {
+        setLiveSpeed(0);
+        setIsDeviating(false);
+        webViewRef.current?.injectJavaScript("window.clearLiveTracking && window.clearLiveTracking(); true;");
+      }
     };
     pollRef.current = setInterval(poll, 5000);
     poll();
@@ -141,6 +145,9 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
     if(routeLayer)map.removeLayer(routeLayer);
     if(remainingLatlngs&&remainingLatlngs.length>0)
       routeLayer=L.polyline(remainingLatlngs,{color:'#38BDF8',weight:5,opacity:0.9}).addTo(map);
+  };
+  window.clearLiveTracking=function(){
+    if(vehicleMarker){map.removeLayer(vehicleMarker);vehicleMarker=null;}
   };
 </script>
 </body></html>`;

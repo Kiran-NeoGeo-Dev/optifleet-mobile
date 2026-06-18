@@ -97,22 +97,24 @@ public class NotificationController {
         return ResponseEntity.ok(results);
     }
 
+
     /**
      * Mark all notifications as resolved for the current client
-     * DISABLED - Not using notifications table anymore
+     * NOTE: Notifications are queried directly from ThingsBoard in real-time.
+     * Use dashboard UI to manage alerts and responses.
      */
-    // @PostMapping("/mark-all-read")
+    @PostMapping("/mark-all-read")
     public ResponseEntity<String> markAllRead() {
-        return ResponseEntity.ok("Notifications are now queried directly from ThingsBoard");
+        return ResponseEntity.ok("Notifications are now queried directly from ThingsBoard in real-time");
     }
 
     /**
      * Clear all notifications for the current client
-     * DISABLED - Not using notifications table anymore
+     * NOTE: Real-time notifications cannot be cleared. They are derived from live telemetry.
      */
-    // @PostMapping("/clear")
+    @PostMapping("/clear")
     public ResponseEntity<String> clearAll() {
-        return ResponseEntity.ok("Notifications are now queried directly from ThingsBoard");
+        return ResponseEntity.ok("Notifications are now queried directly from ThingsBoard in real-time");
     }
 
     private Map<String, Object> buildNotif(String source, Object vehicleId, Object driverName,

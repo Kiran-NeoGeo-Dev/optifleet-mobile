@@ -125,7 +125,7 @@ const FullMapScreen = ({ navigation }: Props) => {
 
   useEffect(() => {
     loadLiveVehicles();
-    const interval = setInterval(loadLiveVehicles, 10000); // Refresh every 10 seconds
+    const interval = setInterval(loadLiveVehicles, 5_000);
     return () => clearInterval(interval);
   }, [loadLiveVehicles]);
 

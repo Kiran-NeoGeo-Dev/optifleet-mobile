@@ -1,5 +1,6 @@
 package com.vts.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class TelemetryPayload {
@@ -29,6 +30,7 @@ public class TelemetryPayload {
     private String drowsinessStatus;
 
     @JsonProperty("engine_rpm")
+    @JsonAlias({"engineRpm", "rpm"})
     private Integer engineRpm;
 
     @JsonProperty("battery_percentage")
