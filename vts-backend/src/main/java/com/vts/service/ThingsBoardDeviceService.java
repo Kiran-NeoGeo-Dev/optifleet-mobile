@@ -152,9 +152,10 @@ public class ThingsBoardDeviceService {
 
             HttpHeaders putHeaders = authHeaders(token);
             putHeaders.setContentType(MediaType.APPLICATION_JSON);
+            // This TB version uses POST /api/device (with id in body) for both create and update
             ResponseEntity<String> putRes = restTemplate.exchange(
                 baseUrl + "/api/device",
-                HttpMethod.PUT,
+                HttpMethod.POST,
                 new HttpEntity<>(putBody, putHeaders),
                 String.class);
             log.info("TB device renamed OK: id={} newName={} status={}", tbDeviceId, newName, putRes.getStatusCode());
