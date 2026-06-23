@@ -147,7 +147,7 @@ public class ThingsBoardDeviceService {
         try {
             ObjectNode deviceNode = (ObjectNode) objectMapper.readTree(getRes.getBody());
             deviceNode.put("name", newName);
-            deviceNode.put("label", newName);
+            // label is intentionally NOT updated — keep existing value unchanged
             String putBody = objectMapper.writeValueAsString(deviceNode);
 
             HttpHeaders putHeaders = authHeaders(token);
