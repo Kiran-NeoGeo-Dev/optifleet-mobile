@@ -7,11 +7,13 @@ import com.vts.entity.DeviceTbMapping;
 import com.vts.repository.DeviceRepository;
 import com.vts.repository.DeviceTbMappingRepository;
 import com.vts.utils.FernetEncryptionUtil;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +41,31 @@ public class DeviceService {
         this.mappingTx         = mappingTx;
         this.tbDeviceService   = tbDeviceService;
         this.encryption        = encryption;
+    }
+
+    // ── Startup: re-encrypt any plain-text tokens left in the DB ─────────────
+
+    @PostConstruct
+    @Transactional
+    public void migrateExistingTokens() {
+        List<DeviceTbMapping> all = mappingRepository.findAll();
+        int migrated = 0;
+        for (DeviceTbMapping m : all) {
+            String stored = m.getTbAccessToken();
+            if (stored == null || stored.isBlank()) continue;
+            if (!isEncrypted(stored)) {
+                m.setTbAccessToken(encryption.encrypt(stored));
+                mappingRepository.save(m);
+                migrated++;
+                log.info("Migrated plain-text token to encrypted for deviceId={}", m.getDeviceId());
+            }
+        }
+        if (migrated > 0) log.info("Token migration complete: {} token(s) encrypted", migrated);
+    }
+
+    private boolean isEncrypted(String value) {
+        // Fernet tokens are Base64-URL encoded and always start with 'g' (0x80 version byte)
+        return value != null && value.startsWith("g") && value.length() > 56;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────

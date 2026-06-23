@@ -6,76 +6,144 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.Mac;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
 
 /**
- * AES-256-GCM symmetric encryption utility.
- * Produces Base64-URL-safe ciphertext compatible with the Python Fernet-style flow.
- * Key is derived from the tb.encryption.secret property (32-char ASCII → 32-byte key).
+ * Python-compatible Fernet encryption (RFC-compatible).
+ *
+ * Fernet token layout (before Base64-URL encoding):
+ *   0x80          (1 byte  — version)
+ *   timestamp     (8 bytes — big-endian seconds since Unix epoch)
+ *   IV            (16 bytes — random AES-CBC IV)
+ *   ciphertext    (N bytes — AES-128-CBC with PKCS7 padding)
+ *   HMAC-SHA256   (32 bytes — over all preceding bytes)
+ *
+ * Key layout (32 bytes decoded from Base64):
+ *   bytes  0-15 → HMAC-SHA256 signing key
+ *   bytes 16-31 → AES-128-CBC encryption key
+ *
+ * Output is Base64-URL encoded (no padding stripped) → always starts with "gAAAAA".
  */
 @Component
 public class FernetEncryptionUtil {
 
     private static final Logger log = LoggerFactory.getLogger(FernetEncryptionUtil.class);
-    private static final String ALGO = "AES/GCM/NoPadding";
-    private static final int GCM_IV_LEN  = 12;
-    private static final int GCM_TAG_LEN = 128;
+    private static final byte FERNET_VERSION = (byte) 0x80;
 
-    private final SecretKey secretKey;
+    private final byte[] signingKey;    // first 16 bytes
+    private final byte[] encryptionKey; // last  16 bytes
 
-    public FernetEncryptionUtil(@Value("${tb.encryption.secret:DefaultSecret32CharKey!!!!!!!!}") String secret) {
-        byte[] keyBytes = secret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        if (keyBytes.length < 32) {
-            keyBytes = java.util.Arrays.copyOf(keyBytes, 32); // zero-pad to 32 bytes
-        } else if (keyBytes.length > 32) {
-            keyBytes = java.util.Arrays.copyOfRange(keyBytes, 0, 32);
-        }
-        this.secretKey = new SecretKeySpec(keyBytes, "AES");
-        log.info("FernetEncryptionUtil initialised (AES-256-GCM)");
+    public FernetEncryptionUtil(@Value("${tb.encryption.secret}") String secret) {
+        byte[] key = Base64.getDecoder().decode(secret);
+        if (key.length != 32)
+            throw new IllegalStateException(
+                "tb.encryption.secret must decode to exactly 32 bytes, got " + key.length);
+        this.signingKey    = Arrays.copyOfRange(key, 0, 16);
+        this.encryptionKey = Arrays.copyOfRange(key, 16, 32);
+        log.info("FernetEncryptionUtil initialised (Fernet/AES-128-CBC+HMAC-SHA256)");
     }
 
-    /** Encrypt plaintext → Base64-URL-safe string (IV prepended). */
+    /** Encrypt plaintext → Fernet token string starting with "gAAAAA". */
     public String encrypt(String plaintext) {
         try {
-            byte[] iv = new byte[GCM_IV_LEN];
-            new SecureRandom().nextBytes(iv);
+            byte[] iv        = randomIv();
+            long   timestamp = Instant.now().getEpochSecond();
+            byte[] ciphertext = aesCbcEncrypt(plaintext.getBytes(StandardCharsets.UTF_8), iv);
 
-            Cipher cipher = Cipher.getInstance(ALGO);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LEN, iv));
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            // Build the payload: version(1) + timestamp(8) + iv(16) + ciphertext
+            ByteBuffer payload = ByteBuffer.allocate(1 + 8 + 16 + ciphertext.length);
+            payload.put(FERNET_VERSION);
+            payload.putLong(timestamp);
+            payload.put(iv);
+            payload.put(ciphertext);
+            byte[] payloadBytes = payload.array();
 
-            ByteBuffer buf = ByteBuffer.allocate(GCM_IV_LEN + cipherBytes.length);
-            buf.put(iv);
-            buf.put(cipherBytes);
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(buf.array());
+            // HMAC-SHA256 over the payload
+            byte[] hmac = hmacSha256(payloadBytes);
+
+            // Final token = payload + hmac
+            byte[] token = new byte[payloadBytes.length + hmac.length];
+            System.arraycopy(payloadBytes, 0, token, 0, payloadBytes.length);
+            System.arraycopy(hmac, 0, token, payloadBytes.length, hmac.length);
+
+            return Base64.getUrlEncoder().encodeToString(token);
         } catch (Exception e) {
-            log.error("Encryption failed: {}", e.getMessage());
+            log.error("Fernet encryption failed: {}", e.getMessage());
             throw new RuntimeException("Token encryption failed", e);
         }
     }
 
-    /** Decrypt Base64-URL-safe string → plaintext. */
-    public String decrypt(String encoded) {
+    /** Decrypt Fernet token → plaintext. Returns input as-is if decryption fails (legacy token). */
+    public String decrypt(String fernetToken) {
         try {
-            byte[] data = Base64.getUrlDecoder().decode(encoded);
-            ByteBuffer buf = ByteBuffer.wrap(data);
+            byte[] token = Base64.getUrlDecoder().decode(fernetToken);
+            if (token.length < 57)
+                throw new IllegalArgumentException("Token too short");
+            if (token[0] != FERNET_VERSION)
+                throw new IllegalArgumentException("Unknown Fernet version: " + token[0]);
 
-            byte[] iv = new byte[GCM_IV_LEN];
-            buf.get(iv);
-            byte[] cipherBytes = new byte[buf.remaining()];
-            buf.get(cipherBytes);
+            // Split: payload = token[0..len-32], hmac = token[len-32..len]
+            byte[] payload = Arrays.copyOfRange(token, 0, token.length - 32);
+            byte[] hmac    = Arrays.copyOfRange(token, token.length - 32, token.length);
 
-            Cipher cipher = Cipher.getInstance(ALGO);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LEN, iv));
-            return new String(cipher.doFinal(cipherBytes), java.nio.charset.StandardCharsets.UTF_8);
+            // Verify HMAC
+            byte[] expectedHmac = hmacSha256(payload);
+            if (!constantTimeEquals(hmac, expectedHmac))
+                throw new SecurityException("HMAC verification failed");
+
+            // Extract IV and ciphertext from payload
+            byte[] iv         = Arrays.copyOfRange(payload, 9, 25);
+            byte[] ciphertext = Arrays.copyOfRange(payload, 25, payload.length);
+
+            return new String(aesCbcDecrypt(ciphertext, iv), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            log.error("Decryption failed: {}", e.getMessage());
-            throw new RuntimeException("Token decryption failed", e);
+            log.warn("Fernet decryption failed — returning as-is (legacy token): {}", e.getMessage());
+            return fernetToken;
         }
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private byte[] aesCbcEncrypt(byte[] data, byte[] iv) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE,
+                new SecretKeySpec(encryptionKey, "AES"),
+                new IvParameterSpec(iv));
+        return cipher.doFinal(data);
+    }
+
+    private byte[] aesCbcDecrypt(byte[] data, byte[] iv) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE,
+                new SecretKeySpec(encryptionKey, "AES"),
+                new IvParameterSpec(iv));
+        return cipher.doFinal(data);
+    }
+
+    private byte[] hmacSha256(byte[] data) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(signingKey, "HmacSHA256"));
+        return mac.doFinal(data);
+    }
+
+    private byte[] randomIv() {
+        byte[] iv = new byte[16];
+        new SecureRandom().nextBytes(iv);
+        return iv;
+    }
+
+    private boolean constantTimeEquals(byte[] a, byte[] b) {
+        if (a.length != b.length) return false;
+        int diff = 0;
+        for (int i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+        return diff == 0;
     }
 }
