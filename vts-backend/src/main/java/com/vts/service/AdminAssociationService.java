@@ -162,7 +162,7 @@ public class AdminAssociationService {
         return (authService.isSuperAdmin(client) ? driverRepository.findAll() : driverRepository.findByOrgId(client.getOrgId()))
                 .stream().map(d -> {
                     Map<String, Object> row = new java.util.LinkedHashMap<>();
-                    row.put("id", d.getId()); row.put("driver_name", d.getDriverName()); row.put("license_no", d.getLicenseNumber());
+                    row.put("driver_id", d.getId()); row.put("driver_name", d.getDriverName()); row.put("license_no", d.getLicenseNumber());
                     return row;
                 }).toList();
     }
