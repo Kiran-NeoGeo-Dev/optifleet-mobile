@@ -35,6 +35,9 @@ public class Device {
     @Column(name = "client_id")
     private Long clientId;
 
+    @Column(name = "org_id")
+    private Long orgId;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -56,6 +59,8 @@ public class Device {
     public void setCreatedBy(String createdBy)  { this.createdBy = createdBy; }
     public Long getClientId()                  { return clientId; }
     public void setClientId(Long clientId)     { this.clientId = clientId; }
+    public Long getOrgId()                     { return orgId; }
+    public void setOrgId(Long orgId)           { this.orgId = orgId; }
     public LocalDateTime getCreatedAt()        { return createdAt; }
     public void setCreatedAt(LocalDateTime v)  { this.createdAt = v; }
 }

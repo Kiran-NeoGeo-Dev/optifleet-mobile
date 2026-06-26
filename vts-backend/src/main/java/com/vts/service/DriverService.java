@@ -4,6 +4,7 @@ import com.vts.dto.DriverRequest;
 import com.vts.entity.Client;
 import com.vts.entity.Driver;
 import com.vts.exception.ResourceNotFoundException;
+import com.vts.repository.ClientRepository;
 import com.vts.repository.DriverRepository;
 import com.vts.security.JwtService;
 import org.slf4j.Logger;
@@ -23,15 +24,17 @@ public class DriverService {
 
     private static final Logger log = LoggerFactory.getLogger(DriverService.class);
 
-    private final DriverRepository driverRepository;
-    private final AuthService      authService;
-    private final JwtService       jwtService;
+    private final DriverRepository  driverRepository;
+    private final AuthService       authService;
+    private final JwtService        jwtService;
+    private final ClientRepository  clientRepository;
 
     public DriverService(DriverRepository driverRepository, AuthService authService,
-                         JwtService jwtService) {
+                         JwtService jwtService, ClientRepository clientRepository) {
         this.driverRepository = driverRepository;
         this.authService      = authService;
         this.jwtService       = jwtService;
+        this.clientRepository = clientRepository;
     }
 
     private LocalDate parseDate(String value) {
@@ -51,14 +54,11 @@ public class DriverService {
     }
 
     public Driver createDriver(DriverRequest request) {
-        Client client = authService.getCurrentClient();
         Driver driver = new Driver();
         mapRequestToDriver(request, driver);
-        if (request.getClientId() != null) {
-            driver.setClientId(request.getClientId());
-        } else if (client != null) {
-            driver.setClientId(client.getId());
-        }
+        Long ownerId = authService.resolveResourceOwner(request.getClientId());
+        driver.setClientId(ownerId);
+        driver.setOrgId(resolveOrgId(ownerId));
         // username = mobile number, password = date of birth (DD/MM/YYYY)
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             driver.setUsername(request.getPhoneNumber().trim());
@@ -71,15 +71,23 @@ public class DriverService {
         return driverRepository.save(driver);
     }
 
+    private Long resolveOrgId(Long clientId) {
+        if (clientId == null) return null;
+        return clientRepository.findById(clientId)
+                .map(Client::getOrgId)
+                .orElse(null);
+    }
+
     public List<Driver> getDriversForCurrentRole() {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();
-        if ("Admin".equalsIgnoreCase(client.getRole())) return driverRepository.findAll();
-        return driverRepository.findAvailableByClientId(client.getId());
+        if (authService.isSuperAdmin(client)) return driverRepository.findAll();
+        if (authService.isAdmin(client)) return driverRepository.findByOrgId(client.getOrgId());
+        return driverRepository.findByClientId(client.getId());
     }
 
     public List<Driver> getAllDrivers() {
-        return driverRepository.findAll();
+        return getDriversForCurrentRole();
     }
 
     public List<Driver> getDriversForCurrentClient() {
@@ -107,15 +115,19 @@ public class DriverService {
     }
 
     public Driver getDriver(Long driverId) {
-        return driverRepository.findById(driverId)
+        Driver driver = driverRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Driver not found"));
+        authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
+        return driver;
     }
 
     public Driver updateDriver(Long driverId, DriverRequest request) {
         Driver driver = getDriver(driverId);
         mapRequestToDriver(request, driver);
         if (request.getClientId() != null) {
-            driver.setClientId(request.getClientId());
+            Long ownerId = authService.resolveResourceOwner(request.getClientId());
+            driver.setClientId(ownerId);
+            driver.setOrgId(resolveOrgId(ownerId));
         }
         // Keep username in sync with phone number, password = date of birth (DD/MM/YYYY)
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
@@ -129,9 +141,7 @@ public class DriverService {
     }
 
     public void deleteDriver(Long driverId) {
-        if (!driverRepository.existsById(driverId))
-            throw new ResourceNotFoundException("Driver not found");
-        driverRepository.deleteById(driverId);
+        driverRepository.delete(getDriver(driverId));
     }
 
     private void mapRequestToDriver(DriverRequest request, Driver driver) {

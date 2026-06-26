@@ -18,6 +18,7 @@ export interface TripItem {
   tripId: string;
   vehicleId: string;
   driverName: string;
+  driverId?: number;
   startPlace: string;
   endPlace: string;
   startLat: number;

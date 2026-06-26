@@ -55,16 +55,23 @@ public class FleetController {
      */
     @GetMapping("/vehicles")
     public ResponseEntity<List<Map<String, Object>>> getFleetVehicles() {
-        Client  client  = authService.getCurrentClient();
-        boolean isAdmin = client != null && "Admin".equalsIgnoreCase(client.getRole());
-        Long    cid     = client != null ? client.getId() : null;
+        Client  client       = authService.getCurrentClient();
+        boolean isSuperAdmin = authService.isSuperAdmin(client);
+        boolean isOrgAdmin   = authService.isAdmin(client);
+        Long    cid          = client != null ? client.getId() : null;
+        Long    orgId        = client != null ? client.getOrgId() : null;
 
         List<Vehicle> vehicles = vehicleService.getVehiclesForCurrentRole();
 
-        // Build vehicleId → driverName map from associations
-        List<Map<String, Object>> assocRows = isAdmin
-                ? associationRepository.findVehiclesWithDriverAllClients()
-                : (cid != null ? associationRepository.findVehiclesWithDriverByClientId(cid) : List.of());
+        // Build vehicleId -> driverName map from associations
+        List<Map<String, Object>> assocRows;
+        if (isSuperAdmin) {
+            assocRows = associationRepository.findVehiclesWithDriverAllClients();
+        } else if (isOrgAdmin) {
+            assocRows = associationRepository.findVehiclesWithDriverByOrgId(orgId);
+        } else {
+            assocRows = cid != null ? associationRepository.findVehiclesWithDriverByClientId(cid) : List.of();
+        }
 
         Map<String, String> vehicleDriverMap = new LinkedHashMap<>();
         for (Map<String, Object> row : assocRows) {
@@ -76,7 +83,14 @@ public class FleetController {
         // Fetch live telemetry for trip_status
         Map<String, String> liveStatus = new HashMap<>();
         try {
-            List<Map<String, Object>> telemetry = tbQuery.fetchAllLiveTelemetry(isAdmin ? null : cid);
+            List<Map<String, Object>> telemetry;
+            if (isSuperAdmin) {
+                telemetry = tbQuery.fetchAllLiveTelemetry(null, null);
+            } else if (isOrgAdmin) {
+                telemetry = tbQuery.fetchAllLiveTelemetry(null, orgId);
+            } else {
+                telemetry = tbQuery.fetchAllLiveTelemetry(cid, null);
+            }
             for (Map<String, Object> row : telemetry) {
                 String vid    = (String) row.get("vehicle_id");
                 String status = row.get("trip_status") != null ? row.get("trip_status").toString() : "Parked";

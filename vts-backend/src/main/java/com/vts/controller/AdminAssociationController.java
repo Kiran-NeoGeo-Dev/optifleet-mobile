@@ -6,12 +6,14 @@ import com.vts.service.AdminAssociationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin-associations")
+@PreAuthorize("@authService.isAdminRole()")
 public class AdminAssociationController {
 
     private final AdminAssociationService service;

@@ -11,6 +11,9 @@ import java.util.Optional;
 public interface DriverRepository extends JpaRepository<Driver, Long> {
     long countByStatus(Boolean status);
     List<Driver> findByClientId(Long clientId);
+    List<Driver> findByOrgId(Long orgId);
+    long countByOrgId(Long orgId);
+    long countByOrgIdAndStatus(Long orgId, Boolean status);
     long countByClientId(Long clientId);
     long countByClientIdAndStatus(Long clientId, Boolean status);
     Optional<Driver> findByUsername(String username);

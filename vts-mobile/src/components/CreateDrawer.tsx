@@ -16,7 +16,7 @@ const CTA_W    = 100;
 
 // ── Item definitions ──────────────────────────────────────────────────────────
 const ADMIN_ITEMS = [
-  { label: "Create New User",                  icon: "person-add-outline",     color: "#7C3AED", bg: "#EDE9FE", nav: "CreateClient",             params: undefined },
+  { label: "Create New User or Admin",              icon: "person-add-outline",     color: "#7C3AED", bg: "#EDE9FE", nav: "CreateClient",             params: undefined },
   { label: "Add Driver",                       icon: "people-outline",         color: "#16A34A", bg: "#DCFCE7", nav: "AddDriver",               params: undefined },
   { label: "Add Vehicle",                      icon: "car-outline",            color: "#EA580C", bg: "#FFEDD5", nav: "AddVehicle",              params: undefined },
   { label: "Add Device",                       icon: "phone-portrait-outline", color: "#2563EB", bg: "#DBEAFE", nav: "DeviceManagement",        params: { openAddModal: true } },

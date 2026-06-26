@@ -3,8 +3,10 @@ package com.vts.service;
 import com.vts.dto.TripRequest;
 import com.vts.entity.Client;
 import com.vts.entity.Trip;
+import com.vts.repository.AssociationRepository;
 import com.vts.repository.DriverRepository;
 import com.vts.repository.TripRepository;
+import com.vts.repository.VehicleRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -17,11 +19,16 @@ public class TripService {
     private final TripRepository   tripRepository;
     private final DriverRepository driverRepository;
     private final AuthService      authService;
+    private final VehicleRepository vehicleRepository;
+    private final AssociationRepository associationRepository;
 
-    public TripService(TripRepository tripRepository, DriverRepository driverRepository, AuthService authService) {
+    public TripService(TripRepository tripRepository, DriverRepository driverRepository, AuthService authService,
+                       VehicleRepository vehicleRepository, AssociationRepository associationRepository) {
         this.tripRepository   = tripRepository;
         this.driverRepository = driverRepository;
         this.authService      = authService;
+        this.vehicleRepository = vehicleRepository;
+        this.associationRepository = associationRepository;
     }
 
     public Trip createTrip(TripRequest req) {
@@ -33,6 +40,16 @@ public class TripService {
             );
         }
         Client client = authService.getCurrentClient();
+        var vehicle = vehicleRepository.findByLicensePlate(req.getVehicleId())
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
+        authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
+        if (req.getDriverId() != null) {
+            var driver = driverRepository.findById(req.getDriverId().longValue())
+                    .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+            authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
+            if (!java.util.Objects.equals(vehicle.getOrgId(), driver.getOrgId()))
+                throw new IllegalArgumentException("Vehicle and driver must belong to the same organization");
+        }
         Trip trip = new Trip();
         trip.setTripId(req.getTripId());
         trip.setTripName(req.getTripName() != null ? req.getTripName() : req.getTripId());
@@ -52,7 +69,7 @@ public class TripService {
         trip.setCreatedAt(OffsetDateTime.now());
         trip.setUpdatedAt(OffsetDateTime.now());
         if (client != null) {
-            trip.setClientId(client.getId());
+            trip.setClientId(vehicle.getClientId());
             trip.setCreatedBy(client.getUsername());
         }
         return tripRepository.save(trip);
@@ -61,7 +78,8 @@ public class TripService {
     public List<Trip> getTripsForCurrentClient() {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();
-        if ("Admin".equalsIgnoreCase(client.getRole())) return tripRepository.findAll();
+        if (authService.isSuperAdmin(client)) return tripRepository.findAll();
+        if (authService.isAdmin(client)) return tripRepository.findByVehicleOrgId(client.getOrgId());
         // For clients: find trips by vehicle ownership (handles trips created by admin on their behalf)
         return tripRepository.findByVehicleClientId(client.getId());
     }
@@ -69,7 +87,8 @@ public class TripService {
     public long countTripsForCurrentClient() {
         Client client = authService.getCurrentClient();
         if (client == null) return 0;
-        if ("Admin".equalsIgnoreCase(client.getRole())) return tripRepository.count();
+        if (authService.isSuperAdmin(client)) return tripRepository.count();
+        if (authService.isAdmin(client)) return tripRepository.countByVehicleOrgId(client.getOrgId());
         return tripRepository.countByVehicleClientId(client.getId());
     }
 
@@ -91,6 +110,10 @@ public class TripService {
     public Trip updateTrip(Long id, TripRequest req) {
         Trip trip = tripRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Trip not found: " + id));
+        requireTripAccess(trip);
+        if (req.getVehicleId() != null || req.getDriverId() != null || req.getDriverName() != null) {
+            updateTripVehicleAndDriver(trip, req);
+        }
         if (req.getStartPlace()     != null) trip.setStartPlace(req.getStartPlace());
         if (req.getEndPlace()       != null) trip.setEndPlace(req.getEndPlace());
         if (req.getStartLat()       != null) trip.setStartLat(req.getStartLat());
@@ -104,7 +127,42 @@ public class TripService {
         return tripRepository.save(trip);
     }
 
+    private void updateTripVehicleAndDriver(Trip trip, TripRequest req) {
+        String vehicleId = req.getVehicleId() != null ? req.getVehicleId() : trip.getVehicleId();
+        Integer driverId = req.getDriverId() != null ? req.getDriverId() : trip.getDriverId();
+        if (vehicleId == null || driverId == null) {
+            throw new IllegalArgumentException("Vehicle and driver are required");
+        }
+
+        var vehicle = vehicleRepository.findByLicensePlate(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
+        var driver = driverRepository.findById(driverId.longValue())
+                .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+        authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
+        authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
+        if (!java.util.Objects.equals(vehicle.getOrgId(), driver.getOrgId())) {
+            throw new IllegalArgumentException("Vehicle and driver must belong to the same organization");
+        }
+        if (!associationRepository.existsActiveVehicleDriverAssociation(vehicleId, driverId)) {
+            throw new IllegalArgumentException("Selected vehicle does not have a completed driver association");
+        }
+
+        trip.setVehicleId(vehicleId);
+        trip.setDriverId(driverId);
+        trip.setDriverName(req.getDriverName() != null ? req.getDriverName() : driver.getDriverName());
+        trip.setClientId(vehicle.getClientId());
+    }
     public void deleteTrip(Long id) {
-        tripRepository.deleteById(id);
+        Trip trip = tripRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Trip not found: " + id));
+        requireTripAccess(trip);
+        tripRepository.delete(trip);
+    }
+
+    private void requireTripAccess(Trip trip) {
+        var vehicle = vehicleRepository.findByLicensePlate(trip.getVehicleId())
+                .orElseThrow(() -> new IllegalArgumentException("Trip vehicle not found"));
+        authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
     }
 }
+

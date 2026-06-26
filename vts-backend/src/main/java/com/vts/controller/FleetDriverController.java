@@ -45,15 +45,17 @@ public class FleetDriverController {
     // ── GET /api/fleet/drivers ────────────────────────────────────────────────
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getFleetDrivers() {
-        Client  client  = authService.getCurrentClient();
-        boolean isAdmin = client != null && "Admin".equalsIgnoreCase(client.getRole());
-        Long    cid     = client != null ? client.getId() : null;
+        Client  client       = authService.getCurrentClient();
+        boolean isSuperAdmin = authService.isSuperAdmin(client);
+        boolean isOrgAdmin   = authService.isAdmin(client);
+        Long    cid          = client != null ? client.getId() : null;
+        Long    orgId        = client != null ? client.getOrgId() : null;
 
         List<Driver> drivers = driverService.getDriversForCurrentRole();
 
-        Map<Long, String>   driverIdToVehicle    = buildDriverIdToVehicleMap(isAdmin, cid);
-        Map<Long, String>   driverIdToModel      = buildDriverIdToVehicleModelMap(isAdmin, cid);
-        Map<String, String> liveStatus           = fetchLiveStatusMap(isAdmin, cid);
+        Map<Long, String>   driverIdToVehicle    = buildDriverIdToVehicleMap(isSuperAdmin, isOrgAdmin, cid, orgId);
+        Map<Long, String>   driverIdToModel      = buildDriverIdToVehicleModelMap(isSuperAdmin, isOrgAdmin, cid, orgId);
+        Map<String, String> liveStatus           = fetchLiveStatusMap(isSuperAdmin, isOrgAdmin, cid, orgId);
         Map<String, Double> vehicleScores        = fetchLatestScoresByVehicle("month");
 
         List<Map<String, Object>> result = new ArrayList<>();
@@ -94,8 +96,8 @@ public class FleetDriverController {
             @RequestParam(required = false) Integer month) {
 
         Driver driver     = driverService.getDriver(id);
-        Map<Long, String> driverIdToVehicle      = buildDriverIdToVehicleMap(true, null);
-        Map<Long, String> driverIdToVehicleModel = buildDriverIdToVehicleModelMap(true, null);
+        Map<Long, String> driverIdToVehicle      = buildDriverIdToVehicleMap(true, false, null, null);
+        Map<Long, String> driverIdToVehicleModel = buildDriverIdToVehicleModelMap(true, false, null, null);
         String vehicleReg   = driverIdToVehicle.get(id);
         String vehicleModel = driverIdToVehicleModel.get(id);
 
@@ -124,18 +126,26 @@ public class FleetDriverController {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private Map<Long, String> buildDriverIdToVehicleModelMap(boolean isAdmin, Long cid) {
+    private Map<Long, String> buildDriverIdToVehicleModelMap(boolean isSuperAdmin, boolean isOrgAdmin, Long cid, Long orgId) {
         Map<Long, String> map = new HashMap<>();
         try {
-            String sql = isAdmin
-                ? "SELECT a.driver_id, v.vehicle_model FROM public.associations a " +
-                  "JOIN public.vehicles v ON v.id = a.vehicle_id WHERE a.status = true ORDER BY a.id DESC"
-                : "SELECT a.driver_id, v.vehicle_model FROM public.associations a " +
-                  "JOIN public.vehicles v ON v.id = a.vehicle_id " +
-                  "WHERE a.status = true AND a.client_id = ? ORDER BY a.id DESC";
-            List<Map<String, Object>> rows = isAdmin
-                    ? jdbc.queryForList(sql)
-                    : jdbc.queryForList(sql, cid);
+            String sql;
+            List<Map<String, Object>> rows;
+            if (isSuperAdmin) {
+                sql = "SELECT a.driver_id, v.vehicle_model FROM public.associations a " +
+                      "JOIN public.vehicles v ON v.id = a.vehicle_id WHERE a.status = true ORDER BY a.id DESC";
+                rows = jdbc.queryForList(sql);
+            } else if (isOrgAdmin) {
+                sql = "SELECT a.driver_id, v.vehicle_model FROM public.associations a " +
+                      "JOIN public.vehicles v ON v.id = a.vehicle_id " +
+                      "WHERE a.status = true AND v.org_id = ? ORDER BY a.id DESC";
+                rows = jdbc.queryForList(sql, orgId);
+            } else {
+                sql = "SELECT a.driver_id, v.vehicle_model FROM public.associations a " +
+                      "JOIN public.vehicles v ON v.id = a.vehicle_id " +
+                      "WHERE a.status = true AND a.client_id = ? ORDER BY a.id DESC";
+                rows = jdbc.queryForList(sql, cid);
+            }
             for (Map<String, Object> row : rows) {
                 Object did   = row.get("driver_id");
                 Object model = row.get("vehicle_model");
@@ -146,18 +156,26 @@ public class FleetDriverController {
         return map;
     }
 
-    private Map<Long, String> buildDriverIdToVehicleMap(boolean isAdmin, Long cid) {
+    private Map<Long, String> buildDriverIdToVehicleMap(boolean isSuperAdmin, boolean isOrgAdmin, Long cid, Long orgId) {
         Map<Long, String> map = new HashMap<>();
         try {
-            String sql = isAdmin
-                ? "SELECT a.driver_id, v.registration_no FROM public.associations a " +
-                  "JOIN public.vehicles v ON v.id = a.vehicle_id WHERE a.status = true ORDER BY a.id DESC"
-                : "SELECT a.driver_id, v.registration_no FROM public.associations a " +
-                  "JOIN public.vehicles v ON v.id = a.vehicle_id " +
-                  "WHERE a.status = true AND a.client_id = ? ORDER BY a.id DESC";
-            List<Map<String, Object>> rows = isAdmin
-                    ? jdbc.queryForList(sql)
-                    : jdbc.queryForList(sql, cid);
+            String sql;
+            List<Map<String, Object>> rows;
+            if (isSuperAdmin) {
+                sql = "SELECT a.driver_id, v.registration_no FROM public.associations a " +
+                      "JOIN public.vehicles v ON v.id = a.vehicle_id WHERE a.status = true ORDER BY a.id DESC";
+                rows = jdbc.queryForList(sql);
+            } else if (isOrgAdmin) {
+                sql = "SELECT a.driver_id, v.registration_no FROM public.associations a " +
+                      "JOIN public.vehicles v ON v.id = a.vehicle_id " +
+                      "WHERE a.status = true AND v.org_id = ? ORDER BY a.id DESC";
+                rows = jdbc.queryForList(sql, orgId);
+            } else {
+                sql = "SELECT a.driver_id, v.registration_no FROM public.associations a " +
+                      "JOIN public.vehicles v ON v.id = a.vehicle_id " +
+                      "WHERE a.status = true AND a.client_id = ? ORDER BY a.id DESC";
+                rows = jdbc.queryForList(sql, cid);
+            }
             for (Map<String, Object> row : rows) {
                 Object did = row.get("driver_id");
                 Object reg = row.get("registration_no");
@@ -168,10 +186,17 @@ public class FleetDriverController {
         return map;
     }
 
-    private Map<String, String> fetchLiveStatusMap(boolean isAdmin, Long cid) {
+    private Map<String, String> fetchLiveStatusMap(boolean isSuperAdmin, boolean isOrgAdmin, Long cid, Long orgId) {
         Map<String, String> map = new HashMap<>();
         try {
-            List<Map<String, Object>> tel = tbQuery.fetchAllLiveTelemetry(isAdmin ? null : cid);
+            List<Map<String, Object>> tel;
+            if (isSuperAdmin) {
+                tel = tbQuery.fetchAllLiveTelemetry(null, null);
+            } else if (isOrgAdmin) {
+                tel = tbQuery.fetchAllLiveTelemetry(null, orgId);
+            } else {
+                tel = tbQuery.fetchAllLiveTelemetry(cid, null);
+            }
             for (Map<String, Object> row : tel) {
                 String vid = (String) row.get("vehicle_id");
                 String st  = row.get("trip_status") != null ? row.get("trip_status").toString() : "Parked";

@@ -95,6 +95,8 @@ public class AuthService {
             Map<String, Object> driverClaims = new HashMap<>();
             driverClaims.put("clientId", driver.getClientId());
             driverClaims.put("driverId", driver.getId());
+            driverClaims.put("orgId", driver.getOrgId());
+            driverClaims.put("role", "Driver");
             org.springframework.security.core.userdetails.User driverUser =
                 new org.springframework.security.core.userdetails.User(
                     driver.getUsername(), driver.getPassword(),
@@ -102,7 +104,7 @@ public class AuthService {
                 );
             String driverToken = jwtService.generateToken(driverUser, driverClaims);
             logger.info("DRIVER LOGIN SUCCESS: {}", request.getUsername());
-            return new LoginResponse(driverToken, driver.getClientId(), driver.getUsername(), "Driver");
+            return new LoginResponse(driverToken, driver.getClientId(), driver.getUsername(), "Driver", driver.getOrgId());
         }
 
         // Fall back to clients table
@@ -111,10 +113,10 @@ public class AuthService {
             logger.error("USER NOT FOUND in database: {}", request.getUsername());
             throw new BadCredentialsException("Invalid username or password");
         }
-        
+
         Client dbClient = clientOpt.get();
-        logger.info("USER FOUND: id={}, username={}, password_hash={}", 
-            dbClient.getId(), dbClient.getUsername(), 
+        logger.info("USER FOUND: id={}, username={}, password_hash={}",
+            dbClient.getId(), dbClient.getUsername(),
             dbClient.getPassword().substring(0, Math.min(20, dbClient.getPassword().length())) + "...");
         
         // Try authentication
@@ -138,10 +140,12 @@ public class AuthService {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("clientId", client.getId());
+        claims.put("orgId", client.getOrgId());
+        claims.put("role", client.getRole());
 
         String token = jwtService.generateToken(userDetails, claims);
 
-        return new LoginResponse(token, client.getId(), client.getUsername(), client.getRole());
+        return new LoginResponse(token, client.getId(), client.getUsername(), client.getRole(), client.getOrgId());
     }
 
     public Client getCurrentClient() {
@@ -163,7 +167,70 @@ public class AuthService {
     /** Used by @PreAuthorize to check if current user has Admin role. */
     public boolean isAdminRole() {
         Client client = getCurrentClient();
-        return client != null && "Admin".equalsIgnoreCase(client.getRole());
+        return client != null && (isAdmin(client) || isSuperAdmin(client));
+    }
+
+    public boolean isSuperAdmin() {
+        return isSuperAdmin(getCurrentClient());
+    }
+
+    public boolean isOrganizationAdmin() {
+        return isAdmin(getCurrentClient());
+    }
+
+    public boolean isSuperAdmin(Client client) {
+        return client != null && "superadmin".equalsIgnoreCase(client.getRole());
+    }
+
+    public boolean isAdmin(Client client) {
+        return client != null && "admin".equalsIgnoreCase(client.getRole());
+    }
+
+    public boolean isUser(Client client) {
+        if (client == null || client.getRole() == null) return false;
+        return "user".equalsIgnoreCase(client.getRole()) || "client".equalsIgnoreCase(client.getRole());
+    }
+
+    public Long getCurrentOrgId() {
+        Client client = getCurrentClient();
+        return client != null ? client.getOrgId() : null;
+    }
+
+    /** True when the target account is visible to the authenticated account. */
+    public boolean canAccessClient(Integer targetClientId) {
+        Client current = getCurrentClient();
+        if (current == null || targetClientId == null) return false;
+        if (isSuperAdmin(current)) return true;
+        if (current.getId().intValue() == targetClientId) return true;
+        if (!isAdmin(current) || current.getOrgId() == null) return false;
+        return userDetailRepository.findByClientIdAndOrgId(targetClientId, current.getOrgId()).isPresent();
+    }
+
+    /** Resolve a requested resource owner without allowing cross-organization assignment. */
+    public Long resolveResourceOwner(Long requestedClientId) {
+        Client current = getCurrentClient();
+        if (current == null) throw new org.springframework.security.access.AccessDeniedException("Authentication required");
+        Long ownerId = requestedClientId != null ? requestedClientId : current.getId();
+        if (!canAccessClient(ownerId.intValue())) {
+            throw new org.springframework.security.access.AccessDeniedException("Target account is outside your organization");
+        }
+        return ownerId;
+    }
+
+    public Long resolveResourceOrgId(Long ownerClientId) {
+        UserDetailEntity owner = userDetailRepository.findById(ownerClientId.intValue())
+                .orElseThrow(() -> new IllegalArgumentException("Resource owner not found"));
+        if (owner.getOrgId() == null) throw new IllegalStateException("Resource owner has no organization assignment");
+        return owner.getOrgId();
+    }
+
+    public void requireOrgAccess(Long resourceOrgId, Long resourceClientId) {
+        Client current = getCurrentClient();
+        if (current == null) throw new org.springframework.security.access.AccessDeniedException("Authentication required");
+        if (isSuperAdmin(current)) return;
+        if (isAdmin(current) && current.getOrgId() != null && current.getOrgId().equals(resourceOrgId)) return;
+        if (resourceClientId != null && current.getId().equals(resourceClientId)) return;
+        throw new org.springframework.security.access.AccessDeniedException("Resource is outside your access scope");
     }
 
     public Client createClient(String username, String rawPassword) {
@@ -172,6 +239,11 @@ public class AuthService {
         ud.setUsername(username);
         ud.setPhoneNumber("0000000000");
         ud.setRole("Client");
+        Client creator = getCurrentClient();
+        if (creator != null) {
+            ud.setCreatedByAdminId(creator.getId().intValue());
+            ud.setOrgId(creator.getOrgId());
+        }
         UserDetailEntity savedUd = userDetailRepository.save(ud);
 
         // Write to login using the generated client_id
@@ -182,7 +254,7 @@ public class AuthService {
         login.setClientId(savedUd.getClientId());
         loginRepository.save(login);
 
-        // Return the Client view row for backward compatibility
+        // Return the Client object for backward compatibility
         return clientRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Client not found after creation"));
     }

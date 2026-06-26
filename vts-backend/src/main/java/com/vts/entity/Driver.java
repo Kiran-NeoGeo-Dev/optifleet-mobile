@@ -49,6 +49,9 @@ public class Driver {
     @Column(name = "client_id")
     private Long clientId;
 
+    @Column(name = "org_id")
+    private Long orgId;
+
     @Column(name = "username", length = 50, unique = true)
     private String username;
 
@@ -84,6 +87,8 @@ public class Driver {
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public Long getClientId() { return clientId; }
     public void setClientId(Long clientId) { this.clientId = clientId; }
+    public Long getOrgId() { return orgId; }
+    public void setOrgId(Long orgId) { this.orgId = orgId; }
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
     public String getPassword() { return password; }

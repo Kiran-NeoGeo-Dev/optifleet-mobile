@@ -66,16 +66,19 @@ public class AssociationService {
 
     public List<Map<String, Object>> getVehiclesWithDevice() {
         Client client = authService.getCurrentClient();
-        Long clientId = (client != null) ? client.getId() : null;
-        return adminAssociationRepository.findVehiclesWithAdminDevice(clientId);
+        if (client == null) return List.of();
+        if (authService.isSuperAdmin(client)) return adminAssociationRepository.findVehiclesWithAdminDevice(null);
+        if (authService.isAdmin(client)) return adminAssociationRepository.findVehiclesWithAdminDeviceByOrgId(client.getOrgId());
+        return adminAssociationRepository.findVehiclesWithAdminDevice(client.getId());
     }
 
     public List<Map<String, Object>> getVehiclesWithDriverForTrip() {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();
-        if ("Admin".equalsIgnoreCase(client.getRole())) {
+        if (authService.isSuperAdmin(client)) {
             return associationRepository.findVehiclesWithDriverAllClients();
         }
+        if (authService.isAdmin(client)) return associationRepository.findVehiclesWithDriverByOrgId(client.getOrgId());
         return associationRepository.findVehiclesWithDriverByClientId(client.getId());
     }
 
@@ -95,7 +98,7 @@ public class AssociationService {
         if (vehicleId == null || deviceId == null || driverId == null)
             throw new IllegalArgumentException("vehicleId, deviceId and driverId are required");
 
-        validateDriverForCurrentClient(driverId);
+        Vehicle vehicle = validateResources(vehicleId, deviceId, driverId);
 
         // Check if association already exists for this vehicle-device pair
         Optional<Association> existingAssoc = associationRepository.findByVehicleIdAndDeviceId(vehicleId, deviceId);
@@ -109,7 +112,6 @@ public class AssociationService {
             assoc.setStatus(status != null ? status : true);
         } else {
             // Create new association
-            Client client = authService.getCurrentClient();
             assoc = new Association();
             assoc.setVehicleId(vehicleId);
             assoc.setDeviceId(deviceId);
@@ -117,7 +119,7 @@ public class AssociationService {
             assoc.setCountry(country != null ? country : "India");
             assoc.setStatus(status != null ? status : true);
             assoc.setCreatedAt(LocalDateTime.now());
-            if (client != null) assoc.setClientId(client.getId());
+            assoc.setClientId(vehicle.getClientId());
         }
         
         Association saved = associationRepository.save(assoc);
@@ -141,7 +143,7 @@ public class AssociationService {
 
     public List<Map<String, Object>> getAllAssociationsWithDetails() {
         Client client = authService.getCurrentClient();
-        if (client != null && !"Admin".equalsIgnoreCase(client.getRole())) {
+        if (client != null && !authService.isSuperAdmin(client) && !authService.isAdmin(client)) {
             // Full associations (own + admin-created for this client's vehicles)
             List<Map<String, Object>> full = new java.util.ArrayList<>(
                 associationRepository.findAllWithDetailsByClientId(client.getId()));
@@ -164,21 +166,27 @@ public class AssociationService {
             full.addAll(pending);
             return full;
         }
-        return associationRepository.findAllWithDetails();
+        if (client == null) return List.of();
+        if (authService.isSuperAdmin(client)) return associationRepository.findAllWithDetails();
+        return associationRepository.findAllWithDetailsByOrgId(client.getOrgId());
     }
 
     public List<Association> getAssociationsForCurrentClient() {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();
+        if (authService.isSuperAdmin(client)) return associationRepository.findAll();
+        if (authService.isAdmin(client)) return associationRepository.findByOrgId(client.getOrgId());
         return associationRepository.findByClientId(client.getId());
     }
 
     public List<Association> getAllAssociations() {
-        return associationRepository.findAll();
+        return getAssociationsForCurrentClient();
     }
 
     public Optional<Association> getById(Integer id) {
-        return associationRepository.findById(id);
+        Optional<Association> result = associationRepository.findById(id);
+        result.ifPresent(this::requireAssociationAccess);
+        return result;
     }
 
     private void validateDriverForCurrentClient(Integer driverId) {
@@ -194,12 +202,36 @@ public class AssociationService {
         }
     }
 
+    private Vehicle validateResources(Integer vehicleId, Integer deviceId, Integer driverId) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId.longValue())
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
+        Device device = deviceRepository.findById(deviceId.longValue())
+                .orElseThrow(() -> new IllegalArgumentException("Device not found"));
+        Driver driver = driverRepository.findById(driverId.longValue())
+                .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
+        authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
+        authService.requireOrgAccess(device.getOrgId(), device.getClientId());
+        authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
+        if (!java.util.Objects.equals(vehicle.getOrgId(), device.getOrgId()) ||
+            !java.util.Objects.equals(vehicle.getOrgId(), driver.getOrgId())) {
+            throw new IllegalArgumentException("Vehicle, device and driver must belong to the same organization");
+        }
+        return vehicle;
+    }
+
+    private void requireAssociationAccess(Association association) {
+        Vehicle vehicle = vehicleRepository.findById(association.getVehicleId().longValue())
+                .orElseThrow(() -> new IllegalArgumentException("Association vehicle not found"));
+        authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
+    }
+
     public Association updateAssociation(Integer id, Integer vehicleId, Integer deviceId,
                                           Integer driverId, String country, Boolean status) {
-        Association assoc = associationRepository.findById(id)
+        Association assoc = getById(id)
                 .orElseThrow(() -> new RuntimeException("Association not found"));
 
-        validateDriverForCurrentClient(driverId);
+        Vehicle targetVehicle = validateResources(vehicleId, deviceId, driverId);
+        assoc.setClientId(targetVehicle.getClientId());
 
         Integer oldVehicleId = assoc.getVehicleId();
         Integer oldDeviceId = assoc.getDeviceId();
@@ -225,7 +257,7 @@ public class AssociationService {
     }
 
     public void deleteAssociation(Integer id) {
-        Association assoc = associationRepository.findById(id)
+        Association assoc = getById(id)
                 .orElseThrow(() -> new RuntimeException("Association not found"));
         
         Integer deviceId = assoc.getDeviceId();
@@ -243,6 +275,8 @@ public class AssociationService {
     public long countAssociationsForCurrentClient() {
         Client client = authService.getCurrentClient();
         if (client == null) return 0;
+        if (authService.isSuperAdmin(client)) return associationRepository.count();
+        if (authService.isAdmin(client)) return associationRepository.countByOrgId(client.getOrgId());
         return associationRepository.countByClientId(client.getId());
     }
 

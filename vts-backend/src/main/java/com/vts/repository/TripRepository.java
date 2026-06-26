@@ -27,6 +27,16 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
         nativeQuery = true)
     long countByVehicleClientId(@Param("clientId") Long clientId);
 
+    @Query(value =
+        "SELECT t.* FROM public.trips t INNER JOIN public.vehicles v ON v.registration_no = t.vehicle_id " +
+        "WHERE v.org_id = :orgId ORDER BY t.created_at DESC", nativeQuery = true)
+    List<Trip> findByVehicleOrgId(@Param("orgId") Long orgId);
+
+    @Query(value =
+        "SELECT COUNT(*) FROM public.trips t INNER JOIN public.vehicles v ON v.registration_no = t.vehicle_id " +
+        "WHERE v.org_id = :orgId", nativeQuery = true)
+    long countByVehicleOrgId(@Param("orgId") Long orgId);
+
     @Query(value = "SELECT COUNT(*) > 0 FROM public.trips WHERE vehicle_id = :vehicleId AND driver_id = :driverId AND TRIM(status) NOT IN ('Completed', 'Cancelled')",
         nativeQuery = true)
     boolean existsByVehicleIdAndDriverId(@Param("vehicleId") String vehicleId, @Param("driverId") Integer driverId);

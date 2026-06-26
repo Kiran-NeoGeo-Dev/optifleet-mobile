@@ -27,7 +27,7 @@ const ROLE_TABS = [
 ];
 
 const ROLE_MAP: Record<string, string[]> = {
-  Admin:  ["admin"],
+  Admin:  ["admin", "superadmin"],
   User:   ["client", "user"],
   Driver: ["driver"],
 };

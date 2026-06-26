@@ -102,6 +102,7 @@ public class AuthController {
 
     // ── Admin self-recovery: save new credentials directly ──────────────
     @PostMapping("/admin-recovery")
+    @PreAuthorize("hasRole('SUPERADMIN')")
     public ResponseEntity<?> adminRecovery(@RequestBody Map<String, String> body) {
         try {
             String newUsername = body.get("newUsername");
@@ -112,15 +113,17 @@ public class AuthController {
             if (newPassword == null || newPassword.length() < 6) return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters"));
             if (email == null || email.isBlank()) return ResponseEntity.badRequest().body(Map.of("error", "Email address is required"));
 
-            String role     = (body.get("role") != null && !body.get("role").isBlank()) ? body.get("role").trim() : "Admin";
+            String role     = "superadmin";
             String fullName = body.get("fullName");
             String phone    = body.get("phone");
             String roleDesc = body.get("roleDescription");
 
-            LoginEntity login = loginRepository.findAll().stream()
-                .filter(l -> "Admin".equalsIgnoreCase(l.getRole()))
-                .findFirst()
-                .orElse(new LoginEntity());
+            Client current = authService.getCurrentClient();
+            if (current == null || !authService.isSuperAdmin(current)) {
+                return ResponseEntity.status(403).body(Map.of("error", "Only the Super Admin can update Super Admin credentials"));
+            }
+            LoginEntity login = loginRepository.findByUsername(current.getUsername())
+                .orElseThrow(() -> new IllegalStateException("Super Admin login record not found"));
 
             Integer existingClientId = login.getClientId();
 
@@ -130,6 +133,7 @@ public class AuthController {
 
             ud.setUsername(newUsername.trim());
             ud.setRole(role);
+            ud.setOrgId(current.getOrgId() != null ? current.getOrgId() : current.getId());
             ud.setEmailAddress(email.trim());
             if (fullName != null && !fullName.isBlank()) ud.setFullName(fullName.trim());
             if (phone != null && !phone.isBlank()) {
@@ -172,9 +176,15 @@ public class AuthController {
     // ── Admin: Create a new client account ────────────────────────────────────
     @PreAuthorize("hasRole('CLIENT') and @authService.isAdminRole()")
     @PostMapping("/create-client")
+    @Transactional
     public ResponseEntity<?> createClient(@RequestBody Map<String, String> body) {
         try {
-            String username = body.get("username");
+            Client creator = authService.getCurrentClient();
+            if (creator == null) return ResponseEntity.status(401).build();
+            String username = body.get("username") != null ? body.get("username").trim() : "";
+            String rawPassword = body.get("password") != null ? body.get("password").trim() : "";
+            if (username.length() < 3) return ResponseEntity.badRequest().body(Map.of("error", "Username must be at least 3 characters"));
+            if (rawPassword.length() < 6) return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters"));
             if (clientRepository.findByUsername(username).isPresent()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
             }
@@ -183,7 +193,14 @@ public class AuthController {
                 userDetailRepository.findByEmailAddress(email).isPresent()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Email address already exists"));
             }
-            String role  = body.getOrDefault("role", "Client");
+            String requestedRole = body.getOrDefault("role", "User").trim();
+            if (!"User".equalsIgnoreCase(requestedRole) && !"Admin".equalsIgnoreCase(requestedRole)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Role must be User or Admin"));
+            }
+            String role = "Admin".equalsIgnoreCase(requestedRole) ? "Admin" : "User";
+            if (authService.isSuperAdmin(creator) && !"Admin".equals(role)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Super Admin creates organization Admin accounts; organization Admins create Users"));
+            }
             String phone = body.getOrDefault("phoneNumber", "0000000000");
 
             UserDetailEntity ud = new UserDetailEntity();
@@ -194,35 +211,50 @@ public class AuthController {
             ud.setPhoneNumber(phone.isBlank() ? "0000000000" : phone);
             ud.setRole(role);
             ud.setRoleDescription(body.getOrDefault("roleDescription", ""));
+            ud.setCreatedByAdminId(creator.getId().intValue());
+            if (!authService.isSuperAdmin(creator)) {
+                if (creator.getOrgId() == null) throw new IllegalStateException("Current Admin has no organization assignment");
+                ud.setOrgId(creator.getOrgId());
+            }
             UserDetailEntity savedUd = userDetailRepository.save(ud);
+
+            // A Super Admin starts a new organization; its first Admin's client ID is the org ID.
+            if (authService.isSuperAdmin(creator)) {
+                savedUd.setOrgId(savedUd.getClientId().longValue());
+                savedUd = userDetailRepository.save(savedUd);
+            }
 
             LoginEntity login = new LoginEntity();
             login.setUsername(username);
-            login.setPassword(passwordEncoder.encode(body.get("password")));
+            login.setPassword(passwordEncoder.encode(rawPassword));
             login.setRole(role);
             login.setClientId(savedUd.getClientId());
             loginRepository.save(login);
 
             // Send credentials email to new user
             emailService.sendCredentialsEmail(
-                body.get("emailAddress"), body.get("fullName"), username, body.get("password"));
+                body.get("emailAddress"), body.get("fullName"), username, rawPassword);
 
-            return ResponseEntity.ok(Map.of("message", "Client account created successfully", "username", username));
+            return ResponseEntity.ok(Map.of(
+                "message", role + " account created successfully",
+                "username", username,
+                "role", role,
+                "org_id", savedUd.getOrgId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     // ── Admin: List all client accounts ──────────────────────────────────────
+    @PreAuthorize("hasRole('CLIENT') and @authService.isAdminRole()")
     @GetMapping("/all-clients")
     public ResponseEntity<List<Map<String, Object>>> getAllClients() {
-        List<Map<String, Object>> clients = clientRepository.findAll().stream()
-            .map(c -> Map.<String, Object>of(
-                "client_id", c.getId(),
-                "username",  c.getUsername(),
-                "full_name", c.getFullName() != null ? c.getFullName() : "",
-                "role",      c.getRole() != null ? c.getRole() : ""
-            ))
+        Client current = authService.getCurrentClient();
+        List<UserDetailEntity> visible = authService.isSuperAdmin(current)
+            ? userDetailRepository.findAll()
+            : userDetailRepository.findByOrgId(current.getOrgId());
+        List<Map<String, Object>> clients = visible.stream()
+            .map(this::toUserMap)
             .collect(Collectors.toList());
         return ResponseEntity.ok(clients);
     }
@@ -231,21 +263,12 @@ public class AuthController {
     @PreAuthorize("hasRole('CLIENT') and @authService.isAdminRole()")
     @GetMapping("/all-users")
     public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
-        List<Map<String, Object>> users = userDetailRepository.findAll().stream()
-            .map(u -> {
-                java.util.Map<String, Object> m = new java.util.HashMap<>();
-                m.put("client_id",           u.getClientId());
-                m.put("username",            u.getUsername() != null ? u.getUsername() : "");
-                m.put("full_name",           u.getFullName() != null ? u.getFullName() : "");
-                m.put("email_address",       u.getEmailAddress() != null ? u.getEmailAddress() : "");
-                m.put("phone_number",        u.getPhoneNumber() != null ? u.getPhoneNumber() : "");
-                m.put("dial_code",           u.getDialCode() != null ? u.getDialCode() : "");
-                m.put("role",                u.getRole() != null ? u.getRole() : "");
-                m.put("role_description",    u.getRoleDescription() != null ? u.getRoleDescription() : "");
-                m.put("created_at",          u.getCreatedAt() != null ? u.getCreatedAt().toString() : "");
-                m.put("created_by_admin_id", u.getCreatedByAdminId());
-                return m;
-            })
+        Client current = authService.getCurrentClient();
+        List<UserDetailEntity> visible = authService.isSuperAdmin(current)
+            ? userDetailRepository.findAll()
+            : userDetailRepository.findByOrgId(current.getOrgId());
+        List<Map<String, Object>> users = visible.stream()
+            .map(this::toUserMap)
             .collect(Collectors.toList());
         return ResponseEntity.ok(users);
     }
@@ -254,21 +277,9 @@ public class AuthController {
     @PreAuthorize("hasRole('CLIENT') and @authService.isAdminRole()")
     @GetMapping("/users/{clientId}")
     public ResponseEntity<?> getUser(@PathVariable Integer clientId) {
+        if (!authService.canAccessClient(clientId)) return ResponseEntity.status(403).build();
         return userDetailRepository.findById(clientId)
-            .map(u -> {
-                java.util.Map<String, Object> m = new java.util.HashMap<>();
-                m.put("client_id",           u.getClientId());
-                m.put("username",            u.getUsername() != null ? u.getUsername() : "");
-                m.put("full_name",           u.getFullName() != null ? u.getFullName() : "");
-                m.put("email_address",       u.getEmailAddress() != null ? u.getEmailAddress() : "");
-                m.put("phone_number",        u.getPhoneNumber() != null ? u.getPhoneNumber() : "");
-                m.put("dial_code",           u.getDialCode() != null ? u.getDialCode() : "");
-                m.put("role",                u.getRole() != null ? u.getRole() : "");
-                m.put("role_description",    u.getRoleDescription() != null ? u.getRoleDescription() : "");
-                m.put("created_at",          u.getCreatedAt() != null ? u.getCreatedAt().toString() : "");
-                m.put("created_by_admin_id", u.getCreatedByAdminId());
-                return ResponseEntity.ok(m);
-            })
+            .map(u -> ResponseEntity.ok(toUserMap(u)))
             .orElse(ResponseEntity.notFound().build());
     }
 
@@ -279,6 +290,15 @@ public class AuthController {
         try {
             UserDetailEntity ud = userDetailRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+            if (!authService.canAccessClient(clientId)) return ResponseEntity.status(403).body(Map.of("error", "Account is outside your organization"));
+            if ("superadmin".equalsIgnoreCase(ud.getRole())) return ResponseEntity.status(403).body(Map.of("error", "Super Admin is permanent and cannot be modified here"));
+            if (body.containsKey("role")) {
+                String requestedRole = body.get("role");
+                if (!"User".equalsIgnoreCase(requestedRole) && !"Admin".equalsIgnoreCase(requestedRole)) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "Role must be User or Admin"));
+                }
+                body.put("role", "Admin".equalsIgnoreCase(requestedRole) ? "Admin" : "User");
+            }
             if (body.containsKey("fullName"))        ud.setFullName(body.get("fullName"));
             if (body.containsKey("emailAddress"))    ud.setEmailAddress(body.get("emailAddress"));
             if (body.containsKey("phoneNumber"))     ud.setPhoneNumber(body.get("phoneNumber"));
@@ -354,6 +374,12 @@ public class AuthController {
     @Transactional
     public ResponseEntity<?> deleteUser(@PathVariable Integer clientId) {
         try {
+            if (!authService.canAccessClient(clientId)) return ResponseEntity.status(403).body(Map.of("error", "Account is outside your organization"));
+            UserDetailEntity target = userDetailRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            Client current = authService.getCurrentClient();
+            if ("superadmin".equalsIgnoreCase(target.getRole())) return ResponseEntity.status(403).body(Map.of("error", "Super Admin cannot be deleted"));
+            if (current != null && current.getId().intValue() == clientId) return ResponseEntity.badRequest().body(Map.of("error", "You cannot delete your own account"));
             logger.info("[DELETE] Starting cascade delete for clientId={}", clientId);
 
             // Pure JDBC — guaranteed execution order, no Hibernate flush issues
@@ -375,5 +401,21 @@ public class AuthController {
             logger.error("[DELETE] Failed for clientId={}: {}", clientId, e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private Map<String, Object> toUserMap(UserDetailEntity u) {
+        java.util.Map<String, Object> m = new java.util.HashMap<>();
+        m.put("client_id",           u.getClientId());
+        m.put("username",            u.getUsername() != null ? u.getUsername() : "");
+        m.put("full_name",           u.getFullName() != null ? u.getFullName() : "");
+        m.put("email_address",       u.getEmailAddress() != null ? u.getEmailAddress() : "");
+        m.put("phone_number",        u.getPhoneNumber() != null ? u.getPhoneNumber() : "");
+        m.put("dial_code",           u.getDialCode() != null ? u.getDialCode() : "");
+        m.put("role",                u.getRole() != null ? u.getRole() : "");
+        m.put("role_description",    u.getRoleDescription() != null ? u.getRoleDescription() : "");
+        m.put("created_at",          u.getCreatedAt() != null ? u.getCreatedAt().toString() : "");
+        m.put("created_by_admin_id", u.getCreatedByAdminId());
+        m.put("org_id",              u.getOrgId());
+        return m;
     }
 }

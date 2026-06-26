@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthToken(null);
   };
 
-  const isAdmin  = role?.toLowerCase() === "admin";
+  const isAdmin  = role?.toLowerCase() === "admin" || role?.toLowerCase() === "superadmin";
   const isClient = role?.toLowerCase() === "client";
 
   return (

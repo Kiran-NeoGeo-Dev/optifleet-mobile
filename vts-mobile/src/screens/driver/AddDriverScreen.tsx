@@ -111,6 +111,10 @@ const AddDriverScreen = ({ navigation }: Props) => {
   const [importing, setImporting]           = useState(false);
 
   const handleImport = async () => {
+    if (isAdmin && !selectedClient) {
+      showToast("Please select a client first.", "warning");
+      return;
+    }
     setImporting(true);
     try {
       const rows = await pickAndParseFile();

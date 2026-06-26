@@ -44,12 +44,15 @@ public class ThingsBoardDirectQueryService {
     }
 
     /**
-     * Fetch live telemetry for all active vehicles from ThingsBoard
+     * Fetch live telemetry for all active vehicles from ThingsBoard.
+     * SuperAdmin: clientId=null, orgId=null → all vehicles.
+     * OrgAdmin:   clientId=null, orgId=X   → vehicles in that org only.
+     * User:       clientId=X,   orgId=null → vehicles owned by that client.
      */
-    public List<Map<String, Object>> fetchAllLiveTelemetry(Long clientId) {
+    public List<Map<String, Object>> fetchAllLiveTelemetry(Long clientId, Long orgId) {
         try {
             // Get active vehicles from trips table
-            List<Map<String, Object>> vehicles = fetchFleetVehicles(clientId);
+            List<Map<String, Object>> vehicles = fetchFleetVehicles(clientId, orgId);
             if (vehicles.isEmpty()) {
                 log.info("[TB_DIRECT] No fleet vehicles found (clientId={})", clientId);
                 return List.of();
@@ -155,35 +158,30 @@ public class ThingsBoardDirectQueryService {
 
     /**
      * Fetch fleet vehicles from vehicles + associations only — NO trip required.
-     * Admin (clientId=null) → all vehicles. User → only their vehicles.
+     * SuperAdmin (clientId=null, orgId=null) → all vehicles.
+     * OrgAdmin   (clientId=null, orgId=X)   → vehicles in that org.
+     * User       (clientId=X,   orgId=null) → vehicles owned by that client.
      */
-    private List<Map<String, Object>> fetchFleetVehicles(Long clientId) {
+    private List<Map<String, Object>> fetchFleetVehicles(Long clientId, Long orgId) {
         try {
-            String sql = clientId != null
-                ? """
-                  SELECT DISTINCT
-                      v.registration_no AS vehicle_id,
-                      COALESCE(d.driver_name, '') AS driver_name
-                  FROM public.vehicles v
-                  INNER JOIN public.associations a ON a.vehicle_id = v.id AND a.status = true
-                  LEFT  JOIN public.drivers d      ON d.id = a.driver_id
-                  WHERE v.client_id = ?
-                  ORDER BY v.registration_no
-                  """
-                : """
-                  SELECT DISTINCT
-                      v.registration_no AS vehicle_id,
-                      COALESCE(d.driver_name, '') AS driver_name
-                  FROM public.vehicles v
-                  INNER JOIN public.associations a ON a.vehicle_id = v.id AND a.status = true
-                  LEFT  JOIN public.drivers d      ON d.id = a.driver_id
-                  ORDER BY v.registration_no
-                  """;
+            final String base = """
+                SELECT DISTINCT
+                    v.registration_no AS vehicle_id,
+                    COALESCE(d.driver_name, '') AS driver_name
+                FROM public.vehicles v
+                INNER JOIN public.associations a ON a.vehicle_id = v.id AND a.status = true
+                LEFT  JOIN public.drivers d      ON d.id = a.driver_id
+                """;
 
-            List<Map<String, Object>> rows = clientId != null
-                ? jdbc.queryForList(sql, clientId)
-                : jdbc.queryForList(sql);
-            log.info("[TB_DIRECT] fetchFleetVehicles found {} vehicles (clientId={})", rows.size(), clientId);
+            List<Map<String, Object>> rows;
+            if (clientId != null) {
+                rows = jdbc.queryForList(base + "WHERE v.client_id = ? ORDER BY v.registration_no", clientId);
+            } else if (orgId != null) {
+                rows = jdbc.queryForList(base + "WHERE v.org_id = ? ORDER BY v.registration_no", orgId);
+            } else {
+                rows = jdbc.queryForList(base + "ORDER BY v.registration_no");
+            }
+            log.info("[TB_DIRECT] fetchFleetVehicles found {} vehicles (clientId={}, orgId={})", rows.size(), clientId, orgId);
             return rows;
         } catch (Exception e) {
             log.error("[TB_DIRECT] fetchFleetVehicles failed: {}", e.getMessage());

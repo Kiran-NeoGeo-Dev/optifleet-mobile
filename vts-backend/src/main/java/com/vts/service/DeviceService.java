@@ -81,13 +81,10 @@ public class DeviceService {
         Device device = new Device();
         mapFields(device, req);
         Client client = authService.getCurrentClient();
-        if (req.getClientId() != null) {
-            device.setCreatedBy("client_" + req.getClientId());
-            device.setClientId(req.getClientId());
-        } else if (client != null && !"Admin".equalsIgnoreCase(client.getRole())) {
-            device.setCreatedBy(client.getUsername());
-            device.setClientId(client.getId());
-        }
+        Long ownerId = authService.resolveResourceOwner(req.getClientId());
+        device.setCreatedBy(client.getUsername());
+        device.setClientId(ownerId);
+        device.setOrgId(authService.resolveResourceOrgId(ownerId));
         Device saved = deviceRepository.save(device);
         log.info("Device saved locally: deviceId={}", saved.getDeviceId());
 
@@ -120,26 +117,31 @@ public class DeviceService {
 
     public List<Device> getAllDevices() {
         Client client = authService.getCurrentClient();
-        if (client != null && !"Admin".equalsIgnoreCase(client.getRole()))
-            return deviceRepository.findByClientId(client.getId());
-        return deviceRepository.findAll();
+        if (authService.isSuperAdmin(client)) return deviceRepository.findAll();
+        if (authService.isAdmin(client)) return deviceRepository.findByOrgId(client.getOrgId());
+        return deviceRepository.findByClientId(client.getId());
     }
 
     public Device getDevice(Long id) {
-        return deviceRepository.findById(id)
+        Device device = deviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Device not found"));
+        authService.requireOrgAccess(device.getOrgId(), device.getClientId());
+        return device;
     }
 
     public long getDeviceCount() {
-        return deviceRepository.count();
+        Client client = authService.getCurrentClient();
+        if (client == null) return 0;
+        if (authService.isSuperAdmin(client)) return deviceRepository.count();
+        if (authService.isAdmin(client)) return deviceRepository.countByOrgId(client.getOrgId());
+        return deviceRepository.findByClientId(client.getId()).size();
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
 
     public Device updateDevice(Long id, DeviceRequest req) {
         validate(req);
-        Device device = deviceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Device not found"));
+        Device device = getDevice(id);
 
         // Capture originals BEFORE any changes
         String originalDeviceId = device.getDeviceId();
@@ -163,8 +165,9 @@ public class DeviceService {
         // Step 2: update device in DB
         mapFields(device, req);
         if (req.getClientId() != null) {
-            device.setClientId(req.getClientId());
-            device.setCreatedBy("client_" + req.getClientId());
+            Long ownerId = authService.resolveResourceOwner(req.getClientId());
+            device.setClientId(ownerId);
+            device.setOrgId(authService.resolveResourceOrgId(ownerId));
         }
         Device updated = mappingTx.saveDevice(device);
         log.info("Device updated locally: deviceId={}", updated.getDeviceId());
@@ -200,8 +203,7 @@ public class DeviceService {
     // ── Delete ────────────────────────────────────────────────────────────────
 
     public void deleteDevice(Long id) {
-        Device device = deviceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Device not found"));
+        Device device = getDevice(id);
 
         String deviceIdToDelete = device.getDeviceId();
         String imeiToDelete     = device.getImeiNumber();

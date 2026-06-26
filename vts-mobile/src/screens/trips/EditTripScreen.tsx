@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, StatusBar,
+  TextInput, ActivityIndicator, StatusBar, Modal, FlatList,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +15,7 @@ import { calculateOsrmRoute } from "../../utils/osrmRoute";
 
 type Suggestion = { display_name: string; lat: string; lon: string };
 type Coords = { lat: number; lng: number };
+type TripAssociationOption = { id: number; vehicle_id: number; registration_no: string; driver_id: number; driver_name: string; };
 
 interface Props {
   navigation: any;
@@ -31,6 +32,10 @@ const EditTripScreen = ({ navigation, route }: Props) => {
   const [distanceKm, setDistanceKm]   = useState<number | null>(trip.distanceKm ?? null);
   const [durationStr, setDurationStr] = useState<string | null>(trip.duration ?? null);
   const [polylineCoords, setPolylineCoords] = useState<string | null>(trip.customPolyline ?? null);
+  const [vehicles, setVehicles] = useState<TripAssociationOption[]>([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<TripAssociationOption | null>(null);
+  const [showVehiclePicker, setShowVehiclePicker] = useState(false);
+  const [vehicleSearch, setVehicleSearch] = useState("");
 
   const [startSuggestions, setStartSuggestions] = useState<Suggestion[]>([]);
   const [endSuggestions, setEndSuggestions]     = useState<Suggestion[]>([]);
@@ -42,6 +47,35 @@ const EditTripScreen = ({ navigation, route }: Props) => {
   const debounceRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
+
+  useEffect(() => {
+    api.get(ENDPOINTS.ASSOCIATIONS_FOR_TRIP)
+      .then(res => {
+        const rows: any[] = res.data ?? [];
+        const options = rows
+          .filter((row: any) => Number.isFinite(Number(row.vehicle_id)) && row.registration_no && row.driver_id && row.driver_name)
+          .map((row: any) => ({
+            id: Number(row.id),
+            vehicle_id: Number(row.vehicle_id),
+            registration_no: String(row.registration_no),
+            driver_id: Number(row.driver_id),
+            driver_name: String(row.driver_name),
+          }));
+        // Always include the current trip's vehicle+driver even if in active trip
+        const currentInList = options.find(v => v.registration_no === trip.vehicleId);
+        const currentFallback = trip.vehicleId && trip.driverName ? {
+          id: Number(trip.id),
+          vehicle_id: 0,
+          registration_no: trip.vehicleId,
+          driver_id: Number((trip as any).driverId ?? 0),
+          driver_name: trip.driverName,
+        } : null;
+        const allOptions = currentInList ? options : (currentFallback ? [currentFallback, ...options] : options);
+        setVehicles(allOptions);
+        setSelectedVehicle(currentInList ?? currentFallback);
+      })
+      .catch(() => showToast("Failed to load associated vehicles.", "error"));
+  }, [trip.id, trip.vehicleId, trip.driverName]);
   // Draw initial route on map load
   const onMapLoad = () => {
     if (polylineCoords) {
@@ -121,10 +155,14 @@ const EditTripScreen = ({ navigation, route }: Props) => {
   }, [startCoords, endCoords]);
 
   const onSave = async () => {
+    if (!selectedVehicle) { showToast("Please select an associated vehicle.", "warning"); return; }
     if (!startPlace.trim() || !endPlace.trim()) { showToast("Please enter start and destination.", "warning"); return; }
     setLoading(true);
     try {
       await api.put(`${ENDPOINTS.TRIPS}/${trip.id}`, {
+        vehicleId:      selectedVehicle.registration_no,
+        driverId:       selectedVehicle.driver_id,
+        driverName:     selectedVehicle.driver_name,
         startPlace:     startPlace.trim(),
         endPlace:       endPlace.trim(),
         startLat:       startCoords.lat,
@@ -239,11 +277,14 @@ const EditTripScreen = ({ navigation, route }: Props) => {
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>VEHICLE</Text>
-                <View style={styles.inputBox}><Text style={styles.inputText}>{trip.vehicleId}</Text></View>
+                <TouchableOpacity style={styles.selectBox} onPress={() => setShowVehiclePicker(true)} activeOpacity={0.8}>
+                  <Text style={styles.inputText} numberOfLines={2}>{selectedVehicle?.registration_no ?? "Select vehicle"}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#1565C0" />
+                </TouchableOpacity>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>DRIVER</Text>
-                <View style={styles.inputBox}><Text style={styles.inputText}>{trip.driverName}</Text></View>
+                <View style={[styles.inputBox, styles.readonlyBox]}><Text style={styles.inputText} numberOfLines={2}>{selectedVehicle?.driver_name ?? "-"}</Text></View>
               </View>
             </View>
 
@@ -343,6 +384,38 @@ const EditTripScreen = ({ navigation, route }: Props) => {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <Modal visible={showVehiclePicker} transparent animationType="slide" onRequestClose={() => setShowVehiclePicker(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Select Associated Vehicle</Text>
+            <TextInput
+              style={styles.pickerSearch}
+              placeholder="Search registration no..."
+              placeholderTextColor="#7A5230"
+              value={vehicleSearch}
+              onChangeText={setVehicleSearch}
+            />
+            <FlatList
+              data={vehicles.filter(v => v.registration_no.toLowerCase().includes(vehicleSearch.toLowerCase()))}
+              keyExtractor={item => `${item.id}-${item.vehicle_id}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.vehicleItem}
+                  onPress={() => { setSelectedVehicle(item); setShowVehiclePicker(false); setVehicleSearch(""); }}
+                >
+                  <Text style={styles.vehicleReg}>{item.registration_no}</Text>
+                  <Text style={styles.vehicleDriver}>{item.driver_name}</Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.emptyPicker}>No completed associations found</Text>}
+            />
+            <TouchableOpacity style={styles.modalClose} onPress={() => { setShowVehiclePicker(false); setVehicleSearch(""); }}>
+              <Text style={styles.modalCloseTxt}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </View>
   );
@@ -372,7 +445,9 @@ const styles = StyleSheet.create({
   label:         { fontSize: 11, fontWeight: "700", color: "#3A5A7A", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6, marginTop: 12 },
   fieldLabel:    { fontSize: 13, fontWeight: "600", color: "#1A2F5C", marginBottom: 6, marginTop: 10 },
   inputBox:      { backgroundColor: "rgba(21,101,192,0.06)", borderRadius: 12, borderWidth: 1, borderColor: "rgba(21,101,192,0.15)", paddingHorizontal: 14, paddingVertical: 13 },
-  inputText:     { fontSize: 14, color: "#1E3A6D", fontWeight: "600" },
+  inputText:     { fontSize: 14, color: "#1E3A6D", fontWeight: "600", flexShrink: 1 },
+  selectBox:     { backgroundColor: "rgba(21,101,192,0.06)", borderRadius: 12, borderWidth: 1, borderColor: "rgba(21,101,192,0.15)", paddingHorizontal: 14, paddingVertical: 13, flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 48, gap: 8 },
+  readonlyBox:   { minHeight: 48, justifyContent: "center" },
   row:           { flexDirection: "row", gap: 10, marginTop: 4 },
 
   locationRow:   { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
@@ -393,6 +468,16 @@ const styles = StyleSheet.create({
   btnGrad:       { height: 50, flexDirection: "row", alignItems: "center", justifyContent: "center", borderRadius: 14, overflow: "hidden" },
   btnGloss:      { position: "absolute", top: 0, left: 0, right: 0, height: 24, borderRadius: 14 },
   btnTxt:        { fontSize: 15, fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
+  modalOverlay:  { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
+  modalBox:      { backgroundColor: "#F6F1E9", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: "70%", borderWidth: 1, borderColor: "rgba(160,90,30,0.20)" },
+  modalTitle:    { fontSize: 17, fontWeight: "800", color: "#0D1B3E", marginBottom: 14, textAlign: "center" },
+  pickerSearch:  { backgroundColor: "#E8C9A0", borderRadius: 12, borderWidth: 1.5, borderColor: "rgba(139,79,30,0.55)", paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: "#2C1200", fontWeight: "600", marginBottom: 10 },
+  vehicleItem:   { paddingVertical: 14, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(160,90,30,0.15)" },
+  vehicleReg:    { fontSize: 15, fontWeight: "800", color: "#0D1B3E" },
+  vehicleDriver: { fontSize: 12, color: "#4A6A8E", marginTop: 2, fontWeight: "600" },
+  emptyPicker:   { color: "#6B5A8E", textAlign: "center", padding: 20, fontWeight: "600" },
+  modalClose:    { alignItems: "center", paddingVertical: 14 },
+  modalCloseTxt: { color: "#EF4444", fontWeight: "700", fontSize: 15 },
 });
 
 export default EditTripScreen;

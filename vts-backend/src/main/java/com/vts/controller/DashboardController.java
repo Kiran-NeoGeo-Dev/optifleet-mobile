@@ -70,11 +70,13 @@ public class DashboardController {
      */
     @GetMapping("/live-vehicles")
     public ResponseEntity<List<Map<String, Object>>> getLiveVehicles() {
-        Client  client  = authService.getCurrentClient();
-        boolean isAdmin = client != null && "Admin".equalsIgnoreCase(client.getRole());
-        Long    cid     = client != null ? client.getId() : null;
+        Client  client       = authService.getCurrentClient();
+        boolean isSuperAdmin = authService.isSuperAdmin(client);
+        boolean isOrgAdmin   = authService.isAdmin(client);
+        Long    cid          = client != null ? client.getId() : null;
+        Long    orgId        = client != null ? client.getOrgId() : null;
 
-        // Pre-load vehicles currently deviating from live in-memory cache (fresh ≤120s, active trip+route required)
+        // Pre-load vehicles currently deviating from live in-memory cache (fresh <=120s, active trip+route required)
         java.util.Set<String> deviatedVehicles = new java.util.HashSet<>();
         try {
             for (Map.Entry<String, TripStateCache.State> entry : tripStateCache.allEntries().entrySet()) {
@@ -82,7 +84,7 @@ public class DashboardController {
                 if (st == null || st.lastPopup == null) continue;
                 long ageSeconds = java.time.Duration.between(st.lastUpdateTime, java.time.Instant.now()).getSeconds();
                 if (ageSeconds > 120) continue;
-                if (!isAdmin && cid != null && !cid.equals(st.clientId)) continue;
+                if (!isSuperAdmin && !isOrgAdmin && cid != null && !cid.equals(st.clientId)) continue;
                 if ("Yes".equalsIgnoreCase(st.lastPopup.getRouteDeviation())) {
                     deviatedVehicles.add(st.vehicleId);
                 }
@@ -90,7 +92,14 @@ public class DashboardController {
         } catch (Exception ignored) {}
         List<Map<String, Object>> result = new ArrayList<>();
         try {
-            List<Map<String, Object>> telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(isAdmin ? null : cid);
+            List<Map<String, Object>> telemetryData;
+            if (isSuperAdmin) {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(null, null);
+            } else if (isOrgAdmin) {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(null, orgId);
+            } else {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(cid, null);
+            }
             for (Map<String, Object> row : telemetryData) {
                 String vid = (String) row.get("vehicle_id");
                 if (vid == null || row.get("lat") == null || row.get("lng") == null) continue;

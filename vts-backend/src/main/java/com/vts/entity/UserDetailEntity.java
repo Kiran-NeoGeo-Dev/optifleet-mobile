@@ -39,6 +39,9 @@ public class UserDetailEntity {
     @Column(name = "created_by_admin_id")
     private Integer createdByAdminId;
 
+    @Column(name = "org_id")
+    private Long orgId;
+
     public Integer getClientId()                          { return clientId; }
     public void setClientId(Integer clientId)             { this.clientId = clientId; }
 
@@ -68,4 +71,6 @@ public class UserDetailEntity {
 
     public Integer getCreatedByAdminId()                          { return createdByAdminId; }
     public void setCreatedByAdminId(Integer createdByAdminId)     { this.createdByAdminId = createdByAdminId; }
+    public Long getOrgId()                               { return orgId; }
+    public void setOrgId(Long orgId)                     { this.orgId = orgId; }
 }

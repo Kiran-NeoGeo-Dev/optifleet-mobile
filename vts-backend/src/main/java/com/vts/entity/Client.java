@@ -18,7 +18,7 @@ public class Client {
     private String username;
 
     @Column(nullable = false, length = 255)
-    private String password; // store BCrypt hash
+    private String password;
 
     @Column(name = "full_name", length = 150)
     private String fullName;
@@ -41,83 +41,29 @@ public class Client {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
-    public Long getId() {
-        return id;
-    }
+    @Column(name = "org_id")
+    private Long orgId;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getEmailAddress() {
-        return emailAddress;
-    }
-
-    public void setEmailAddress(String emailAddress) {
-        this.emailAddress = emailAddress;
-    }
-
-    public String getDialCode() {
-        return dialCode;
-    }
-
-    public void setDialCode(String dialCode) {
-        this.dialCode = dialCode;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public String getRoleDescription() {
-        return roleDescription;
-    }
-
-    public void setRoleDescription(String roleDescription) {
-        this.roleDescription = roleDescription;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+    public Long getId()                              { return id; }
+    public void setId(Long id)                       { this.id = id; }
+    public String getUsername()                      { return username; }
+    public void setUsername(String username)         { this.username = username; }
+    public String getPassword()                      { return password; }
+    public void setPassword(String password)         { this.password = password; }
+    public String getFullName()                      { return fullName; }
+    public void setFullName(String fullName)         { this.fullName = fullName; }
+    public String getEmailAddress()                  { return emailAddress; }
+    public void setEmailAddress(String v)            { this.emailAddress = v; }
+    public String getDialCode()                      { return dialCode; }
+    public void setDialCode(String dialCode)         { this.dialCode = dialCode; }
+    public String getPhoneNumber()                   { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber)   { this.phoneNumber = phoneNumber; }
+    public String getRole()                          { return role; }
+    public void setRole(String role)                 { this.role = role; }
+    public String getRoleDescription()               { return roleDescription; }
+    public void setRoleDescription(String v)         { this.roleDescription = v; }
+    public Instant getCreatedAt()                    { return createdAt; }
+    public void setCreatedAt(Instant createdAt)      { this.createdAt = createdAt; }
+    public Long getOrgId()                           { return orgId; }
+    public void setOrgId(Long orgId)                 { this.orgId = orgId; }
 }

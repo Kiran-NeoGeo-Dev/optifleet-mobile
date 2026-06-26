@@ -40,6 +40,11 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
                "AND v.id NOT IN (SELECT a.vehicle_id FROM associations a)", nativeQuery = true)
     List<Map<String, Object>> findVehiclesWithAdminDevice(@Param("clientId") Long clientId);
 
+    @Query(value = "SELECT DISTINCT v.id AS vehicle_id, v.registration_no, d.id AS device_id, d.device_id AS device_code " +
+               "FROM vehicles v JOIN admin_associations aa ON aa.vehicle_id = v.id JOIN devices d ON d.id = aa.device_id " +
+               "WHERE v.org_id = :orgId AND v.id NOT IN (SELECT a.vehicle_id FROM associations a)", nativeQuery = true)
+    List<Map<String, Object>> findVehiclesWithAdminDeviceByOrgId(@Param("orgId") Long orgId);
+
     // ── Available devices (not linked by admin) ───────────────────────────────
     @Query(value = "SELECT d.id, d.device_id as device_code, d.device_model as device_model, " +
                "d.device_type as device_type, d.mobile_number as mobile_number " +
@@ -55,6 +60,11 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
                "ORDER BY d.device_id", nativeQuery = true)
     List<Map<String, Object>> findAvailableDevicesByClientUsername(@Param("createdBy") String createdBy);
 
+    @Query(value = "SELECT d.id, d.device_id AS device_code, d.device_model, d.device_type, d.mobile_number " +
+               "FROM devices d WHERE d.org_id = :orgId AND d.id NOT IN (SELECT aa.device_id FROM admin_associations aa) " +
+               "ORDER BY d.device_id", nativeQuery = true)
+    List<Map<String, Object>> findAvailableDevicesByOrgId(@Param("orgId") Long orgId);
+
     // ── Vehicles dropdown (exclude already-linked vehicles in both tables) ───────────
     @Query(value = "SELECT id, registration_no, vehicle_make, vehicle_model FROM vehicles " +
                "WHERE id NOT IN (SELECT aa.vehicle_id FROM admin_associations aa) " +
@@ -69,6 +79,11 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
                "ORDER BY registration_no", nativeQuery = true)
     List<Map<String, Object>> findVehiclesDropdownByClientId(@Param("clientId") Long clientId);
 
+    @Query(value = "SELECT id, registration_no, vehicle_make, vehicle_model FROM vehicles " +
+               "WHERE org_id = :orgId AND id NOT IN (SELECT aa.vehicle_id FROM admin_associations aa) " +
+               "AND id NOT IN (SELECT a.vehicle_id FROM associations a) ORDER BY registration_no", nativeQuery = true)
+    List<Map<String, Object>> findVehiclesDropdownByOrgId(@Param("orgId") Long orgId);
+
     @Query(value = "SELECT aa.id, aa.vehicle_id, aa.device_id, " +
                "v.registration_no as registration_no, v.vehicle_make, v.vehicle_model, " +
                "d.device_id as device_code, d.device_model, d.device_type, d.mobile_number, " +
@@ -79,4 +94,10 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
                "WHERE v.client_id = :clientId " +
                "ORDER BY aa.created_at DESC", nativeQuery = true)
     List<Map<String, Object>> findAllWithDetailsByClientId(@Param("clientId") Long clientId);
+
+    @Query(value = "SELECT aa.id, aa.vehicle_id, aa.device_id, v.registration_no, v.vehicle_make, v.vehicle_model, " +
+               "d.device_id AS device_code, d.device_model, d.device_type, d.mobile_number, aa.created_at " +
+               "FROM admin_associations aa JOIN vehicles v ON v.id = aa.vehicle_id JOIN devices d ON d.id = aa.device_id " +
+               "WHERE v.org_id = :orgId ORDER BY aa.created_at DESC", nativeQuery = true)
+    List<Map<String, Object>> findAllWithDetailsByOrgId(@Param("orgId") Long orgId);
 }

@@ -33,15 +33,24 @@ public class NotificationController {
      */
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getNotifications() {
-        Client  client  = authService.getCurrentClient();
-        boolean isAdmin = client != null && "Admin".equalsIgnoreCase(client.getRole());
-        Long    cid     = (client != null) ? client.getId() : null;
+        Client  client       = authService.getCurrentClient();
+        boolean isSuperAdmin = authService.isSuperAdmin(client);
+        boolean isOrgAdmin   = authService.isAdmin(client);
+        Long    cid          = (client != null) ? client.getId() : null;
+        Long    orgId        = (client != null) ? client.getOrgId() : null;
 
         List<Map<String, Object>> results = new ArrayList<>();
 
         // 1. Live telemetry alerts from ThingsBoard
         try {
-            List<Map<String, Object>> telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(isAdmin ? null : cid);
+            List<Map<String, Object>> telemetryData;
+            if (isSuperAdmin) {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(null, null);
+            } else if (isOrgAdmin) {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(null, orgId);
+            } else {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(cid, null);
+            }
             String[][] alertFields = {
                 { "overspeed",         "OVERSPEED",    "Overspeed detected"    },
                 { "drowsiness_status", "DROWSINESS",   "Drowsiness detected"   },
@@ -86,7 +95,7 @@ public class NotificationController {
                 // Only include if deviation is actually flagged in the live popup
                 if (!"Yes".equalsIgnoreCase(state.lastPopup.getRouteDeviation())) continue;
                 // Client scoping: skip vehicles not belonging to this client
-                if (!isAdmin && cid != null && !cid.equals(state.clientId)) continue;
+                if (!isSuperAdmin && !isOrgAdmin && cid != null && !cid.equals(state.clientId)) continue;
 
                 results.add(buildNotif("live", state.vehicleId, state.driverName,
                     "ROUTE_DEVIATION", "Deviated from planned route",

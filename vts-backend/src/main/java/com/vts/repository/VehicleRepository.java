@@ -6,10 +6,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     List<Vehicle> findByClientId(Long clientId);
+    List<Vehicle> findByOrgId(Long orgId);
+    long countByOrgId(Long orgId);
     long countByClientId(Long clientId);
+    Optional<Vehicle> findByLicensePlate(String licensePlate);
 
 @Query(value =
         "SELECT v.id AS vehicle_id, v.registration_no, " +

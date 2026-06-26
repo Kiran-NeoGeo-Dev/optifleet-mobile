@@ -54,57 +54,82 @@ public class DashboardService {
     }
 
     public DashboardResponse getDashboardForCurrentClient() {
-        Client  client  = authService.getCurrentClient();
-        boolean isAdmin = client != null && "Admin".equalsIgnoreCase(client.getRole());
-        Long    cid     = client != null ? client.getId() : null;
+        Client  client      = authService.getCurrentClient();
+        boolean isSuperAdmin = authService.isSuperAdmin(client);
+        boolean isOrgAdmin   = authService.isAdmin(client);
+        Long    cid          = client != null ? client.getId() : null;
 
-        long totalDrivers = isAdmin ? driverRepository.count()
-                          : (cid != null ? driverRepository.countByClientId(cid) : 0);
-        long totalVehicles = isAdmin ? vehicleRepository.count()
-                           : (cid != null ? vehicleRepository.countByClientId(cid) : 0);
-        long totalAssociations = isAdmin ? countUniqueAssociationsForAdmin()
-                               : (cid != null ? countUniqueAssociationsForClient(cid) : 0);
-        long totalDevices = deviceRepository.count();
-        long totalTrips   = isAdmin ? tripRepository.count()
-                          : (cid != null ? tripRepository.countByVehicleClientId(cid) : 0);
-        long totalUsers   = isAdmin ? userDetailRepository.count() : 0;
+        long totalDrivers = isSuperAdmin
+                ? driverRepository.count()
+                : (isOrgAdmin
+                        ? driverRepository.countByOrgId(client.getOrgId())
+                        : (cid != null ? driverRepository.countByClientId(cid) : 0));
+
+        long totalVehicles = isSuperAdmin
+                ? vehicleRepository.count()
+                : (isOrgAdmin
+                        ? vehicleRepository.countByOrgId(client.getOrgId())
+                        : (cid != null ? vehicleRepository.countByClientId(cid) : 0));
+
+        long totalAssociations = isSuperAdmin
+                ? countUniqueAssociationsForAdmin()
+                : (isOrgAdmin
+                        ? countUniqueAssociationsForOrg(client.getOrgId())
+                        : (cid != null ? countUniqueAssociationsForClient(cid) : 0));
+
+        long totalDevices = isSuperAdmin
+                ? deviceRepository.count()
+                : (isOrgAdmin
+                        ? deviceRepository.countByOrgId(client.getOrgId())
+                        : (cid != null ? deviceRepository.findByClientId(cid).size() : 0));
+
+        long totalTrips = isSuperAdmin
+                ? tripRepository.count()
+                : (isOrgAdmin
+                        ? tripRepository.countByVehicleOrgId(client.getOrgId())
+                        : (cid != null ? tripRepository.countByVehicleClientId(cid) : 0));
+
+        long totalUsers = isSuperAdmin
+                ? userDetailRepository.count()
+                : (isOrgAdmin ? userDetailRepository.findByOrgId(client.getOrgId()).size() : 0);
 
         // ── Live counts from ThingsBoard (direct query) ─────────────────────
         long activeVehicles = 0, idleVehicles = 0, activeDrivers = 0, activeAlerts = 0;
         try {
-            // Query ThingsBoard directly for live telemetry
-            List<Map<String, Object>> telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(isAdmin ? null : cid);
+            List<Map<String, Object>> telemetryData;
+            if (isSuperAdmin) {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(null, null);
+            } else if (isOrgAdmin) {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(null, client.getOrgId());
+            } else {
+                telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(cid, null);
+            }
 
-            // Count vehicles by trip status
-            Set<String> movingVehicles = new HashSet<>();
+            Set<String> movingVehicles  = new HashSet<>();
             Set<String> idleVehiclesSet = new HashSet<>();
             Set<String> activeDriversSet = new HashSet<>();
             int alertCount = 0;
 
             for (Map<String, Object> row : telemetryData) {
-                String vehicleId = (String) row.get("vehicle_id");
+                String vehicleId  = (String) row.get("vehicle_id");
                 String tripStatus = row.get("trip_status") != null ? row.get("trip_status").toString() : "";
                 String driverName = row.get("driver_name") != null ? row.get("driver_name").toString() : "";
 
-                // Count vehicles by trip status
                 if ("moving".equalsIgnoreCase(tripStatus)) {
                     movingVehicles.add(vehicleId);
-                    if (!driverName.isEmpty()) {
-                        activeDriversSet.add(driverName);
-                    }
+                    if (!driverName.isEmpty()) activeDriversSet.add(driverName);
                 } else if ("idle".equalsIgnoreCase(tripStatus)) {
                     idleVehiclesSet.add(vehicleId);
                 }
 
-                // Count alerts
-                String overspeed = row.get("overspeed") != null ? row.get("overspeed").toString() : "";
-                String smoking = row.get("smoking_status") != null ? row.get("smoking_status").toString() : "";
-                String mobile = row.get("mobile_usage") != null ? row.get("mobile_usage").toString() : "";
-                String drowsiness = row.get("drowsiness_status") != null ? row.get("drowsiness_status").toString() : "";
+                String overspeed  = row.get("overspeed")         != null ? row.get("overspeed").toString()         : "";
+                String smoking    = row.get("smoking_status")     != null ? row.get("smoking_status").toString()    : "";
+                String mobile     = row.get("mobile_usage")       != null ? row.get("mobile_usage").toString()      : "";
+                String drowsiness = row.get("drowsiness_status")  != null ? row.get("drowsiness_status").toString() : "";
 
-                if ("yes".equalsIgnoreCase(overspeed) ||
-                    "yes".equalsIgnoreCase(smoking) ||
-                    "yes".equalsIgnoreCase(mobile) ||
+                if ("yes".equalsIgnoreCase(overspeed)  ||
+                    "yes".equalsIgnoreCase(smoking)     ||
+                    "yes".equalsIgnoreCase(mobile)      ||
                     "fatigue".equalsIgnoreCase(drowsiness) ||
                     "yes".equalsIgnoreCase(drowsiness)) {
                     alertCount++;
@@ -112,9 +137,9 @@ public class DashboardService {
             }
 
             activeVehicles = movingVehicles.size();
-            idleVehicles = idleVehiclesSet.size();
-            activeDrivers = activeDriversSet.size();
-            activeAlerts = alertCount;
+            idleVehicles   = idleVehiclesSet.size();
+            activeDrivers  = activeDriversSet.size();
+            activeAlerts   = alertCount;
         } catch (Exception ignored) {}
 
         return new DashboardResponse(totalDrivers, activeDrivers, totalVehicles,
@@ -144,6 +169,15 @@ public class DashboardService {
             if (vehicleId != null && deviceId != null)
                 uniquePairs.add(vehicleId.toString() + "-" + deviceId.toString());
         }
+        return uniquePairs.size();
+    }
+
+    private long countUniqueAssociationsForOrg(Long orgId) {
+        Set<String> uniquePairs = new HashSet<>();
+        associationRepository.findByOrgId(orgId).forEach(a -> {
+            if (a.getVehicleId() != null && a.getDeviceId() != null)
+                uniquePairs.add(a.getVehicleId() + "-" + a.getDeviceId());
+        });
         return uniquePairs.size();
     }
 }

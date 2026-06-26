@@ -67,6 +67,9 @@ public class Vehicle {
     @Column(name = "client_id")
     private Long clientId;
 
+    @Column(name = "org_id")
+    private Long orgId;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getLicensePlate() { return licensePlate; }
@@ -105,4 +108,6 @@ public class Vehicle {
     public void setDeviceId(Integer deviceId) { this.deviceId = deviceId; }
     public Long getClientId() { return clientId; }
     public void setClientId(Long clientId) { this.clientId = clientId; }
+    public Long getOrgId() { return orgId; }
+    public void setOrgId(Long orgId) { this.orgId = orgId; }
 }

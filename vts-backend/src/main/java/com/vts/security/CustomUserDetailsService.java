@@ -30,7 +30,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         logger.info("LOADING USER DETAILS: {}", username);
 
-        // Check drivers first
         var driverOpt = driverRepository.findByUsername(username);
         if (driverOpt.isPresent()) {
             Driver driver = driverOpt.get();
@@ -40,7 +39,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .build();
         }
 
-        // Fall back to clients
         Client client = clientRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     logger.error("USER NOT FOUND: {}", username);
@@ -48,9 +46,15 @@ public class CustomUserDetailsService implements UserDetailsService {
                 });
 
         logger.info("CLIENT LOADED: id={}, username={}", client.getId(), client.getUsername());
+        String normalizedRole = client.getRole() == null
+                ? "USER"
+                : client.getRole().replaceAll("[^A-Za-z0-9]", "_").toUpperCase();
+
         return User.withUsername(client.getUsername())
                 .password(client.getPassword())
-                .roles("CLIENT")
+                .authorities(List.of(
+                        new SimpleGrantedAuthority("ROLE_CLIENT"),
+                        new SimpleGrantedAuthority("ROLE_" + normalizedRole)))
                 .build();
     }
 }

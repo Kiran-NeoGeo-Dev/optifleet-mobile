@@ -37,11 +37,9 @@ public class VehicleService {
         Client client = authService.getCurrentClient();
         Vehicle vehicle = new Vehicle();
         mapRequestToEntity(request, vehicle);
-        if (request.getClientId() != null) {
-            vehicle.setClientId(request.getClientId());
-        } else if (client != null) {
-            vehicle.setClientId(client.getId());
-        }
+        Long ownerId = authService.resolveResourceOwner(request.getClientId());
+        vehicle.setClientId(ownerId);
+        vehicle.setOrgId(authService.resolveResourceOrgId(ownerId));
         vehicle.setCreatedAt(LocalDateTime.now());
         return vehicleRepository.save(vehicle);
     }
@@ -50,13 +48,14 @@ public class VehicleService {
     public List<Vehicle> getVehiclesForCurrentRole() {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();
-        if ("Admin".equalsIgnoreCase(client.getRole())) return vehicleRepository.findAll();
+        if (authService.isSuperAdmin(client)) return vehicleRepository.findAll();
+        if (authService.isAdmin(client)) return vehicleRepository.findByOrgId(client.getOrgId());
         return vehicleRepository.findByClientId(client.getId());
     }
 
     // Admin: all vehicles
     public List<Vehicle> getAllVehicles() {
-        return vehicleRepository.findAll();
+        return getVehiclesForCurrentRole();
     }
 
     // Client: only their vehicles
@@ -67,8 +66,10 @@ public class VehicleService {
     }
 
     public Vehicle getVehicle(Long vehicleId) {
-        return vehicleRepository.findById(vehicleId)
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
+        authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
+        return vehicle;
     }
 
     public void deleteVehicle(Long vehicleId) {
@@ -81,7 +82,9 @@ public class VehicleService {
         mapRequestToEntity(request, vehicle);
         // Fix: update clientId when admin reassigns vehicle to different user
         if (request.getClientId() != null) {
-            vehicle.setClientId(request.getClientId());
+            Long ownerId = authService.resolveResourceOwner(request.getClientId());
+            vehicle.setClientId(ownerId);
+            vehicle.setOrgId(authService.resolveResourceOrgId(ownerId));
         }
         return vehicleRepository.save(vehicle);
     }
