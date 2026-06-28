@@ -1,9 +1,10 @@
 import { useRef, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions,
+  View, Text, StyleSheet, TouchableOpacity, Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import UserDashboardScreen from "../screens/dashboard/UserDashboardScreen";
 import ClientDetailsScreen from "../screens/dashboard/ClientDetailsScreen";
@@ -103,42 +104,68 @@ interface BottomBarProps {
 const { width: SW } = Dimensions.get("window");
 
 const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={tb.scrollBar}
-    contentContainerStyle={tb.scrollContent}
-  >
-    {TAB_ITEMS.map(tab => {
-      const isActive = activeTab === tab.key;
-      const isCreate = tab.key === "Create";
-      return (
-        <TouchableOpacity
-          key={tab.key}
-          style={tb.item}
-          onPress={() => onTabPress(tab.key)}
-          activeOpacity={0.75}
-        >
-          {isCreate ? (
-            <View style={tb.fab}>
-              <Ionicons name="add" size={28} color="#fff" />
-            </View>
-          ) : (
-            <>
+  <View style={tb.container}>
+    {/* Left section with border */}
+    <View style={tb.leftSection}>
+      <View style={tb.leftBar}>
+        {TAB_ITEMS.slice(0, 2).map(tab => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={tb.tabItem}
+              onPress={() => onTabPress(tab.key)}
+              activeOpacity={0.75}
+            >
               <Ionicons
                 name={tab.icon as any}
-                size={24}
+                size={22}
                 color={isActive ? "#1565C0" : "#9CA3AF"}
               />
-              <Text style={[tb.label, isActive && tb.labelActive]}>{tab.label}</Text>
-              {isActive && <View style={tb.indicator} />}
-            </>
-          )}
-          {isCreate && <Text style={[tb.label, { color: "#1565C0", fontWeight: "700" }]}>Create</Text>}
-        </TouchableOpacity>
-      );
-    })}
-  </ScrollView>
+              <Text style={[tb.tabLabel, isActive && tb.tabLabelActive]}>{tab.label}</Text>
+              {isActive && <View style={tb.tabIndicator} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+
+    {/* Center FAB */}
+    <TouchableOpacity
+      style={tb.fabContainer}
+      onPress={() => onTabPress("Create")}
+      activeOpacity={0.85}
+    >
+      <View style={tb.fab}>
+        <Ionicons name="add" size={26} color="#fff" />
+      </View>
+    </TouchableOpacity>
+
+    {/* Right section with border */}
+    <View style={tb.rightSection}>
+      <View style={tb.rightBar}>
+        {TAB_ITEMS.slice(3).map(tab => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={tb.tabItem}
+              onPress={() => onTabPress(tab.key)}
+              activeOpacity={0.75}
+            >
+              <Ionicons
+                name={tab.icon as any}
+                size={22}
+                color={isActive ? "#1565C0" : "#9CA3AF"}
+              />
+              <Text style={[tb.tabLabel, isActive && tb.tabLabelActive]}>{tab.label}</Text>
+              {isActive && <View style={tb.tabIndicator} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  </View>
 );
 
 const USER_MGMT_ITEMS = [
@@ -255,20 +282,20 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
           </LinearGradient>
 
           {/* Menu Items */}
-          <SV style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 16, paddingHorizontal: 16, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+          <SV style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 14, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
             {USER_MGMT_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.label}
-                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, marginVertical: 4, backgroundColor: "#fff", borderRadius: 14, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, minHeight: 60 }}
+                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, marginVertical: 3, backgroundColor: "#fff", borderRadius: 12, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, minHeight: 52 }}
                 onPress={() => navigate(item.nav)}
                 activeOpacity={0.75}
               >
-                <View style={[{ width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon as any} size={22} color={item.iconColor} />
+                <View style={[{ width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
+                  <Ionicons name={item.icon as any} size={20} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
-                  <Text style={{ fontSize: 12, color: "#4B5563", marginTop: 2, fontWeight: "500" }}>{item.sub}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
+                  <Text style={{ fontSize: 11, color: "#4B5563", marginTop: 1, fontWeight: "500" }}>{item.sub}</Text>
                 </View>
                 <Text style={[{ fontSize: 13, fontWeight: "700" }, { color: item.accent }]}>View {"\u003E"}</Text>
               </TouchableOpacity>
@@ -276,17 +303,17 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
           </SV>
 
           {/* Footer */}
-          <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, marginHorizontal: 14, marginBottom: 14, marginTop: 4, backgroundColor: "#F8FAFF", borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, marginHorizontal: 14, marginBottom: 14, marginTop: 4, backgroundColor: "#F8FAFF", borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
             <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="person-outline" size={22} color="#1565C0" />
+              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="person-outline" size={20} color="#1565C0" />
               </View>
               <View>
-                <Text style={{ fontSize: 14, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet User</Text>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet User</Text>
                 <Text style={{ fontSize: 11, color: "#6B7280" }}>Version 1.0.0</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={logout} style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" }}>
+            <TouchableOpacity onPress={logout} style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" }}>
               <Ionicons name="log-out-outline" size={20} color="#EF4444" />
             </TouchableOpacity>
           </View>
@@ -381,13 +408,103 @@ const MainNavigator = () => {
 };
 
 const tb = StyleSheet.create({
-  scrollBar:     { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 16, shadowOffset: { width: 0, height: -4 }, elevation: 12, maxHeight: 72 },
-  scrollContent: { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, paddingBottom: 8, paddingTop: 10 },
-  item:          { width: 72, alignItems: "center", justifyContent: "center", gap: 3, minHeight: 52 },
-  label:         { fontSize: 9, fontWeight: "600", color: "#9CA3AF", textAlign: "center" },
-  labelActive:   { color: "#1565C0", fontWeight: "700" },
-  indicator:     { position: "absolute", bottom: -8, width: 24, height: 3, borderRadius: 2, backgroundColor: "#1565C0" },
-  fab:           { width: 48, height: 48, borderRadius: 24, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", marginBottom: 2, shadowColor: "#1565C0", shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
+  container: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+  },
+  leftSection: {
+    flex: 1,
+    height: 56,
+    borderTopLeftRadius: 20,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderColor: "#D1D5DB",
+    overflow: "hidden",
+  },
+  rightSection: {
+    flex: 1,
+    height: 56,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderColor: "#D1D5DB",
+    overflow: "hidden",
+  },
+  leftBar: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  rightBar: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  tabItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    width: 70,
+    height: 56,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
+  tabLabelActive: {
+    color: "#1565C0",
+    fontWeight: "700",
+  },
+  tabIndicator: {
+    position: "absolute",
+    bottom: 4,
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#1565C0",
+  },
+  fabContainer: {
+    width: 64,
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#1565C0",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#1565C0",
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+    borderWidth: 4,
+    borderColor: "#fff",
+  },
 });
 
 export default MainNavigator;

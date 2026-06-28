@@ -297,7 +297,7 @@ const RegisterTripScreen = ({ navigation }: Props) => {
   );
 
   // ── Leaflet HTML — no pin bar, map click sends coords to RN ─────────────────
-  const buildMapHtml = (initLat: number, initLng: number, initAcc: number) => `
+  const buildMapHtml = (initLat: number, initLng: number, initAcc: number, includeControls: boolean = true) => `
 <!DOCTYPE html><html>
 <head>
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -305,21 +305,45 @@ const RegisterTripScreen = ({ navigation }: Props) => {
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}html,body,#map{width:100%;height:100%}
-    .leaflet-control-zoom{margin-top:160px!important;margin-left:16px!important}
-    .leaflet-control-zoom a{width:32px!important;height:32px!important;line-height:32px!important;font-size:18px!important}
+    .leaflet-control-zoom{display:none!important}
     #tapHint{
       position:absolute;top:10px;left:50%;transform:translateX(-50%);
       background:rgba(14,165,233,0.92);color:#fff;font-size:12px;font-weight:600;
       padding:6px 14px;border-radius:20px;z-index:1000;pointer-events:none;
       white-space:nowrap;display:none;
     }
+    ${includeControls ? `
+    .map-controls{
+      position:absolute;top:10px;left:10px;z-index:1000;
+      display:flex;flex-direction:column;gap:8px;
+    }
+    .map-control-btn{
+      width:40px;height:40px;border-radius:10px;
+      background:rgba(0,0,0,0.7);color:#fff;
+      border:2px solid rgba(255,255,255,0.3);
+      font-size:20px;font-weight:bold;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;user-select:none;
+      box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    }
+    .map-control-btn:active{
+      background:rgba(0,0,0,0.85);
+      transform:scale(0.95);
+    }
+    ` : ''}
   </style>
 </head>
 <body>
 <div id="map"></div>
 <div id="tapHint">Tap map to set location</div>
+${includeControls ? `
+<div class="map-controls">
+  <div class="map-control-btn" id="zoomIn">+</div>
+  <div class="map-control-btn" id="zoomOut">−</div>
+</div>
+` : ''}
 <script>
-  var map=L.map('map',{zoomControl:true}).setView([${initLat},${initLng}],15);
+  var map=L.map('map',{zoomControl:false}).setView([${initLat},${initLng}],15);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM'}).addTo(map);
   var routeLayer=null,startMarker=null,endMarker=null;
 
@@ -366,6 +390,13 @@ const RegisterTripScreen = ({ navigation }: Props) => {
     window.ReactNativeWebView.postMessage(JSON.stringify({lat:e.latlng.lat,lng:e.latlng.lng}));
   });
 
+  if(document.getElementById('zoomIn')){
+    document.getElementById('zoomIn').addEventListener('click',function(){map.zoomIn();});
+  }
+  if(document.getElementById('zoomOut')){
+    document.getElementById('zoomOut').addEventListener('click',function(){map.zoomOut();});
+  }
+
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(function(pos){
       var lat=pos.coords.latitude,lng=pos.coords.longitude;
@@ -379,7 +410,8 @@ const RegisterTripScreen = ({ navigation }: Props) => {
   const initLat  = userLocation?.lat  ?? 17.4065;  // Hyderabad fallback
   const initLng  = userLocation?.lng  ?? 78.4772;
   const initAcc  = userLocation?.acc  ?? 50;
-  const mapHtml  = buildMapHtml(initLat, initLng, initAcc);
+  const mapHtml  = buildMapHtml(initLat, initLng, initAcc, true);
+  const fsMapHtml = buildMapHtml(initLat, initLng, initAcc, false);
 
   // ── Suggestion list renderer ────────────────────────────────────────────────
   const SuggestionList = ({ items, field }: { items: Suggestion[]; field: "start" | "end" }) =>
@@ -558,7 +590,7 @@ const RegisterTripScreen = ({ navigation }: Props) => {
             <WebView
               ref={fullScreenWebViewRef}
               style={{ flex: 1 }}
-              source={{ html: mapHtml }}
+              source={{ html: fsMapHtml }}
               javaScriptEnabled
               originWhitelist={["*"]}
               onMessage={(e) => {
@@ -630,6 +662,15 @@ const RegisterTripScreen = ({ navigation }: Props) => {
             </TouchableOpacity>
 
             <View style={{ flex: 1 }} />
+
+            <View style={styles.fsZoomControls}>
+              <TouchableOpacity style={styles.fsZoomBtn} onPress={() => fullScreenWebViewRef.current?.injectJavaScript("map.zoomIn(); true;")}>
+                <Ionicons name="add" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.fsZoomBtn} onPress={() => fullScreenWebViewRef.current?.injectJavaScript("map.zoomOut(); true;")}>
+                <Ionicons name="remove" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
 
             {tripConfirmed && (
               <TouchableOpacity
@@ -772,8 +813,12 @@ const styles = StyleSheet.create({
   suggestText:     { fontSize: 13, color: "#3B1F0A", flex: 1 },
   mapContainer:    { height: 280, borderRadius: 14, overflow: "hidden", marginTop: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.20)" },
   expandBtn:       { position: "absolute", top: 10, right: 10, backgroundColor: "rgba(0,0,0,0.65)", padding: 7, borderRadius: 8 },
+  mapControlsOverlay: { position: "absolute", top: 10, left: 10, zIndex: 10 },
+  mapControlBtn:   { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" },
   fsTopControls:   { position: "absolute", top: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", paddingTop: 90, paddingHorizontal: 16, paddingBottom: 12, zIndex: 20 },
   fsBackBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" },
+  fsZoomControls:  { flexDirection: "column", gap: 8 },
+  fsZoomBtn:       { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" },
   fsBellBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" },
   fsBellBadge:     { position: "absolute", top: -3, right: -3, backgroundColor: "#EF4444", borderRadius: 9, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 2, borderColor: "#000" },
   fsBellBadgeTxt:  { fontSize: 9, fontWeight: "800", color: "#fff", lineHeight: 13 },
@@ -801,6 +846,8 @@ const styles = StyleSheet.create({
   popupRow:        { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(160,90,30,0.12)" },
   popupLabel:      { fontSize: 13, color: "#6B5A8E", fontWeight: "600" },
   popupValue:      { fontSize: 13, color: "#0D1B3E", fontWeight: "700" },
+  popupAddressRow: { flexDirection: "column", paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(160,90,30,0.12)" },
+  popupAddressValue: { fontSize: 12, color: "#0D1B3E", fontWeight: "600", marginTop: 2 },
   popupClose:      { alignItems: "center", marginTop: 14 },
 });
 

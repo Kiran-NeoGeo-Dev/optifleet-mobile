@@ -11,7 +11,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const { width: SW } = Dimensions.get("window");
 const DRAWER_W = SW * 0.72;
-const CARD_H   = 58;
+const CARD_H   = 48;
 const CTA_W    = 100;
 
 // ── Item definitions ──────────────────────────────────────────────────────────
@@ -62,38 +62,17 @@ const HeaderDiag = ({ bgColor }: { bgColor: string }) => (
   </Svg>
 );
 
-// ── SVG Slanted CTA ───────────────────────────────────────────────────────────
-// True polygon: left edge is diagonal, right edge is straight
-// Shape: top-left diagonal cut, rectangle on right
-const SlantedCTA = ({ color, bg }: { color: string; bg: string }) => {
-  const STRIP = 6;
-  // Polygon points for the tinted CTA area with diagonal left edge:
-  // Start from (SLANT,0) top, (CTA_W-STRIP,0), (CTA_W-STRIP,CARD_H), (0,CARD_H)
-  const SLANT = 22;
-  const pts = `${SLANT},0 ${CTA_W - STRIP},0 ${CTA_W - STRIP},${CARD_H} 0,${CARD_H}`;
-  return (
-    <View style={{ width: CTA_W, height: CARD_H }}>
-      {/* SVG tinted polygon */}
-      <Svg width={CTA_W} height={CARD_H} style={StyleSheet.absoluteFill}>
-        <Polygon points={pts} fill={bg} />
-        {/* Solid right accent strip */}
-        <Polygon
-          points={`${CTA_W - STRIP},0 ${CTA_W},0 ${CTA_W},${CARD_H} ${CTA_W - STRIP},${CARD_H}`}
-          fill={color}
-        />
-      </Svg>
-      {/* Click > label — positioned after the diagonal slant */}
-      <View style={[cta.label, { paddingLeft: SLANT + 4 }]}>
-        <Text style={[cta.txt, { color }]}>Click</Text>
-        <Ionicons name="chevron-forward" size={14} color={color} />
-      </View>
-    </View>
-  );
-};
+// ── Simple CTA Button ───────────────────────────────────────────────────────────
+const SimpleCTA = ({ color, bg }: { color: string; bg: string }) => (
+  <View style={[cta.box, { backgroundColor: bg }]}>
+    <Text style={[cta.txt, { color }]}>Click</Text>
+    <Ionicons name="chevron-forward" size={14} color={color} />
+  </View>
+);
 
 const cta = StyleSheet.create({
-  label: { ...StyleSheet.absoluteFillObject, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingRight: 10 },
-  txt:   { fontSize: 14, fontWeight: "800" },
+  box:   { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
+  txt:   { fontSize: 12, fontWeight: "700" },
 });
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -184,9 +163,6 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
             </View>
           </LinearGradient>
 
-          {/* TRUE SVG diagonal cut divider */}
-          <HeaderDiag bgColor={BG} />
-
           {/* Cards — scrollable */}
           <ScrollView
             style={s.scroll}
@@ -201,11 +177,11 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
                 activeOpacity={0.78}
               >
                 <View style={[s.iconBox, { backgroundColor: item.bg }]}>
-                  <Ionicons name={item.icon as any} size={24} color={item.color} />
+                  <Ionicons name={item.icon as any} size={20} color={item.color} />
                 </View>
                 <View style={[s.accentBar, { backgroundColor: item.color }]} />
                 <Text style={s.cardLabel}>{item.label}</Text>
-                <SlantedCTA color={item.color} bg={item.bg} />
+                <SimpleCTA color={item.color} bg={item.bg} />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -214,7 +190,7 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
           <View style={s.footer}>
             <View style={s.footerLeft}>
               <View style={s.avatar}>
-                <Ionicons name="person" size={22} color="#fff" />
+                <Ionicons name="person" size={18} color="#fff" />
               </View>
               <View>
                 <Text style={s.footerName}>{roleLabel}</Text>
@@ -223,7 +199,7 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
             </View>
             <View style={s.divider} />
             <TouchableOpacity onPress={logout} style={s.logoutRow}>
-              <Ionicons name="log-out-outline" size={22} color="#2563EB" />
+              <Ionicons name="log-out-outline" size={18} color="#2563EB" />
               <Text style={s.logoutTxt}>Logout</Text>
             </TouchableOpacity>
           </View>
@@ -240,7 +216,7 @@ const s = StyleSheet.create({
   safeArea:     { flex: 1 },
 
   // Header
-  header:    { paddingTop: 52, paddingBottom: 24, paddingHorizontal: 24, overflow: "hidden" },
+  header:    { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24, overflow: "hidden" },
   dline1:    { position: "absolute", top: 16, right: -25, width: 150, height: 1.5, backgroundColor: "rgba(255,255,255,0.1)", transform: [{ rotate: "38deg" }] },
   dline2:    { position: "absolute", top: 44, right: -35, width: 170, height: 1.5, backgroundColor: "rgba(255,255,255,0.07)", transform: [{ rotate: "38deg" }] },
   dline3:    { position: "absolute", top: 72, right: -20, width: 130, height: 1.5, backgroundColor: "rgba(255,255,255,0.05)", transform: [{ rotate: "38deg" }] },
@@ -257,21 +233,21 @@ const s = StyleSheet.create({
 
   // Cards
   scroll:       { flex: 1 },
-  scrollContent:{ paddingHorizontal: 14, paddingTop: 6, paddingBottom: 6, gap: 10 },
-  card:         { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, height: CARD_H, overflow: "hidden", elevation: 3, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
-  iconBox:      { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", marginLeft: 12 },
-  accentBar:    { width: 3, height: 24, borderRadius: 2, marginLeft: 8 },
-  cardLabel:    { flex: 1, fontSize: 14, fontWeight: "700", color: "#0D1B3E", marginLeft: 8 },
+  scrollContent:{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 8, gap: 6 },
+  card:         { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 12, height: CARD_H, overflow: "hidden", elevation: 3, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+  iconBox:      { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", marginLeft: 10 },
+  accentBar:    { width: 3, height: 20, borderRadius: 2, marginLeft: 6 },
+  cardLabel:    { flex: 1, fontSize: 13, fontWeight: "700", color: "#0D1B3E", marginLeft: 6 },
 
   // Footer
-  footer:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F8F9FC", paddingVertical: 10, paddingHorizontal: 14, marginHorizontal: 14, marginBottom: 14, marginTop: 4, borderRadius: 14, borderWidth: 1, borderTopColor: "#E5E7EB", borderColor: "#E5E7EB" },
-  footerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  avatar:     { width: 38, height: 38, borderRadius: 19, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center" },
-  footerName: { fontSize: 14, fontWeight: "700", color: "#0D1B3E" },
-  footerVer:  { fontSize: 11, color: "#6B7280", marginTop: 1 },
-  divider:    { width: 1, height: 28, backgroundColor: "#D1D5DB", marginHorizontal: 10 },
-  logoutRow:  { flexDirection: "row", alignItems: "center", gap: 5 },
-  logoutTxt:  { fontSize: 14, fontWeight: "700", color: "#2563EB" },
+  footer:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F8F9FC", paddingVertical: 8, paddingHorizontal: 12, marginHorizontal: 14, marginBottom: 14, marginTop: 4, borderRadius: 12, borderWidth: 1, borderTopColor: "#E5E7EB", borderColor: "#E5E7EB" },
+  footerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  avatar:     { width: 34, height: 34, borderRadius: 17, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center" },
+  footerName: { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
+  footerVer:  { fontSize: 10, color: "#6B7280", marginTop: 1 },
+  divider:    { width: 1, height: 24, backgroundColor: "#D1D5DB", marginHorizontal: 8 },
+  logoutRow:  { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4 },
+  logoutTxt:  { fontSize: 13, fontWeight: "700", color: "#2563EB" },
 });
 
 export default CreateDrawer;

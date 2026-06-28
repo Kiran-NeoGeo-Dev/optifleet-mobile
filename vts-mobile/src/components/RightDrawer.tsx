@@ -123,7 +123,7 @@ const Item = ({
         <Ionicons name={icon} size={20} color={iconColor} />
       </View>
       <Text style={[d.itemLabel, labelColor ? { color: labelColor } : {}]}>{label}</Text>
-      {!labelColor && <Ionicons name="chevron-forward" size={16} color="#C7D2E0" />}
+      {!labelColor && <Ionicons name="chevron-forward" size={18} color="#1565C0" />}
     </TouchableOpacity>
     {!last && <View style={d.sep} />}
   </>
@@ -276,7 +276,7 @@ const RightDrawer = ({ visible, onClose, onMyProfile }: Props) => {
           {/* Footer — safe area handles bottom inset */}
           <SafeAreaView edges={["bottom"]}>
             <View style={d.footer}>
-              <Text style={d.footerTxt} numberOfLines={2}>Powered by Neogeoinfo Technologies</Text>
+              <Text style={d.footerTxt} numberOfLines={2}>Powered by NeoGeoInfo Technologies Limited</Text>
               <Text style={d.footerVer} numberOfLines={1}>OptiFleet v1.0.0</Text>
             </View>
           </SafeAreaView>
@@ -461,7 +461,7 @@ const d = StyleSheet.create({
   drawer:      { position: "absolute", top: 0, right: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#fff", shadowColor: "#000", shadowOpacity: 0.26, shadowRadius: 24, shadowOffset: { width: -6, height: 0 }, elevation: 24, zIndex: 101 },
 
   // Issue 2 fix: paddingTop accounts for status bar so blue covers it fully
-  header:      { paddingTop: (Platform.OS === "android" ? StatusBar.currentHeight ?? 32 : 52) + 14, paddingBottom: 52, paddingHorizontal: 24, overflow: "hidden", borderBottomLeftRadius: 38 },
+  header:      { paddingTop: (Platform.OS === "android" ? StatusBar.currentHeight ?? 32 : 52) + 24, paddingBottom: 64, paddingHorizontal: 24, overflow: "hidden", borderBottomLeftRadius: 38 },
   wave1:       { position: "absolute", top: 28, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-12deg" }] },
   wave2:       { position: "absolute", top: 72, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-8deg" }] },
   wave3:       { position: "absolute", top: 116, right: -50, width: 160, height: 3, backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] },
@@ -475,7 +475,7 @@ const d = StyleSheet.create({
   shieldBox:   { width: 64, height: 64, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
   headerSub:   { fontSize: 12, color: "rgba(255,255,255,0.82)", marginTop: 4 },
-  progressRow: { flexDirection: "row", alignItems: "center", marginTop: 18 },
+  progressRow: { flexDirection: "row", alignItems: "center", marginTop: 24 },
   progressLine:{ flex: 1, height: 4, backgroundColor: "#10B981", borderRadius: 2 },
   progressDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFD700", marginLeft: 10 },
 

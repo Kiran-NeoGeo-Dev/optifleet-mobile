@@ -1,8 +1,9 @@
 import { useRef, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AdminDashboardScreen from "../screens/admin/AdminDashboardScreen";
 import AdminProfileScreen   from "../screens/admin/AdminProfileScreen";
@@ -100,43 +101,68 @@ interface BottomBarProps {
 const { width: SW } = Dimensions.get("window");
 
 const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
-  // Task 2: ScrollView so all 6 items are reachable by horizontal scroll
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={tb.scrollBar}
-    contentContainerStyle={tb.scrollContent}
-  >
-    {TAB_ITEMS.map(tab => {
-      const isActive  = activeTab === tab.key;
-      const isCreate  = tab.key === "Create";
-      return (
-        <TouchableOpacity
-          key={tab.key}
-          style={tb.item}
-          onPress={() => onTabPress(tab.key)}
-          activeOpacity={0.75}
-        >
-          {isCreate ? (
-            <View style={tb.fab}>
-              <Ionicons name="add" size={28} color="#fff" />
-            </View>
-          ) : (
-            <>
+  <View style={tb.container}>
+    {/* Left section with border */}
+    <View style={tb.leftSection}>
+      <View style={tb.leftBar}>
+        {TAB_ITEMS.slice(0, 2).map(tab => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={tb.tabItem}
+              onPress={() => onTabPress(tab.key)}
+              activeOpacity={0.75}
+            >
               <Ionicons
                 name={tab.icon as any}
-                size={24}
+                size={22}
                 color={isActive ? "#1565C0" : "#9CA3AF"}
               />
-              <Text style={[tb.label, isActive && tb.labelActive]}>{tab.label}</Text>
-              {isActive && <View style={tb.indicator} />}
-            </>
-          )}
-          {isCreate && <Text style={[tb.label, { color: "#1565C0", fontWeight: "700" }]}>Create</Text>}
-        </TouchableOpacity>
-      );
-    })}
-  </ScrollView>
+              <Text style={[tb.tabLabel, isActive && tb.tabLabelActive]}>{tab.label}</Text>
+              {isActive && <View style={tb.tabIndicator} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+
+    {/* Center FAB */}
+    <TouchableOpacity
+      style={tb.fabContainer}
+      onPress={() => onTabPress("Create")}
+      activeOpacity={0.85}
+    >
+      <View style={tb.fab}>
+        <Ionicons name="add" size={26} color="#fff" />
+      </View>
+    </TouchableOpacity>
+
+    {/* Right section with border */}
+    <View style={tb.rightSection}>
+      <View style={tb.rightBar}>
+        {TAB_ITEMS.slice(3).map(tab => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={tb.tabItem}
+              onPress={() => onTabPress(tab.key)}
+              activeOpacity={0.75}
+            >
+              <Ionicons
+                name={tab.icon as any}
+                size={22}
+                color={isActive ? "#1565C0" : "#9CA3AF"}
+              />
+              <Text style={[tb.tabLabel, isActive && tb.tabLabelActive]}>{tab.label}</Text>
+              {isActive && <View style={tb.tabIndicator} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  </View>
 );
 
 // ── Main Navigator with Bottom Tabs ──────────────────────────────────────────
@@ -232,13 +258,103 @@ const AdminNavigator = () => {
 };
 
 const tb = StyleSheet.create({
-  scrollBar:     { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 16, shadowOffset: { width: 0, height: -4 }, elevation: 12, maxHeight: 72 },
-  scrollContent: { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, paddingBottom: 8, paddingTop: 10 },
-  item:          { width: 72, alignItems: "center", justifyContent: "center", gap: 3, minHeight: 52 },
-  label:         { fontSize: 9, fontWeight: "600", color: "#9CA3AF", textAlign: "center" },
-  labelActive:   { color: "#1565C0", fontWeight: "700" },
-  indicator:     { position: "absolute", bottom: -8, width: 24, height: 3, borderRadius: 2, backgroundColor: "#1565C0" },
-  fab:           { width: 48, height: 48, borderRadius: 24, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", marginBottom: 2, shadowColor: "#1565C0", shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
+  container: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+  },
+  leftSection: {
+    flex: 1,
+    height: 56,
+    borderTopLeftRadius: 20,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderColor: "#D1D5DB",
+    overflow: "hidden",
+  },
+  rightSection: {
+    flex: 1,
+    height: 56,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderColor: "#D1D5DB",
+    overflow: "hidden",
+  },
+  leftBar: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  rightBar: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  tabItem: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    width: 70,
+    height: 56,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
+  tabLabelActive: {
+    color: "#1565C0",
+    fontWeight: "700",
+  },
+  tabIndicator: {
+    position: "absolute",
+    bottom: 4,
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#1565C0",
+  },
+  fabContainer: {
+    width: 64,
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#1565C0",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#1565C0",
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+    borderWidth: 4,
+    borderColor: "#fff",
+  },
 });
 
 export default AdminNavigator;

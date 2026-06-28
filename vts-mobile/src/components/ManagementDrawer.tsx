@@ -144,7 +144,7 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
                 activeOpacity={0.75}
               >
                 <View style={[s.menuIconBox, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon as any} size={24} color={item.iconColor} />
+                  <Ionicons name={item.icon as any} size={20} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.menuLabel}>{item.label}</Text>
@@ -159,7 +159,7 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
           <View style={s.footer}>
             <View style={s.footerLeft}>
               <View style={s.footerIconBox}>
-                <Ionicons name="person-outline" size={24} color="#1565C0" />
+                <Ionicons name="person-outline" size={20} color="#1565C0" />
               </View>
               <View>
                 <Text style={s.footerName}>OptiFleet Admin</Text>
@@ -167,7 +167,7 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
               </View>
             </View>
             <TouchableOpacity onPress={logout} style={s.logoutBtn}>
-              <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -179,7 +179,7 @@ const ManagementDrawer = ({ visible, onClose, navigation }: Props) => {
 const s = StyleSheet.create({
   backdrop:      { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 100 },
   drawer:        { position: "absolute", top: 0, left: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#fff", borderTopRightRadius: 24, borderBottomRightRadius: 24, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 6, height: 0 }, elevation: 20, zIndex: 101 },
-  blueHeader:    { height: 190, paddingTop: 40, paddingBottom: 20, paddingHorizontal: 32, borderBottomRightRadius: 45, overflow: "hidden" },
+  blueHeader:    { height: 230, paddingTop: 50, paddingBottom: 28, paddingHorizontal: 32, borderBottomRightRadius: 45, overflow: "hidden" },
   waveLine1:     { position: "absolute", top: 30, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-12deg" }] },
   waveLine2:     { position: "absolute", top: 75, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-8deg" }] },
   waveLine3:     { position: "absolute", top: 120, right: -50, width: 160, height: 3, backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] },
@@ -197,18 +197,18 @@ const s = StyleSheet.create({
   progressContainer: { flexDirection: "row", alignItems: "center", marginTop: 24, zIndex: 1 },
   progressLine:  { flex: 1, height: 4, backgroundColor: "#10B981", borderRadius: 2 },
   progressDot:   { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFD700", marginLeft: 10, shadowColor: "#FFD700", shadowOpacity: 0.6, shadowRadius: 6 },
-  menuList:      { flex: 1, paddingVertical: 10, paddingHorizontal: 14, paddingBottom: 80 },
-  menuItem:      { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, marginVertical: 4, backgroundColor: "#fff", borderRadius: 14, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, minHeight: 60 },
-  menuIconBox:   { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  menuLabel:     { fontSize: 14, fontWeight: "700", color: "#0D1B3E" },
-  menuSub:       { fontSize: 12, color: "#4B5563", marginTop: 2, fontWeight: "500" },
-  viewTxt:       { fontSize: 14, fontWeight: "700" },
-  footer:        { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, marginHorizontal: 14, marginBottom: 14, marginTop: 4, backgroundColor: "#F8FAFF", borderRadius: 14, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  menuList:      { flex: 1, paddingVertical: 12, paddingHorizontal: 14, paddingBottom: 80 },
+  menuItem:      { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, marginVertical: 3, backgroundColor: "#fff", borderRadius: 12, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, minHeight: 52 },
+  menuIconBox:   { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  menuLabel:     { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
+  menuSub:       { fontSize: 11, color: "#4B5563", marginTop: 1, fontWeight: "500" },
+  viewTxt:       { fontSize: 13, fontWeight: "700" },
+  footer:        { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, marginHorizontal: 14, marginBottom: 14, marginTop: 4, backgroundColor: "#F8FAFF", borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   footerLeft:    { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  footerIconBox: { width: 42, height: 42, borderRadius: 12, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
-  footerName:    { fontSize: 14, fontWeight: "700", color: "#0D1B3E" },
+  footerIconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  footerName:    { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
   footerVer:     { fontSize: 11, color: "#6B7280" },
-  logoutBtn:     { width: 42, height: 42, borderRadius: 12, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" },
+  logoutBtn:     { width: 38, height: 38, borderRadius: 10, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" },
 });
 
 export default ManagementDrawer;

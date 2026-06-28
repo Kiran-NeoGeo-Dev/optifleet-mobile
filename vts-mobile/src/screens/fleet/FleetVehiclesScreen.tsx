@@ -31,9 +31,9 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 const b = StyleSheet.create({
-  wrap:  { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
-  dot:   { width: 8, height: 8, borderRadius: 4 },
-  label: { fontSize: 13, fontWeight: "700" },
+  wrap:  { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, gap: 4 },
+  dot:   { width: 6, height: 6, borderRadius: 3 },
+  label: { fontSize: 11, fontWeight: "700" },
 });
 
 const ICON_PALETTE: Array<[string, string]> = [
@@ -127,7 +127,7 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
         activeOpacity={0.75}
       >
         <View style={[s.iconBox, { backgroundColor: iconBg }]}>
-          <Ionicons name="bus-outline" size={28} color={iconColor} />
+          <Ionicons name="bus-outline" size={22} color={iconColor} />
         </View>
         <View style={s.cardBody}>
           <Text style={s.regNo}>{item.licensePlate}</Text>
@@ -205,16 +205,16 @@ const s = StyleSheet.create({
   headerRow:   { flexDirection: "row", alignItems: "center", marginTop: 8, marginBottom: 18 },
   headerTitle: { fontSize: 22, fontWeight: "800", color: "#fff" },
   headerSub:   { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 },
-  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 28, paddingHorizontal: 16, paddingVertical: 11, gap: 10, borderWidth: 1, borderColor: "#F0C080" },
-  searchInput: { flex: 1, fontSize: 14, color: "#1F2937" },
-  list:        { padding: 14, gap: 10 },
-  card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 18, padding: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 14 },
-  iconBox:     { width: 60, height: 60, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 24, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "#F0C080" },
+  searchInput: { flex: 1, fontSize: 13, color: "#1F2937" },
+  list:        { padding: 12, gap: 8 },
+  card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 14, padding: 10, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 10 },
+  iconBox:     { width: 48, height: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   cardBody:    { flex: 1 },
-  regNo:       { fontSize: 16, fontWeight: "800", color: "#0D1B3E" },
-  driver:      { fontSize: 13, color: "#6B7280", marginTop: 4 },
-  viewBtn:     { marginLeft: 6, backgroundColor: "#1565C0", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
-  viewBtnTxt:  { fontSize: 12, fontWeight: "800", color: "#FFFFFF" },
+  regNo:       { fontSize: 14, fontWeight: "800", color: "#0D1B3E" },
+  driver:      { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  viewBtn:     { marginLeft: 4, backgroundColor: "#1565C0", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  viewBtnTxt:  { fontSize: 11, fontWeight: "800", color: "#FFFFFF" },
   empty:       { alignItems: "center", marginTop: 60, gap: 12 },
   emptyText:   { fontSize: 15, color: "#9CA3AF" },
 });

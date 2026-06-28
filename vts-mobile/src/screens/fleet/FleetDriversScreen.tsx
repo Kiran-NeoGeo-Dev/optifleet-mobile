@@ -82,11 +82,11 @@ const FleetDriversScreen = ({ navigation }: Props) => {
         <View style={s.cardInfo}>
           <Text style={s.driverName}>{item.driverName}</Text>
           <View style={s.infoRow}>
-            <Ionicons name="call-outline" size={13} color="#6B7280" />
+            <Ionicons name="call-outline" size={11} color="#6B7280" />
             <Text style={s.infoText}>{item.phoneNumber ?? "—"}</Text>
           </View>
           <View style={s.infoRow}>
-            <Ionicons name="bus-outline" size={13} color="#1565C0" />
+            <Ionicons name="bus-outline" size={11} color="#1565C0" />
             <Text style={[s.infoText, { color: "#1565C0", fontWeight: "700" }]}>
               {item.vehicleRegNo ?? "—"}
             </Text>
@@ -205,10 +205,10 @@ const s = StyleSheet.create({
   header:      { paddingHorizontal: 16, paddingBottom: 22 },
   headerTitle: { fontSize: 24, fontWeight: "800", color: "#fff", marginTop: 8 },
   headerSub:   { fontSize: 13, color: "rgba(255,255,255,0.75)", marginTop: 2, marginBottom: 16 },
-  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 28, paddingHorizontal: 16, paddingVertical: 11, gap: 10, borderWidth: 1, borderColor: "#F0C080" },
-  searchInput: { flex: 1, fontSize: 14, color: "#1F2937" },
+  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 24, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "#F0C080" },
+  searchInput: { flex: 1, fontSize: 13, color: "#1F2937" },
   tabs:        { flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
-  tab:         { flex: 1, alignItems: "center", paddingVertical: 14, position: "relative" },
+  tab:         { flex: 1, alignItems: "center", paddingVertical: 10, position: "relative" },
   tabActive:   {},
   tabTxt:      { fontSize: 14, fontWeight: "600", color: "#6B7280" },
   tabTxtActive:      { color: "#1565C0", fontWeight: "800" },
@@ -218,26 +218,26 @@ const s = StyleSheet.create({
   tabCountNumActive: { fontSize: 14, fontWeight: "800", color: "#15803D" },
   tabCountNumInactive:{ fontSize: 14, fontWeight: "800", color: "#B91C1C" },
   tabLine:     { position: "absolute", bottom: 0, left: "15%", right: "15%", height: 3, backgroundColor: "#FFD700", borderRadius: 2 },
-  list:        { padding: 14, gap: 10 },
-  card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 18, padding: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 12 },
-  avatar:      { width: 56, height: 56, borderRadius: 28 },
-  avatarBox:   { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
-  avatarText:  { fontSize: 18, fontWeight: "800" },
-  cardInfo:    { flex: 1, gap: 4 },
-  driverName:  { fontSize: 15, fontWeight: "800", color: "#0D1B3E" },
-  infoRow:     { flexDirection: "row", alignItems: "center", gap: 5 },
-  infoText:    { fontSize: 12, color: "#6B7280" },
-  cardRight:   { alignItems: "flex-end", gap: 4 },
-  scoreNum:    { fontSize: 20, fontWeight: "700" },
-  safetyLabel: { fontSize: 11, fontWeight: "700", color: "#374151", letterSpacing: 0.3 },
-  viewBtn:     { marginLeft: 6, backgroundColor: "#1565C0", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
-  viewBtnTxt:  { fontSize: 12, fontWeight: "800", color: "#FFFFFF" },
+  list:        { padding: 12, gap: 8 },
+  card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 14, padding: 10, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 10 },
+  avatar:      { width: 44, height: 44, borderRadius: 22 },
+  avatarBox:   { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  avatarText:  { fontSize: 14, fontWeight: "800" },
+  cardInfo:    { flex: 1, gap: 2 },
+  driverName:  { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
+  infoRow:     { flexDirection: "row", alignItems: "center", gap: 4 },
+  infoText:    { fontSize: 11, color: "#6B7280" },
+  cardRight:   { alignItems: "flex-end", gap: 2 },
+  scoreNum:    { fontSize: 16, fontWeight: "700" },
+  safetyLabel: { fontSize: 10, fontWeight: "700", color: "#374151", letterSpacing: 0.3 },
+  viewBtn:     { marginLeft: 4, backgroundColor: "#1565C0", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  viewBtnTxt:  { fontSize: 11, fontWeight: "800", color: "#FFFFFF" },
   badgeRow:    { flexDirection: "row" },
-  badge:       { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, gap: 4 },
+  badge:       { flexDirection: "row", alignItems: "center", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, gap: 3 },
   badgeActive: { backgroundColor: "#DCFCE7" },
   badgeInactive:{ backgroundColor: "#FEE2E2" },
-  badgeDot:    { width: 6, height: 6, borderRadius: 3 },
-  badgeTxt:    { fontSize: 11, fontWeight: "700" },
+  badgeDot:    { width: 5, height: 5, borderRadius: 2.5 },
+  badgeTxt:    { fontSize: 10, fontWeight: "700" },
   empty:       { alignItems: "center", marginTop: 60, gap: 12 },
   emptyText:   { fontSize: 15, color: "#9CA3AF" },
 });

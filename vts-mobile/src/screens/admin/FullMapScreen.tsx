@@ -159,16 +159,16 @@ const FullMapScreen = ({ navigation }: Props) => {
       <SafeAreaView style={s.overlay} pointerEvents="box-none">
         {/* Back Button - Top Left */}
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.85}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color="#000" />
         </TouchableOpacity>
 
         {/* Zoom Controls - Top Right */}
         <View style={s.zoomControls}>
           <TouchableOpacity style={s.zoomBtn} onPress={handleZoomIn} activeOpacity={0.85}>
-            <Ionicons name="add" size={20} color="#fff" />
+            <Ionicons name="add" size={20} color="#000" />
           </TouchableOpacity>
           <TouchableOpacity style={s.zoomBtn} onPress={handleZoomOut} activeOpacity={0.85}>
-            <Ionicons name="remove" size={20} color="#fff" />
+            <Ionicons name="remove" size={20} color="#000" />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -180,7 +180,7 @@ const s = StyleSheet.create({
   root:              { flex: 1 },
   map:               { flex: 1 },
   overlay:           { position: "absolute", top: 0, left: 0, right: 0 },
-  backBtn:           { margin: 14, width: 44, height: 44, borderRadius: 12, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", shadowColor: "#1565C0", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
+  backBtn:           { marginLeft: 14, marginTop: 14, width: 44, height: 44, borderRadius: 12, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", shadowColor: "#1565C0", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
   zoomControls:      { position: "absolute", top: 14, right: 14, flexDirection: "column", gap: 8 },
   zoomBtn:           { width: 44, height: 44, borderRadius: 12, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center", shadowColor: "#1565C0", shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 },
   loadingContainer:  { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F0F4FF" },
