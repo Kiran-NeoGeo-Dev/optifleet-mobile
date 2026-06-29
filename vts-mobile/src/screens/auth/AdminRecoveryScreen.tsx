@@ -66,44 +66,39 @@ const Field = ({
 
 // ── Screen ─────────────────────────────────────────────────────────────────────
 const AdminRecoveryScreen = ({ navigation }: Props) => {
+  const [email,       setEmail]       = useState("");
   const [newUsername, setNewUsername] = useState("");
   const [newPass,     setNewPass]     = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [fullName,    setFullName]    = useState("");
-  const [email,       setEmail]       = useState("");
   const [phone,       setPhone]       = useState("");
-  const [role,        setRole]        = useState("Admin");
-  const [roleDesc,    setRoleDesc]    = useState("");
   const [showNew,     setShowNew]     = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading,     setLoading]     = useState(false);
   const { toast, showToast, hideToast } = useToast();
 
   const clearAll = () => {
-    setNewUsername(""); setNewPass(""); setConfirmPass("");
-    setFullName(""); setEmail(""); setPhone("");
-    setRole("Admin"); setRoleDesc("");
+    setEmail(""); setNewUsername(""); setNewPass(""); setConfirmPass("");
+    setFullName(""); setPhone("");
   };
 
   const onReset = async () => {
+    if (!email.trim())       { showToast("Registered email address is required.", "error"); return; }
     if (!newUsername.trim()) { showToast("New username is required.", "error"); return; }
     if (!newPass.trim())     { showToast("New password is required.", "error"); return; }
     if (newPass.length < 6)  { showToast("Password must be at least 6 characters.", "error"); return; }
     if (newPass !== confirmPass) { showToast("Passwords do not match.", "error"); return; }
-    if (!email.trim())       { showToast("Email address is required.", "error"); return; }
 
     setLoading(true);
     try {
       await api.post("/api/auth/admin-recovery", {
-        newUsername:     newUsername.trim(),
-        newPassword:     newPass.trim(),
-        fullName:        fullName.trim() || undefined,
-        email:           email.trim(),
-        phone:           phone.trim() || undefined,
-        role:            role.trim() || "Admin",
-        roleDescription: roleDesc.trim() || undefined,
+        email:       email.trim(),
+        newUsername: newUsername.trim(),
+        newPassword: newPass.trim(),
+        fullName:    fullName.trim() || undefined,
+        phone:       phone.trim() || undefined,
       });
-      showToast("Credentials saved! Please login with your new username & password.", "success");
+      showToast("Credentials updated! Please login with your new username & password.", "success");
       setTimeout(() => navigation.goBack(), 2000);
     } catch (e: any) {
       const msg = e?.response?.data?.error || e?.response?.data?.message || "Reset failed. Please try again.";
@@ -165,26 +160,26 @@ const AdminRecoveryScreen = ({ navigation }: Props) => {
                 <Ionicons name="person-circle-outline" size={28} color={C.purple} />
                 <Text style={s.cardTitle}>Admin Recovery</Text>
               </View>
-              <Text style={s.cardSub}>Set your new admin login credentials.</Text>
+              <Text style={s.cardSub}>Enter your registered email to verify your account, then set new credentials.</Text>
 
               <View style={s.divider}><View style={s.dividerLine} /></View>
 
-              {/* 1. New Username */}
-              <Field icon="person-add-outline"      label="New Username"      value={newUsername} onChangeText={setNewUsername} placeholder="Enter new username" />
+              {/* 1. Registered Email — identifier */}
+              <Field icon="mail-outline"         label="Registered Email"  value={email}       onChangeText={setEmail}       placeholder="Enter your registered email address" keyboardType="email-address" />
 
-              {/* 2. New Password */}
-              <Field icon="lock-open-outline"        label="New Password"      value={newPass}     onChangeText={setNewPass}     placeholder="Enter new password"   secureTextEntry={!showNew}     showToggle onToggle={() => setShowNew(!showNew)} />
+              {/* 2. New Username */}
+              <Field icon="person-add-outline"   label="New Username"      value={newUsername} onChangeText={setNewUsername} placeholder="Enter new username" />
 
-              {/* 3. Confirm Password */}
-              <Field icon="lock-closed-outline"      label="Confirm Password"  value={confirmPass} onChangeText={setConfirmPass} placeholder="Re-enter new password" secureTextEntry={!showConfirm} showToggle onToggle={() => setShowConfirm(!showConfirm)} />
+              {/* 3. New Password */}
+              <Field icon="lock-open-outline"    label="New Password"      value={newPass}     onChangeText={setNewPass}     placeholder="Enter new password"    secureTextEntry={!showNew}     showToggle onToggle={() => setShowNew(!showNew)} />
 
-              {/* 4. Full Name */}
-              <Field icon="person-outline"           label="Full Name"         value={fullName}    onChangeText={setFullName}    placeholder="Enter your full name" autoCapitalize="words" />
+              {/* 4. Confirm Password */}
+              <Field icon="lock-closed-outline"  label="Confirm Password"  value={confirmPass} onChangeText={setConfirmPass} placeholder="Re-enter new password" secureTextEntry={!showConfirm} showToggle onToggle={() => setShowConfirm(!showConfirm)} />
 
-              {/* 5. Email Address */}
-              <Field icon="mail-outline"             label="Email Address"     value={email}       onChangeText={setEmail}       placeholder="Enter email address"  keyboardType="email-address" />
+              {/* 5. Full Name (optional) */}
+              <Field icon="person-outline"       label="Full Name"         value={fullName}    onChangeText={setFullName}    placeholder="Enter your full name" autoCapitalize="words" />
 
-              {/* 6. Phone Number */}
+              {/* 6. Phone Number (optional) */}
               <View style={s.fieldWrap}>
                 <View style={s.fieldLabelRow}>
                   <Ionicons name="call-outline" size={16} color={C.purple} />
@@ -208,12 +203,6 @@ const AdminRecoveryScreen = ({ navigation }: Props) => {
                   </View>
                 </View>
               </View>
-
-              {/* 7. Role */}
-              <Field icon="shield-outline"           label="Role"              value={role}        onChangeText={setRole}        placeholder="Admin" />
-
-              {/* 8. Role Description */}
-              <Field icon="document-text-outline"    label="Role Description"  value={roleDesc}    onChangeText={setRoleDesc}    placeholder="Enter role description" autoCapitalize="sentences" />
 
               {/* Reset Credentials button */}
               <View style={s.btnShadow}>

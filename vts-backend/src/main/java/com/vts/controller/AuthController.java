@@ -100,61 +100,58 @@ public class AuthController {
         return ResponseEntity.ok("Please contact NeoGeo Info Technologies Ltd to reset your credentials.");
     }
 
-    // ── Admin self-recovery: save new credentials directly ──────────────
+    // ── Multi-admin self-recovery: identify by registered email, update credentials only ──
     @PostMapping("/admin-recovery")
-    @PreAuthorize("hasRole('SUPERADMIN')")
     public ResponseEntity<?> adminRecovery(@RequestBody Map<String, String> body) {
         try {
+            String email       = body.get("email");
             String newUsername = body.get("newUsername");
             String newPassword = body.get("newPassword");
-            String email       = body.get("email");
+            String fullName    = body.get("fullName");
+            String phone       = body.get("phone");
 
-            if (newUsername == null || newUsername.isBlank()) return ResponseEntity.badRequest().body(Map.of("error", "New username is required"));
-            if (newPassword == null || newPassword.length() < 6) return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters"));
-            if (email == null || email.isBlank()) return ResponseEntity.badRequest().body(Map.of("error", "Email address is required"));
+            if (email == null || email.isBlank())
+                return ResponseEntity.badRequest().body(Map.of("error", "Registered email address is required"));
+            if (newUsername == null || newUsername.isBlank())
+                return ResponseEntity.badRequest().body(Map.of("error", "New username is required"));
+            if (newPassword == null || newPassword.length() < 6)
+                return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters"));
 
-            String role     = "superadmin";
-            String fullName = body.get("fullName");
-            String phone    = body.get("phone");
-            String roleDesc = body.get("roleDescription");
+            // Identify the admin account by registered email
+            UserDetailEntity ud = userDetailRepository.findByEmailAddress(email.trim()).orElse(null);
+            if (ud == null)
+                return ResponseEntity.badRequest().body(Map.of("error", "No account found with that email address"));
 
-            Client current = authService.getCurrentClient();
-            if (current == null || !authService.isSuperAdmin(current)) {
-                return ResponseEntity.status(403).body(Map.of("error", "Only the Super Admin can update Super Admin credentials"));
-            }
-            LoginEntity login = loginRepository.findByUsername(current.getUsername())
-                .orElseThrow(() -> new IllegalStateException("Super Admin login record not found"));
+            // Only Admin and SuperAdmin accounts may use this recovery flow
+            String existingRole = ud.getRole();
+            if (!"Admin".equalsIgnoreCase(existingRole) && !"superadmin".equalsIgnoreCase(existingRole))
+                return ResponseEntity.badRequest().body(Map.of("error", "No admin account found with that email address"));
 
-            Integer existingClientId = login.getClientId();
+            // Check new username uniqueness (skip if unchanged)
+            String oldUsername = ud.getUsername();
+            if (!newUsername.trim().equals(oldUsername) &&
+                    userDetailRepository.findByUsername(newUsername.trim()).isPresent())
+                return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
 
-            UserDetailEntity ud = (existingClientId != null)
-                ? userDetailRepository.findById(existingClientId).orElse(new UserDetailEntity())
-                : new UserDetailEntity();
-
+            // Update userdetail — credentials + optional profile fields only; role/org/data untouched
             ud.setUsername(newUsername.trim());
-            ud.setRole(role);
-            ud.setOrgId(current.getOrgId() != null ? current.getOrgId() : current.getId());
-            ud.setEmailAddress(email.trim());
             if (fullName != null && !fullName.isBlank()) ud.setFullName(fullName.trim());
             if (phone != null && !phone.isBlank()) {
                 ud.setDialCode("+91");
                 ud.setPhoneNumber(phone.trim());
-            } else if (ud.getPhoneNumber() == null || ud.getPhoneNumber().isBlank()) {
-                ud.setPhoneNumber("0000000000");
             }
-            if (roleDesc != null && !roleDesc.isBlank()) ud.setRoleDescription(roleDesc.trim());
-            UserDetailEntity savedUd = userDetailRepository.save(ud);
+            userDetailRepository.save(ud);
 
+            // Update login record
+            LoginEntity login = loginRepository.findByUsername(oldUsername)
+                .orElseThrow(() -> new IllegalStateException("Login record not found for this account"));
             login.setUsername(newUsername.trim());
             login.setPassword(passwordEncoder.encode(newPassword.trim()));
-            login.setRole(role);
-            login.setClientId(savedUd.getClientId());
             loginRepository.save(login);
 
-            // Send credentials email to admin
-            emailService.sendCredentialsEmail(email.trim(), fullName, newUsername.trim(), newPassword.trim());
+            emailService.sendCredentialsEmail(email.trim(), ud.getFullName(), newUsername.trim(), newPassword.trim());
 
-            return ResponseEntity.ok(Map.of("message", "Admin credentials updated successfully", "username", newUsername.trim()));
+            return ResponseEntity.ok(Map.of("message", "Credentials updated successfully", "username", newUsername.trim()));
         } catch (Exception e) {
             logger.error("Admin recovery error: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -231,7 +228,6 @@ public class AuthController {
             login.setClientId(savedUd.getClientId());
             loginRepository.save(login);
 
-            // Send credentials email to new user
             emailService.sendCredentialsEmail(
                 body.get("emailAddress"), body.get("fullName"), username, rawPassword);
 
@@ -326,7 +322,6 @@ public class AuthController {
             String effectiveUsername = (newUsername != null && !newUsername.isBlank())
                 ? newUsername.trim() : oldUsername;
 
-            // Update login record username if changed
             if (newUsername != null && !newUsername.isBlank() && !newUsername.trim().equals(oldUsername)) {
                 loginRepository.findByUsername(oldUsername).ifPresent(l -> {
                     l.setUsername(newUsername.trim());
@@ -334,7 +329,6 @@ public class AuthController {
                 });
             }
 
-            // Update password if provided
             if (newPassword != null && !newPassword.isBlank()) {
                 if (newPassword.trim().length() < 6)
                     return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters"));
@@ -344,7 +338,6 @@ public class AuthController {
                 });
             }
 
-            // Update role in login if changed
             if (body.containsKey("role")) {
                 loginRepository.findByUsername(effectiveUsername).ifPresent(l -> {
                     l.setRole(body.get("role"));
@@ -382,7 +375,6 @@ public class AuthController {
             if (current != null && current.getId().intValue() == clientId) return ResponseEntity.badRequest().body(Map.of("error", "You cannot delete your own account"));
             logger.info("[DELETE] Starting cascade delete for clientId={}", clientId);
 
-            // Pure JDBC — guaranteed execution order, no Hibernate flush issues
             jdbc.update("DELETE FROM public.driver_photos dp USING public.drivers d WHERE dp.driver_id = d.id AND d.client_id = ?", clientId);
             jdbc.update("DELETE FROM public.associations WHERE client_id = ?", clientId);
             jdbc.update("DELETE FROM public.admin_associations aa USING public.vehicles v WHERE aa.vehicle_id = v.id AND v.client_id = ?", clientId);

@@ -29,6 +29,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/forgot-password-message",
+                                "/api/auth/admin-recovery",
                                 "/api/driver-auth/login",
                                 "/api/thingsboard/telemetry",
                                 "/api/diagnostic/**",
