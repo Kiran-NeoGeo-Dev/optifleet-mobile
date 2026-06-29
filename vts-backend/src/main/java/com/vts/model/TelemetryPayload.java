@@ -29,6 +29,15 @@ public class TelemetryPayload {
     @JsonProperty("drowsiness_status")
     private String drowsinessStatus;
 
+    @JsonProperty("harsh_braking")
+    private String harshBraking;
+
+    @JsonProperty("harsh_acceleration")
+    private String harshAcceleration;
+
+    @JsonProperty("rash_turning")
+    private String rashTurning;
+
     @JsonProperty("engine_rpm")
     @JsonAlias({"engineRpm", "rpm"})
     private Integer engineRpm;
@@ -56,6 +65,12 @@ public class TelemetryPayload {
     public void    setMobileUsage(String v){ this.mobileUsage = v; }
     public String  getDrowsinessStatus() { return drowsinessStatus; }
     public void    setDrowsinessStatus(String v){ this.drowsinessStatus = v; }
+    public String  getHarshBraking()     { return harshBraking; }
+    public void    setHarshBraking(String v){ this.harshBraking = v; }
+    public String  getHarshAcceleration(){ return harshAcceleration; }
+    public void    setHarshAcceleration(String v){ this.harshAcceleration = v; }
+    public String  getRashTurning()      { return rashTurning; }
+    public void    setRashTurning(String v){ this.rashTurning = v; }
     public Integer getEngineRpm()        { return engineRpm; }
     public void    setEngineRpm(Integer v){ this.engineRpm = v; }
     public Double  getBatteryPercentage(){ return batteryPercentage; }

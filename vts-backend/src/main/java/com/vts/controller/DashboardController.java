@@ -118,6 +118,9 @@ public class DashboardController {
                 popup.setSmoking(row.get("smoking_status")       != null ? row.get("smoking_status").toString()     : "No");
                 popup.setMobileUsage(row.get("mobile_usage")     != null ? row.get("mobile_usage").toString()       : "No");
                 popup.setDrowsiness(row.get("drowsiness_status") != null ? row.get("drowsiness_status").toString()  : "Normal");
+                popup.setHarshBraking(row.get("harsh_braking")   != null ? row.get("harsh_braking").toString()      : "No");
+                popup.setHarshAcceleration(row.get("harsh_acceleration") != null ? row.get("harsh_acceleration").toString() : "No");
+                popup.setRashTurning(row.get("rash_turning")     != null ? row.get("rash_turning").toString()        : "No");
                 popup.setRouteDeviation(deviatedVehicles.contains(vid) ? "Yes" : "No");
                 popup.setAddress(row.get("address")        != null ? row.get("address").toString()        : "");
                 popup.setCoordinates(row.get("coordinates") != null ? row.get("coordinates").toString()  : "");
@@ -138,16 +141,19 @@ public class DashboardController {
         m.put("speed",       speed);
         m.put("driverName",  driverName);
         if (popup != null) {
-            m.put("tripStatus",     popup.getStatus());
-            m.put("overspeed",      popup.getOverspeed());
-            m.put("smoking",        popup.getSmoking());
-            m.put("mobileUsage",    popup.getMobileUsage());
-            m.put("drowsiness",     popup.getDrowsiness());
-            m.put("routeDeviation", popup.getRouteDeviation());
-            m.put("address",        popup.getAddress());
-            m.put("coordinates",    popup.getCoordinates());
-            m.put("lastUpdateTime", popup.getLastUpdateTime());
-            m.put("lastUpdateDate", popup.getLastUpdateDate());
+            m.put("tripStatus",      popup.getStatus());
+            m.put("overspeed",       popup.getOverspeed());
+            m.put("smoking",         popup.getSmoking());
+            m.put("mobileUsage",     popup.getMobileUsage());
+            m.put("drowsiness",      popup.getDrowsiness());
+            m.put("harshBraking",    popup.getHarshBraking());
+            m.put("harshAcceleration", popup.getHarshAcceleration());
+            m.put("rashTurning",     popup.getRashTurning());
+            m.put("routeDeviation",  popup.getRouteDeviation());
+            m.put("address",         popup.getAddress());
+            m.put("coordinates",     popup.getCoordinates());
+            m.put("lastUpdateTime",  popup.getLastUpdateTime());
+            m.put("lastUpdateDate",  popup.getLastUpdateDate());
         }
         return m;
     }

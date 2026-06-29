@@ -11,6 +11,9 @@ export interface PopupData {
   mobileUsage:    string;
   drowsiness:     string;
   routeDeviation: string;
+  harshBraking:   string;
+  harshAcceleration: string;
+  rashTurning:    string;
 }
 
 export interface AlertNotification {
@@ -58,6 +61,21 @@ const ALERT_CONFIG: {
     key: "smoking", emoji: "🚭", color: "#6B7280", label: "Smoking",
     trigger: v => v === "Yes" || v === "True",
     voice: (v, d) => `Alert! Driver ${d} on vehicle ${v} is smoking.`,
+  },
+  {
+    key: "harshBraking", emoji: "🛑", color: "#DC2626", label: "Harsh Braking",
+    trigger: v => v === "Yes" || v === "True",
+    voice: (v, d) => `Alert! Vehicle ${v}, driver ${d} has detected harsh braking.`,
+  },
+  {
+    key: "harshAcceleration", emoji: "⚡", color: "#D97706", label: "Harsh Acceleration",
+    trigger: v => v === "Yes" || v === "True",
+    voice: (v, d) => `Alert! Vehicle ${v}, driver ${d} has detected harsh acceleration.`,
+  },
+  {
+    key: "rashTurning", emoji: "↪️", color: "#DB2777", label: "Rash Turning",
+    trigger: v => v === "Yes" || v === "True",
+    voice: (v, d) => `Alert! Vehicle ${v}, driver ${d} has detected rash turning.`,
   },
 ];
 

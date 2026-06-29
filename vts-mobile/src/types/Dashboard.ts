@@ -25,6 +25,9 @@ export interface LiveVehicle {
   mobileUsage:    string;
   drowsiness:     string;
   routeDeviation: string;
+  harshBraking:   string;
+  harshAcceleration: string;
+  rashTurning:    string;
   address?:        string;
   coordinates?:    string;
   lastUpdateTime?: string;

@@ -720,6 +720,9 @@ ${includeControls ? `
                     ["Mobile Usage",    livePopup.mobileUsage],
                     ["Drowsiness",      livePopup.drowsiness],
                     ["Route Deviation", livePopup.routeDeviation],
+                    ["Harsh Braking",   livePopup.harshBraking],
+                    ["Harsh Acceleration", livePopup.harshAcceleration],
+                    ["Rash Turning",    livePopup.rashTurning],
                   ] as [string, string][]).map(([label, value]) => (
                     <View key={label} style={styles.popupRow}>
                       <Text style={styles.popupLabel}>{label}:</Text>

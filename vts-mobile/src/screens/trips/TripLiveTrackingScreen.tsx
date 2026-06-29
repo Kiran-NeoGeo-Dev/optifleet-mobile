@@ -14,7 +14,8 @@ import { calculateOsrmRoute } from "../../utils/osrmRoute";
 interface PopupData {
   vehicleId: string; status: string; driverName: string; speed: string;
   location: string; overspeed: string; smoking: string; mobileUsage: string;
-  drowsiness: string; routeDeviation: string;
+  drowsiness: string; harshBraking: string; harshAcceleration: string; rashTurning: string;
+  routeDeviation: string;
   address?: string; coordinates?: string;
   lastUpdateTime?: string; lastUpdateDate?: string;
 }
@@ -282,6 +283,9 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
                   ["Mobile Usage",    popup.mobileUsage],
                   ["Drowsiness",      popup.drowsiness],
                   ["Route Deviation", popup.routeDeviation],
+                  ["Harsh Braking",   popup.harshBraking],
+                  ["Harsh Acceleration", popup.harshAcceleration],
+                  ["Rash Turning",    popup.rashTurning],
                 ] as [string, string][]).map(([label, value]) => (
                   <View key={label} style={styles.popupRow}>
                     <Text style={styles.popupLabel}>{label}:</Text>

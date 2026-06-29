@@ -456,6 +456,9 @@ const DriverMapScreen = ({ navigation }: Props) => {
                   ["Mobile Usage",    popup.mobileUsage ?? "—"],
                   ["Drowsiness",      popup.drowsiness ?? "—"],
                   ["Route Deviation", popup.routeDeviation ?? "—"],
+                  ["Harsh Braking",   popup.harshBraking ?? "—"],
+                  ["Harsh Acceleration", popup.harshAcceleration ?? "—"],
+                  ["Rash Turning",    popup.rashTurning ?? "—"],
                 ] as [string, string][]).map(([label, value]) => (
                   <View key={label} style={styles.popupRow}>
                     <Text style={styles.popupLabel}>{label}:</Text>

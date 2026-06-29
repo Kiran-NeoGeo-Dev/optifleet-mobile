@@ -253,6 +253,9 @@ public class LiveTrackingService {
                 popup.setSmoking(telemetry.get("smoking_status")       != null ? telemetry.get("smoking_status").toString()    : "No");
                 popup.setMobileUsage(telemetry.get("mobile_usage")     != null ? telemetry.get("mobile_usage").toString()      : "No");
                 popup.setDrowsiness(telemetry.get("drowsiness_status") != null ? telemetry.get("drowsiness_status").toString() : "Normal");
+                popup.setHarshBraking(telemetry.get("harsh_braking")   != null ? telemetry.get("harsh_braking").toString()   : "No");
+                popup.setHarshAcceleration(telemetry.get("harsh_acceleration") != null ? telemetry.get("harsh_acceleration").toString() : "No");
+                popup.setRashTurning(telemetry.get("rash_turning")     != null ? telemetry.get("rash_turning").toString()     : "No");
                 popup.setRouteDeviation(deviated ? "Yes" : "No");
                 popup.setLat(lat);
                 popup.setLng(lng);
@@ -404,6 +407,9 @@ public class LiveTrackingService {
         popup.setSmoking(p.getSmokingStatus()      != null ? p.getSmokingStatus()    : "No");
         popup.setMobileUsage(p.getMobileUsage()    != null ? p.getMobileUsage()      : "No");
         popup.setDrowsiness(p.getDrowsinessStatus()!= null ? p.getDrowsinessStatus() : "Normal");
+        popup.setHarshBraking(p.getHarshBraking()  != null ? p.getHarshBraking()    : "No");
+        popup.setHarshAcceleration(p.getHarshAcceleration() != null ? p.getHarshAcceleration() : "No");
+        popup.setRashTurning(p.getRashTurning()    != null ? p.getRashTurning()      : "No");
         popup.setRouteDeviation(deviated ? "Yes" : "No");
         popup.setLat(lat);
         popup.setLng(lng);

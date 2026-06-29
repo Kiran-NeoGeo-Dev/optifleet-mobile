@@ -10,6 +10,9 @@ public class VehiclePopupData {
     private String smoking;
     private String mobileUsage;
     private String drowsiness;
+    private String harshBraking;
+    private String harshAcceleration;
+    private String rashTurning;
     private String routeDeviation;
     private Double lat;
     private Double lng;
@@ -38,6 +41,12 @@ public class VehiclePopupData {
     public void   setMobileUsage(String v)  { this.mobileUsage = v; }
     public String getDrowsiness()     { return drowsiness; }
     public void   setDrowsiness(String v)   { this.drowsiness = v; }
+    public String getHarshBraking()   { return harshBraking; }
+    public void   setHarshBraking(String v){ this.harshBraking = v; }
+    public String getHarshAcceleration() { return harshAcceleration; }
+    public void   setHarshAcceleration(String v){ this.harshAcceleration = v; }
+    public String getRashTurning()    { return rashTurning; }
+    public void   setRashTurning(String v)   { this.rashTurning = v; }
     public String getRouteDeviation() { return routeDeviation; }
     public void   setRouteDeviation(String v){ this.routeDeviation = v; }
     public Double getLat()            { return lat; }

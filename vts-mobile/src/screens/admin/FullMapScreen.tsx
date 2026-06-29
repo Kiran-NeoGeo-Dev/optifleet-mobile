@@ -62,6 +62,9 @@ function buildPopup(x){
     '<div class="pr"><span class="pk">Mobile Usage<\/span><span class="pv '+(x.mobileUsage==='Yes'?'yes':'no')+'">'+x.mobileUsage+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Drowsiness<\/span><span class="pv '+(x.drowsiness==='Fatigue'?'yes':'no')+'">'+x.drowsiness+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Route Deviation<\/span><span class="pv '+(x.routeDeviation==='Yes'?'yes':'no')+'">'+x.routeDeviation+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Harsh Braking<\/span><span class="pv '+(x.harshBraking==='Yes'?'yes':'no')+'">'+x.harshBraking+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Harsh Acceleration<\/span><span class="pv '+(x.harshAcceleration==='Yes'?'yes':'no')+'">'+x.harshAcceleration+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Rash Turning<\/span><span class="pv '+(x.rashTurning==='Yes'?'yes':'no')+'">'+x.rashTurning+'<\/span><\/div>'+
     '<\/div>';
 }
 function makeIcon(status){
@@ -114,9 +117,11 @@ const FullMapScreen = ({ navigation }: Props) => {
           speed: v.speed || 0, overspeed: v.overspeed || "No",
           smoking: v.smoking || "No", mobileUsage: v.mobileUsage || "No",
           drowsiness: v.drowsiness || "Normal", routeDeviation: v.routeDeviation || "No",
+          harshBraking: v.harshBraking || "No", harshAcceleration: v.harshAcceleration || "No", rashTurning: v.rashTurning || "No",
           address: v.address || "", coordinates: v.coordinates || "",
           lastUpdateTime: v.lastUpdateTime || "", lastUpdateDate: v.lastUpdateDate || "",
         })));
+        webViewRef.current?.injectJavaScript(`window.updateVehicles(${vJson}); true;`);
       }
     } catch (error) {
       setLoading(false);

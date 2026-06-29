@@ -52,10 +52,13 @@ public class NotificationController {
                 telemetryData = thingsBoardDirectQueryService.fetchAllLiveTelemetry(cid, null);
             }
             String[][] alertFields = {
-                { "overspeed",         "OVERSPEED",    "Overspeed detected"    },
-                { "drowsiness_status", "DROWSINESS",   "Drowsiness detected"   },
-                { "smoking_status",    "SMOKING",       "Smoking detected"      },
-                { "mobile_usage",      "MOBILE_USAGE", "Mobile usage detected" },
+                { "overspeed",         "OVERSPEED",          "Overspeed detected"          },
+                { "drowsiness_status", "DROWSINESS",         "Drowsiness detected"         },
+                { "smoking_status",    "SMOKING",            "Smoking detected"            },
+                { "mobile_usage",      "MOBILE_USAGE",       "Mobile usage detected"       },
+                { "harsh_braking",     "HARSH_BRAKING",      "Harsh braking detected"      },
+                { "harsh_acceleration", "HARSH_ACCELERATION", "Harsh acceleration detected" },
+                { "rash_turning",      "RASH_TURNING",       "Rash turning detected"       },
             };
             for (Map<String, Object> row : telemetryData) {
                 String vehicleId  = (String) row.get("vehicle_id");

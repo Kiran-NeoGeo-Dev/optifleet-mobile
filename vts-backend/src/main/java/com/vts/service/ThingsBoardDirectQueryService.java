@@ -367,7 +367,7 @@ public class ThingsBoardDirectQueryService {
             String url = tbAuth.activeUrl()
                 + "/api/plugins/telemetry/DEVICE/" + entityId
                 + "/values/timeseries?keys=lat,lng,speed,trip_status,overspeed,"
-                + "smoking_status,mobile_usage,drowsiness_status,engineRpm,engine_rpm,rpm,battery_percentage,ignition_status,"
+                + "smoking_status,mobile_usage,drowsiness_status,harsh_braking,harsh_acceleration,rash_turning,engineRpm,engine_rpm,rpm,battery_percentage,ignition_status,"
                 + "device_status,hdop,gps_accuracy,last_telemetry_timestamp";
 
             ResponseEntity<Map> res = restTemplate.exchange(
@@ -410,6 +410,9 @@ public class ThingsBoardDirectQueryService {
             result.put("smoking_status", extractString(data, "smoking_status"));
             result.put("mobile_usage", extractString(data, "mobile_usage"));
             result.put("drowsiness_status", extractString(data, "drowsiness_status"));
+            result.put("harsh_braking",      extractString(data, "harsh_braking"));
+            result.put("harsh_acceleration", extractString(data, "harsh_acceleration"));
+            result.put("rash_turning",       extractString(data, "rash_turning"));
             result.put("engineRpm", extractFirstInt(data, "engineRpm", "engine_rpm", "rpm"));
             result.put("battery_percentage", extractDouble(data, "battery_percentage"));
             result.put("ignition_status", extractString(data, "ignition_status"));

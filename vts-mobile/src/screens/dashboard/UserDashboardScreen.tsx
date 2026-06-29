@@ -46,13 +46,17 @@ const StatCard = ({ icon, label, count, accent }: {
 
 const ALERT_ICON: Record<string, string> = {
   SMOKING: "🚭", MOBILE_USAGE: "📱", DROWSINESS: "😴", OVERSPEED: "🚨", ROUTE_DEVIATION: "📍",
+  HARSH_BRAKING: "🛑", HARSH_ACCELERATION: "⚡", RASH_TURNING: "↪️",
 };
 const SEVERITY: Record<string, { color: string; bg: string; label: string }> = {
-  OVERSPEED:       { color: "#EF4444", bg: "#FEE2E2", label: "HIGH"   },
-  SMOKING:         { color: "#EF4444", bg: "#FEE2E2", label: "HIGH"   },
-  MOBILE_USAGE:    { color: "#F59E0B", bg: "#FEF3C7", label: "MEDIUM" },
-  ROUTE_DEVIATION: { color: "#F59E0B", bg: "#FEF3C7", label: "MEDIUM" },
-  DROWSINESS:      { color: "#3B82F6", bg: "#DBEAFE", label: "INFO"   },
+  OVERSPEED:         { color: "#EF4444", bg: "#FEE2E2", label: "HIGH"   },
+  SMOKING:           { color: "#EF4444", bg: "#FEE2E2", label: "HIGH"   },
+  MOBILE_USAGE:      { color: "#F59E0B", bg: "#FEF3C7", label: "MEDIUM" },
+  ROUTE_DEVIATION:   { color: "#F59E0B", bg: "#FEF3C7", label: "MEDIUM" },
+  DROWSINESS:        { color: "#3B82F6", bg: "#DBEAFE", label: "INFO"   },
+  HARSH_BRAKING:     { color: "#DC2626", bg: "#FEE2E2", label: "HIGH"   },
+  HARSH_ACCELERATION:{ color: "#D97706", bg: "#FEF3C7", label: "MEDIUM" },
+  RASH_TURNING:      { color: "#DB2777", bg: "#FEE2E2", label: "MEDIUM" },
 };
 
 // ── Live Map HTML ─────────────────────────────────────────────────────────────
@@ -106,6 +110,9 @@ function buildPopup(x){
     '<div class="pr"><span class="pk">Mobile Usage<\/span><span class="pv '+(x.mobileUsage==="Yes"?"yes":"no")+'">'+x.mobileUsage+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Drowsiness<\/span><span class="pv '+(x.drowsiness==="Fatigue"?"yes":"no")+'">'+x.drowsiness+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Route Deviation<\/span><span class="pv '+(x.routeDeviation==="Yes"?"yes":"no")+'">'+x.routeDeviation+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Harsh Braking<\/span><span class="pv '+(x.harshBraking==="Yes"?"yes":"no")+'">'+x.harshBraking+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Harsh Acceleration<\/span><span class="pv '+(x.harshAcceleration==="Yes"?"yes":"no")+'">'+x.harshAcceleration+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Rash Turning<\/span><span class="pv '+(x.rashTurning==="Yes"?"yes":"no")+'">'+x.rashTurning+'<\/span><\/div>'+
     '<\/div>';
 }
 function makeIcon(status){

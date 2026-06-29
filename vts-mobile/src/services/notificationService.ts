@@ -16,11 +16,14 @@ interface RawNotification {
 }
 
 const ALERT_META: Record<string, { emoji: string; color: string; label: string }> = {
-  OVERSPEED:       { emoji: "🚨", color: "#EF4444", label: "Overspeed"       },
-  ROUTE_DEVIATION: { emoji: "📍", color: "#F97316", label: "Route Deviation" },
-  DROWSINESS:      { emoji: "😴", color: "#EAB308", label: "Drowsiness"      },
-  MOBILE_USAGE:    { emoji: "📱", color: "#3B82F6", label: "Mobile Usage"    },
-  SMOKING:         { emoji: "🚭", color: "#6B7280", label: "Smoking"         },
+  OVERSPEED:          { emoji: "🚨", color: "#EF4444", label: "Overspeed"          },
+  ROUTE_DEVIATION:    { emoji: "📍", color: "#F97316", label: "Route Deviation"    },
+  DROWSINESS:         { emoji: "😴", color: "#EAB308", label: "Drowsiness"         },
+  MOBILE_USAGE:       { emoji: "📱", color: "#3B82F6", label: "Mobile Usage"       },
+  SMOKING:            { emoji: "🚭", color: "#6B7280", label: "Smoking"            },
+  HARSH_BRAKING:      { emoji: "🛑", color: "#DC2626", label: "Harsh Braking"      },
+  HARSH_ACCELERATION: { emoji: "⚡", color: "#D97706", label: "Harsh Acceleration" },
+  RASH_TURNING:       { emoji: "↪️", color: "#DB2777", label: "Rash Turning"       },
 };
 
 const toHHMM = (ts: string | null): string => {

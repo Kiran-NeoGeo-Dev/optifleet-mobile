@@ -119,6 +119,9 @@ function buildPopup(x){
     '<div class="pr"><span class="pk">Mobile Usage<\/span><span class="pv '+(x.mobileUsage==='Yes'?'yes':'no')+'">'+x.mobileUsage+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Drowsiness<\/span><span class="pv '+(x.drowsiness==='Fatigue'?'yes':'no')+'">'+x.drowsiness+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Route Deviation<\/span><span class="pv '+(x.routeDeviation==='Yes'?'yes':'no')+'">'+x.routeDeviation+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Harsh Braking<\/span><span class="pv '+(x.harshBraking==='Yes'?'yes':'no')+'">'+x.harshBraking+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Harsh Acceleration<\/span><span class="pv '+(x.harshAcceleration==='Yes'?'yes':'no')+'">'+x.harshAcceleration+'<\/span><\/div>'+
+    '<div class="pr"><span class="pk">Rash Turning<\/span><span class="pv '+(x.rashTurning==='Yes'?'yes':'no')+'">'+x.rashTurning+'<\/span><\/div>'+
     '<\/div>';
 }
 function makeIcon(status){
