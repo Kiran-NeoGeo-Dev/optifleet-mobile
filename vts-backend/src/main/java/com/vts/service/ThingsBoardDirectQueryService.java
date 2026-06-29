@@ -34,7 +34,7 @@ public class ThingsBoardDirectQueryService {
     private static final long LIVE_THRESHOLD_MS = 120_000L; // 120 seconds
 
     // Cache: vehicleId → ThingsBoard device entity ID (UUID)
-    private final Map<String, String> deviceIdCache = new HashMap<>();
+    private final Map<String, String> deviceIdCache = new java.util.concurrent.ConcurrentHashMap<>();
     // Cache: "lat,lng" → address (prevents Nominatim 429 rate-limit)
     private final Map<String, String> geocodeCache = new java.util.concurrent.ConcurrentHashMap<>();
 

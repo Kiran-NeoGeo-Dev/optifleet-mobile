@@ -22,7 +22,7 @@ import RegisterTripScreen from "../screens/dashboard/RegisterTripScreen";
 import TripManagementScreen from "../screens/trips/TripManagementScreen";
 import EditTripScreen from "../screens/trips/EditTripScreen";
 import TripLiveTrackingScreen from "../screens/trips/TripLiveTrackingScreen";
-import NotificationsScreen from "../screens/dashboard/NotificationsScreen";
+import NotificationsScreen from "../screens/admin/NotificationsScreen";
 import ManagementDrawer from "../components/ManagementDrawer";
 import CreateDrawer from "../components/CreateDrawer";
 import FleetVehiclesScreen  from "../screens/fleet/FleetVehiclesScreen";
@@ -75,7 +75,6 @@ export type MainStackParamList = {
   AssociationList: { openAddModal?: boolean } | undefined;
   RegisterTrip:     undefined;
   TripManagement:   undefined;
-  TripList:         undefined;
   EditTrip:         { trip: TripItem };
   TripLiveTracking: { trip: TripItem };
   Notifications:    undefined;
@@ -379,7 +378,6 @@ const MainNavigator = () => {
         <Stack.Screen name="AssociationList" component={AssociationListScreen} />
         <Stack.Screen name="RegisterTrip" component={RegisterTripScreen} />
         <Stack.Screen name="TripManagement" component={TripManagementScreen} />
-        <Stack.Screen name="TripList" component={TripManagementScreen} />
         <Stack.Screen name="EditTrip" component={EditTripScreen} />
         <Stack.Screen name="TripLiveTracking" component={TripLiveTrackingScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />

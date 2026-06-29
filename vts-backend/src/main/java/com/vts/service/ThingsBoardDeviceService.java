@@ -33,7 +33,7 @@ public class ThingsBoardDeviceService {
         this.encryption = encryption;
     }
 
-    // ── Create device → returns ThingsBoard device UUID ──────────────────────
+    // â”€â”€ Create device â†’ returns ThingsBoard device UUID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public String createDevice(String deviceName) {
         Map<String, Object> body = new HashMap<>();
@@ -46,7 +46,7 @@ public class ThingsBoardDeviceService {
             return tbDeviceId;
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                log.warn("TB 401 on createDevice — refreshing token and retrying");
+                log.warn("TB 401 on createDevice â€” refreshing token and retrying");
                 String token = authService.forceRefresh();
                 String tbDeviceId = doCreate(body, token);
                 makePublic(tbDeviceId, token);
@@ -77,14 +77,14 @@ public class ThingsBoardDeviceService {
         }
     }
 
-    // ── Fetch access token (credentialsId) for a TB device ───────────────────
+    // â”€â”€ Fetch access token (credentialsId) for a TB device â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public String getAccessToken(String tbDeviceId) {
         try {
             return doGetAccessToken(tbDeviceId, authService.getJwtToken());
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                log.warn("TB 401 on getAccessToken — refreshing token and retrying");
+                log.warn("TB 401 on getAccessToken â€” refreshing token and retrying");
                 return doGetAccessToken(tbDeviceId, authService.forceRefresh());
             }
             log.error("TB getAccessToken failed [{}]: {}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -102,7 +102,7 @@ public class ThingsBoardDeviceService {
         return accessToken;
     }
 
-    // ── Update device name in ThingsBoard ────────────────────────────────────
+    // â”€â”€ Update device name in ThingsBoard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // TB requires PUT /api/device with the FULL existing device object.
     // We must first GET the device, then send it back with the name changed.
 
@@ -112,7 +112,7 @@ public class ThingsBoardDeviceService {
         } catch (RuntimeException e) {
             // Check if it's a 401 embedded in the message from doUpdate
             if (e.getMessage() != null && e.getMessage().contains("401")) {
-                log.warn("TB 401 on updateDevice — refreshing token and retrying");
+                log.warn("TB 401 on updateDevice â€” refreshing token and retrying");
                 doUpdate(tbDeviceId, newName, authService.forceRefresh());
                 return;
             }
@@ -124,7 +124,7 @@ public class ThingsBoardDeviceService {
     private void doUpdate(String tbDeviceId, String newName, String token) {
         String baseUrl = authService.activeUrl();
 
-        // Step 1: GET the full existing device object — auth header only
+        // Step 1: GET the full existing device object â€” auth header only
         HttpHeaders getHeaders = authHeaders(token);
         ResponseEntity<String> getRes;
         try {
@@ -147,7 +147,7 @@ public class ThingsBoardDeviceService {
         try {
             ObjectNode deviceNode = (ObjectNode) objectMapper.readTree(getRes.getBody());
             deviceNode.put("name", newName);
-            // label is intentionally NOT updated — keep existing value unchanged
+            // label is intentionally NOT updated â€” keep existing value unchanged
             String putBody = objectMapper.writeValueAsString(deviceNode);
 
             HttpHeaders putHeaders = authHeaders(token);
@@ -168,19 +168,19 @@ public class ThingsBoardDeviceService {
         }
     }
 
-    // ── Delete device from ThingsBoard ───────────────────────────────────────
+    // â”€â”€ Delete device from ThingsBoard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public void deleteDevice(String tbDeviceId) {
         try {
             doDelete(tbDeviceId, authService.getJwtToken());
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                log.warn("TB 401 on deleteDevice — refreshing token and retrying");
+                log.warn("TB 401 on deleteDevice â€” refreshing token and retrying");
                 doDelete(tbDeviceId, authService.forceRefresh());
                 return;
             }
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                log.warn("TB device {} not found during delete — skipping", tbDeviceId);
+                log.warn("TB device {} not found during delete â€” skipping", tbDeviceId);
                 return;
             }
             log.error("TB deleteDevice failed [{}]: {}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -194,7 +194,7 @@ public class ThingsBoardDeviceService {
         log.info("TB device deleted: id={}", tbDeviceId);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private HttpHeaders authHeaders(String token) {
         HttpHeaders h = new HttpHeaders();
@@ -211,7 +211,49 @@ public class ThingsBoardDeviceService {
         return (String) idObj.get("id");
     }
 
-    // ── Task 3: Token Encryption/Decryption ────────────────────────────────────
+    // â”€â”€ Association device rename helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    /**
+     * Rename TB device to vehicle license plate. Called after a Vehicle-Device association is created/updated.
+     */
+    public void renameForAssociation(Integer vehicleId, Integer deviceId,
+                                     com.vts.repository.VehicleRepository vehicleRepo,
+                                     com.vts.repository.DeviceRepository deviceRepo,
+                                     com.vts.repository.DeviceTbMappingRepository mappingRepo) {
+        String licensePlate = vehicleRepo.findById(vehicleId.longValue())
+                .orElseThrow(() -> new RuntimeException("Vehicle not found: " + vehicleId))
+                .getLicensePlate();
+        String deviceCode = deviceRepo.findById(deviceId.longValue())
+                .orElseThrow(() -> new RuntimeException("Device not found: " + deviceId))
+                .getDeviceId();
+        String tbDeviceId = resolveTbDeviceId(deviceCode, mappingRepo);
+        if (tbDeviceId == null) { log.warn("No TB device found for device code: {}", deviceCode); return; }
+        updateDevice(tbDeviceId, licensePlate);
+        log.info("TB device renamed to license plate: vehicleId={} deviceId={} name={}", vehicleId, deviceId, licensePlate);
+    }
+
+    /**
+     * Rename TB device back to original Device ID. Called after a Vehicle-Device association is deleted.
+     */
+    public void renameToOriginal(Integer deviceId,
+                                 com.vts.repository.DeviceRepository deviceRepo,
+                                 com.vts.repository.DeviceTbMappingRepository mappingRepo) {
+        String originalCode = deviceRepo.findById(deviceId.longValue())
+                .orElseThrow(() -> new RuntimeException("Device not found: " + deviceId))
+                .getDeviceId();
+        String tbDeviceId = resolveTbDeviceId(originalCode, mappingRepo);
+        if (tbDeviceId == null) { log.warn("No TB device found for device code: {}", originalCode); return; }
+        updateDevice(tbDeviceId, originalCode);
+        log.info("TB device renamed back to original: deviceId={} name={}", deviceId, originalCode);
+    }
+
+    private String resolveTbDeviceId(String deviceCode, com.vts.repository.DeviceTbMappingRepository mappingRepo) {
+        return mappingRepo.findByDeviceId(deviceCode)
+                .map(com.vts.entity.DeviceTbMapping::getThingsboardDeviceId)
+                .orElse(null);
+    }
+
+    // â”€â”€ Task 3: Token Encryption/Decryption â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Decrypt an encrypted access token for ThingsBoard API communication.

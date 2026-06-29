@@ -197,7 +197,6 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
         fetchNotifications(new Set()).catch(() => []),
       ]);
 
-      // Use backend-computed live counts from ThingsBoard state + telemetry freshness.
       setSummary({
         activeVehicles: (sum as any).activeVehicles ?? 0,
         idleVehicles:   (sum as any).idleVehicles   ?? 0,
@@ -208,7 +207,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
       setLiveVehicles(vehicles);
 
       // Only live (non-resolved) alerts
-      const liveAlerts = notifs.filter((n: any) => !n.read && n.status !== "Resolved");
+      const liveAlerts = notifs.filter((n: any) => n.status !== "Resolved");
       setAlerts(liveAlerts.slice(0, 6));
 
       // Update map markers live without full reload
@@ -222,6 +221,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
           address: v.address || "", coordinates: v.coordinates || "",
           lastUpdateTime: v.lastUpdateTime || "", lastUpdateDate: v.lastUpdateDate || "",
         })));
+        webViewRef.current.injectJavaScript(`window.updateVehicles(${vJson}); true;`);
       }
     } catch {}
   }, []);

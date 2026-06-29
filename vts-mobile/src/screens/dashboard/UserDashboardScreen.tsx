@@ -187,7 +187,6 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
         fetchNotifications(new Set()).catch(() => []),
       ]);
 
-      // Backend returns user-scoped counts (JWT-based filtering)
       setSummary({
         activeVehicles: (sum as any).activeVehicles ?? 0,
         idleVehicles:   (sum as any).idleVehicles   ?? 0,
@@ -197,7 +196,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
 
       setLiveVehicles(vehicles);
 
-      // Only live (non-resolved) alerts
+      // Only live (non-resolved) alerts — consistent with AdminDashboard
       const liveAlerts = notifs.filter((n: any) => n.status !== "Resolved");
       setAlerts(liveAlerts.slice(0, 6));
 
@@ -212,6 +211,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
           address: v.address || "", coordinates: v.coordinates || "",
           lastUpdateTime: v.lastUpdateTime || "", lastUpdateDate: v.lastUpdateDate || "",
         })));
+        webViewRef.current.injectJavaScript(`window.updateVehicles(${vJson}); true;`);
       }
     } catch {}
   }, []);

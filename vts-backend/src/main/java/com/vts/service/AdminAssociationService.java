@@ -3,7 +3,6 @@ package com.vts.service;
 import com.vts.entity.AdminAssociation;
 import com.vts.entity.Association;
 import com.vts.entity.Device;
-import com.vts.entity.DeviceTbMapping;
 import com.vts.entity.Vehicle;
 import com.vts.repository.AdminAssociationRepository;
 import com.vts.repository.AssociationRepository;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class AdminAssociationService {
@@ -52,7 +50,7 @@ public class AdminAssociationService {
         this.tbDeviceService = tbDeviceService;
     }
 
-    // ── Dropdowns ──────────────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Dropdowns Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     public List<Map<String, Object>> getVehiclesDropdown() {
         var client = authService.getCurrentClient();
         if (client == null) return List.of();
@@ -67,7 +65,7 @@ public class AdminAssociationService {
         return adminAssociationRepository.findAvailableDevicesByOrgId(client.getOrgId());
     }
 
-    // ── CRUD ───────────────────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬ CRUD Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     public AdminAssociation create(Integer vehicleId, Integer deviceId) {
         validatePair(vehicleId, deviceId);
         if (adminAssociationRepository.existsByVehicleId(vehicleId)) {
@@ -147,7 +145,7 @@ public class AdminAssociationService {
         }
     }
 
-    // ── Vehicle-Device dropdown (all vehicles with admin-linked devices, for full-assoc form) ────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Vehicle-Device dropdown (all vehicles with admin-linked devices, for full-assoc form) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     public List<Map<String, Object>> getVehiclesWithDevice() {
         var client = authService.getCurrentClient();
         if (client == null) return List.of();
@@ -155,7 +153,7 @@ public class AdminAssociationService {
         return adminAssociationRepository.findVehiclesWithAdminDeviceByOrgId(client.getOrgId());
     }
 
-    // ── All drivers dropdown (admin can see all drivers) ────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬ All drivers dropdown (admin can see all drivers) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
     public List<Map<String, Object>> getAllDrivers() {
         var client = authService.getCurrentClient();
         if (client == null) return List.of();
@@ -166,81 +164,8 @@ public class AdminAssociationService {
                     return row;
                 }).toList();
     }
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    
-    /**
-     * Rename ThingsBoard device to vehicle's license plate.
-     * @param vehicleId ID of the vehicle
-     * @param deviceId ID of the device in the local database
-     */
-    private void renameThingsBoardDevice(Integer vehicleId, Integer deviceId) {
-        // Get vehicle license plate
-        Optional<Vehicle> vehicleOpt = vehicleRepository.findById(vehicleId.longValue());
-        if (vehicleOpt.isEmpty()) {
-            throw new RuntimeException("Vehicle not found: " + vehicleId);
-        }
-        
-        String licensePlate = vehicleOpt.get().getLicensePlate();
-        
-        // Get device's ThingsBoard device ID
-        Optional<Device> deviceOpt = deviceRepository.findById(deviceId.longValue());
-        if (deviceOpt.isEmpty()) {
-            throw new RuntimeException("Device not found: " + deviceId);
-        }
-        
-        String deviceCode = deviceOpt.get().getDeviceId();
-        
-        // Find TB device ID from mapping
-        String tbDeviceId = findThingsBoardDeviceId(deviceCode);
-        if (tbDeviceId == null) {
-            log.warn("No ThingsBoard device found for device code: {}", deviceCode);
-            return;
-        }
-        
-        // Rename TB device to license plate
-        tbDeviceService.updateDevice(tbDeviceId, licensePlate);
-        log.info("TB device renamed: vehicleId={} deviceId={} licensePlate={}", vehicleId, deviceId, licensePlate);
-    }
-    
-    /**
-     * Rename ThingsBoard device back to its original Device ID (on association deletion).
-     * @param deviceId ID of the device in the local database
-     */
-    private void renameThingsBoardDeviceToOriginal(Integer deviceId) {
-        // Get device's original Device ID
-        Optional<Device> deviceOpt = deviceRepository.findById(deviceId.longValue());
-        if (deviceOpt.isEmpty()) {
-            throw new RuntimeException("Device not found: " + deviceId);
-        }
-        
-        String originalDeviceCode = deviceOpt.get().getDeviceId();
-        
-        // Find TB device ID from mapping
-        String tbDeviceId = findThingsBoardDeviceId(originalDeviceCode);
-        if (tbDeviceId == null) {
-            log.warn("No ThingsBoard device found for device code: {}", originalDeviceCode);
-            return;
-        }
-        
-        // Rename TB device back to original Device ID
-        tbDeviceService.updateDevice(tbDeviceId, originalDeviceCode);
-        log.info("TB device renamed back to original: deviceId={} originalName={}", deviceId, originalDeviceCode);
-    }
-    
-    /**
-     * Find ThingsBoard device ID for a given device code.
-     * Queries the device_tb_mapping table.
-     * @param deviceCode the device_id from the devices table
-     * @return ThingsBoard device ID if found, null otherwise
-     */
-    private String findThingsBoardDeviceId(String deviceCode) {
-        Optional<DeviceTbMapping> mappingOpt = deviceTbMappingRepository.findByDeviceId(deviceCode);
-        if (mappingOpt.isEmpty()) {
-            return null;
-        }
-        return mappingOpt.get().getThingsboardDeviceId();
-    }
-    // ── Full (Vehicle-Device-Driver) associations CRUD ─────────────────────────────────
+
+    // â”€â”€ Full (Vehicle-Device-Driver) associations CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public Association createFullAssociation(Integer vehicleId, Integer deviceId, Integer driverId,
                                               String country, Boolean status) {
         Vehicle vehicle = validateFullResources(vehicleId, deviceId, driverId);
@@ -253,17 +178,14 @@ public class AdminAssociationService {
         assoc.setDriverId(driverId);
         assoc.setCountry(country != null ? country : "India");
         assoc.setStatus(status != null ? status : true);
-        assoc.setCreatedAt(LocalDateTime.now());
+        assoc.setCreatedAt(java.time.LocalDateTime.now());
         assoc.setClientId(vehicle.getClientId());
         Association saved = associationRepository.save(assoc);
-        
-        // After successful association, rename ThingsBoard device to vehicle license plate
         try {
             renameThingsBoardDevice(vehicleId, deviceId);
         } catch (Exception e) {
             log.error("Failed to rename TB device after full-assoc create: vehicleId={} deviceId={} error={}", vehicleId, deviceId, e.getMessage(), e);
         }
-        
         return saved;
     }
 
@@ -281,18 +203,14 @@ public class AdminAssociationService {
         requireFullAssociationAccess(assoc);
         Vehicle vehicle = validateFullResources(vehicleId, deviceId, driverId);
         assoc.setClientId(vehicle.getClientId());
-        
         Integer oldVehicleId = assoc.getVehicleId();
-        Integer oldDeviceId = assoc.getDeviceId();
-        
+        Integer oldDeviceId  = assoc.getDeviceId();
         assoc.setVehicleId(vehicleId);
         assoc.setDeviceId(deviceId);
         assoc.setDriverId(driverId);
         assoc.setCountry(country != null ? country : "India");
         assoc.setStatus(status != null ? status : true);
         Association saved = associationRepository.save(assoc);
-        
-        // If device changed or vehicle changed, rename ThingsBoard device
         if (!oldVehicleId.equals(vehicleId) || !oldDeviceId.equals(deviceId)) {
             try {
                 renameThingsBoardDevice(vehicleId, deviceId);
@@ -300,7 +218,6 @@ public class AdminAssociationService {
                 log.error("Failed to rename TB device after full-assoc update: vehicleId={} deviceId={} error={}", vehicleId, deviceId, e.getMessage(), e);
             }
         }
-        
         return saved;
     }
 
@@ -308,16 +225,23 @@ public class AdminAssociationService {
         Association assoc = associationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Association not found"));
         requireFullAssociationAccess(assoc);
-        
         Integer deviceId = assoc.getDeviceId();
         associationRepository.deleteById(id);
-        
-        // After deletion, rename ThingsBoard device back to original Device ID
         try {
             renameThingsBoardDeviceToOriginal(deviceId);
         } catch (Exception e) {
-            log.error("Failed to rename TB device back to original after full-assoc delete: deviceId={} error={}", deviceId, e.getMessage(), e);
+            log.error("Failed to rename TB device back after full-assoc delete: deviceId={} error={}", deviceId, e.getMessage(), e);
         }
+    }
+
+    // â”€â”€ Helpers (TB rename delegated to ThingsBoardDeviceService) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private void renameThingsBoardDevice(Integer vehicleId, Integer deviceId) {
+        tbDeviceService.renameForAssociation(vehicleId, deviceId, vehicleRepository, deviceRepository, deviceTbMappingRepository);
+    }
+
+    private void renameThingsBoardDeviceToOriginal(Integer deviceId) {
+        tbDeviceService.renameToOriginal(deviceId, deviceRepository, deviceTbMappingRepository);
     }
 
     private Vehicle validatePair(Integer vehicleId, Integer deviceId) {
@@ -354,4 +278,3 @@ public class AdminAssociationService {
         authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
     }
 }
-

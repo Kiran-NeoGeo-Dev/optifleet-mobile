@@ -9,6 +9,7 @@ import com.vts.repository.DriverRepository;
 import com.vts.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -28,13 +29,16 @@ public class DriverService {
     private final AuthService       authService;
     private final JwtService        jwtService;
     private final ClientRepository  clientRepository;
+    private final PasswordEncoder   passwordEncoder;
 
     public DriverService(DriverRepository driverRepository, AuthService authService,
-                         JwtService jwtService, ClientRepository clientRepository) {
+                         JwtService jwtService, ClientRepository clientRepository,
+                         PasswordEncoder passwordEncoder) {
         this.driverRepository = driverRepository;
         this.authService      = authService;
         this.jwtService       = jwtService;
         this.clientRepository = clientRepository;
+        this.passwordEncoder  = passwordEncoder;
     }
 
     private LocalDate parseDate(String value) {
@@ -64,7 +68,7 @@ public class DriverService {
             driver.setUsername(request.getPhoneNumber().trim());
         }
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            driver.setPassword(request.getPassword().trim());
+            driver.setPassword(passwordEncoder.encode(request.getPassword().trim()));
         }
         driver.setCreatedAt(LocalDateTime.now());
         driver.setUpdatedAt(LocalDateTime.now());
@@ -134,7 +138,7 @@ public class DriverService {
             driver.setUsername(request.getPhoneNumber().trim());
         }
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            driver.setPassword(request.getPassword().trim());
+            driver.setPassword(passwordEncoder.encode(request.getPassword().trim()));
         }
         driver.setUpdatedAt(LocalDateTime.now());
         return driverRepository.save(driver);

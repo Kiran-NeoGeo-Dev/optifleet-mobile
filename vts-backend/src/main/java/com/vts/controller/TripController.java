@@ -44,7 +44,7 @@ public class TripController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         Client client = authService.getCurrentClient();
-        if (client == null || !"Admin".equalsIgnoreCase(client.getRole())) {
+        if (client == null || (!authService.isAdmin(client) && !authService.isSuperAdmin(client))) {
             return ResponseEntity.status(403).body(Map.of("error", "Only Admin can delete trips"));
         }
         tripService.deleteTrip(id);

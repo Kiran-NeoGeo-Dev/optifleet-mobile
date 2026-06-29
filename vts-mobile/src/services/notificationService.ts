@@ -66,16 +66,8 @@ export const fetchNotifications = async (
   });
 };
 
-/**
- * Notifications are now queried directly from ThingsBoard in real-time.
- * The mark-as-read and clear functionality has been disabled as notifications
- * are derived from live telemetry updates rather than persisted in the database.
- */
+// Notifications are derived from live ThingsBoard telemetry and are not persisted.
+// These functions are intentional no-ops — read/clear state is managed locally in each screen.
+export const markAllNotificationsRead = async (): Promise<void> => {};
 
-export const markAllNotificationsRead = async (): Promise<void> => {
-  console.log('Notification read status is not persisted - use dashboard for alert management');
-};
-
-export const clearAllNotifications = async (): Promise<void> => {
-  console.log('Notifications cannot be cleared - they reflect live telemetry state');
-};
+export const clearAllNotifications = async (): Promise<void> => {};

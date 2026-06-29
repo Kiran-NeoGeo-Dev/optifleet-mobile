@@ -4,7 +4,6 @@ import com.vts.entity.Association;
 import com.vts.entity.Client;
 import com.vts.entity.Device;
 import com.vts.entity.DeviceDriver;
-import com.vts.entity.DeviceTbMapping;
 import com.vts.entity.Driver;
 import com.vts.entity.Vehicle;
 import com.vts.repository.AssociationRepository;
@@ -62,7 +61,7 @@ public class AssociationService {
         this.tbDeviceService        = tbDeviceService;
     }
 
-    // ── Dropdowns ──────────────────────────────────────────────────────────────
+    // â”€â”€ Dropdowns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public List<Map<String, Object>> getVehiclesWithDevice() {
         Client client = authService.getCurrentClient();
@@ -91,7 +90,7 @@ public class AssociationService {
         return deviceDriverRepository.findAll();
     }
 
-    // ── CRUD ───────────────────────────────────────────────────────────────────
+    // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public Association createAssociation(Integer vehicleId, Integer deviceId, Integer driverId,
                                          String country, Boolean status) {
@@ -280,80 +279,14 @@ public class AssociationService {
         return associationRepository.countByClientId(client.getId());
     }
 
-    // ── Task 2: Helper methods for Device Renaming ─────────────────────────────────────
 
-    /**
-     * Rename ThingsBoard device to vehicle's license plate (registration number).
-     * Called after a Vehicle-Device association is created or updated.
-     * @param vehicleId ID of the vehicle
-     * @param deviceId ID of the device in the local database
-     */
+    // ── Task 2: Helper methods for Device Renaming (delegated to ThingsBoardDeviceService) ─
+
     private void renameThingsBoardDevice(Integer vehicleId, Integer deviceId) {
-        // Get vehicle license plate
-        Optional<Vehicle> vehicleOpt = vehicleRepository.findById(vehicleId.longValue());
-        if (vehicleOpt.isEmpty()) {
-            throw new RuntimeException("Vehicle not found: " + vehicleId);
-        }
-        
-        String licensePlate = vehicleOpt.get().getLicensePlate();
-        
-        // Get device's ThingsBoard device ID
-        Optional<Device> deviceOpt = deviceRepository.findById(deviceId.longValue());
-        if (deviceOpt.isEmpty()) {
-            throw new RuntimeException("Device not found: " + deviceId);
-        }
-        
-        String deviceCode = deviceOpt.get().getDeviceId();
-        
-        // Find TB device ID from mapping
-        String tbDeviceId = findThingsBoardDeviceId(deviceCode);
-        if (tbDeviceId == null) {
-            log.warn("No ThingsBoard device found for device code: {}", deviceCode);
-            return;
-        }
-        
-        // Rename TB device to license plate
-        tbDeviceService.updateDevice(tbDeviceId, licensePlate);
-        log.info("Task 2: TB device renamed: vehicleId={} deviceId={} licensePlate={}", vehicleId, deviceId, licensePlate);
+        tbDeviceService.renameForAssociation(vehicleId, deviceId, vehicleRepository, deviceRepository, deviceTbMappingRepository);
     }
-    
-    /**
-     * Rename ThingsBoard device back to its original Device ID (on association deletion).
-     * Called after a Vehicle-Device association is deleted.
-     * @param deviceId ID of the device in the local database
-     */
+
     private void renameThingsBoardDeviceToOriginal(Integer deviceId) {
-        // Get device's original Device ID
-        Optional<Device> deviceOpt = deviceRepository.findById(deviceId.longValue());
-        if (deviceOpt.isEmpty()) {
-            throw new RuntimeException("Device not found: " + deviceId);
-        }
-        
-        String originalDeviceCode = deviceOpt.get().getDeviceId();
-        
-        // Find TB device ID from mapping
-        String tbDeviceId = findThingsBoardDeviceId(originalDeviceCode);
-        if (tbDeviceId == null) {
-            log.warn("No ThingsBoard device found for device code: {}", originalDeviceCode);
-            return;
-        }
-        
-        // Rename TB device back to original Device ID
-        tbDeviceService.updateDevice(tbDeviceId, originalDeviceCode);
-        log.info("Task 2: TB device renamed back to original: deviceId={} originalName={}", deviceId, originalDeviceCode);
-    }
-    
-    /**
-     * Find ThingsBoard device ID for a given device code.
-     * Queries the device_tb_mapping table.
-     * @param deviceCode the device_id from the devices table
-     * @return ThingsBoard device ID if found, null otherwise
-     */
-    private String findThingsBoardDeviceId(String deviceCode) {
-        Optional<DeviceTbMapping> mappingOpt = deviceTbMappingRepository.findByDeviceId(deviceCode);
-        if (mappingOpt.isEmpty()) {
-            return null;
-        }
-        return mappingOpt.get().getThingsboardDeviceId();
+        tbDeviceService.renameToOriginal(deviceId, deviceRepository, deviceTbMappingRepository);
     }
 }

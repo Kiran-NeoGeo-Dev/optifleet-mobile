@@ -49,6 +49,7 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
         "FROM public.trips t " +
         "INNER JOIN public.drivers d ON t.driver_id = d.id " +
         "WHERE t.driver_id = :driverId " +
+        "AND TRIM(t.status) NOT IN ('Completed', 'Cancelled') " +
         "ORDER BY t.created_at DESC LIMIT 1",
         nativeQuery = true)
     Optional<Trip> findActiveByDriverId(@Param("driverId") Long driverId);

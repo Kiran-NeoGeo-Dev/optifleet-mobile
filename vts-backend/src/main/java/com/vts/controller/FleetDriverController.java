@@ -96,8 +96,13 @@ public class FleetDriverController {
             @RequestParam(required = false) Integer month) {
 
         Driver driver     = driverService.getDriver(id);
-        Map<Long, String> driverIdToVehicle      = buildDriverIdToVehicleMap(true, false, null, null);
-        Map<Long, String> driverIdToVehicleModel = buildDriverIdToVehicleModelMap(true, false, null, null);
+        Client  client               = authService.getCurrentClient();
+        boolean isSuperAdmin         = authService.isSuperAdmin(client);
+        boolean isOrgAdmin           = authService.isAdmin(client);
+        Long    cid                  = client != null ? client.getId()    : null;
+        Long    orgId                = client != null ? client.getOrgId() : null;
+        Map<Long, String> driverIdToVehicle      = buildDriverIdToVehicleMap(isSuperAdmin, isOrgAdmin, cid, orgId);
+        Map<Long, String> driverIdToVehicleModel = buildDriverIdToVehicleModelMap(isSuperAdmin, isOrgAdmin, cid, orgId);
         String vehicleReg   = driverIdToVehicle.get(id);
         String vehicleModel = driverIdToVehicleModel.get(id);
 

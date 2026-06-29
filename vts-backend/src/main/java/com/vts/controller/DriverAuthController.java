@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -22,10 +23,13 @@ public class DriverAuthController {
 
     private final DriverRepository driverRepository;
     private final JwtService       jwtService;
+    private final PasswordEncoder  passwordEncoder;
 
-    public DriverAuthController(DriverRepository driverRepository, JwtService jwtService) {
+    public DriverAuthController(DriverRepository driverRepository, JwtService jwtService,
+                                 PasswordEncoder passwordEncoder) {
         this.driverRepository = driverRepository;
         this.jwtService       = jwtService;
+        this.passwordEncoder  = passwordEncoder;
     }
 
     /**
@@ -49,7 +53,7 @@ public class DriverAuthController {
         if (driver == null)
             return ResponseEntity.status(401).body(Map.of("error", "Invalid Mobile Number or Date of Birth"));
 
-        if (driver.getPassword() == null || !driver.getPassword().equals(cleanDob))
+        if (driver.getPassword() == null || !passwordEncoder.matches(cleanDob, driver.getPassword()))
             return ResponseEntity.status(401).body(Map.of("error", "Invalid Mobile Number or Date of Birth"));
 
         if (driver.getStatus() == null || !driver.getStatus())
@@ -71,6 +75,8 @@ public class DriverAuthController {
         Map<String, Object> claims = new HashMap<>();
         claims.put("clientId", driver.getClientId());
         claims.put("driverId", driver.getId());
+        claims.put("orgId",    driver.getOrgId());
+        claims.put("role",     "Driver");
         User driverUser = new User(
             username, "",
             List.of(new SimpleGrantedAuthority("ROLE_DRIVER"))

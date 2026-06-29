@@ -5,6 +5,7 @@ import com.vts.entity.Device;
 import com.vts.service.DeviceService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class DeviceController {
         this.deviceService = deviceService;
     }
 
+    @PreAuthorize("@authService.isAdminRole()")
     @PostMapping
     public ResponseEntity<?> create(@RequestBody DeviceRequest req) {
         try {
@@ -62,6 +64,7 @@ public class DeviceController {
         }
     }
 
+    @PreAuthorize("@authService.isAdminRole()")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         try {

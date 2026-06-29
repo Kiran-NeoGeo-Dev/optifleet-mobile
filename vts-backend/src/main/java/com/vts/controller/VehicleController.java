@@ -5,6 +5,7 @@ import com.vts.entity.Vehicle;
 import com.vts.service.VehicleService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class VehicleController {
         this.vehicleService = vehicleService;
     }
 
+    @PreAuthorize("@authService.isAdminRole()")
     @PostMapping
     public ResponseEntity<?> createVehicle(@Valid @RequestBody VehicleRequest request) {
         try {
@@ -50,6 +52,7 @@ public class VehicleController {
         return ResponseEntity.ok(vehicleService.updateVehicle(id, request));
     }
 
+    @PreAuthorize("@authService.isAdminRole()")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteVehicle(@PathVariable Long id) {
         try {

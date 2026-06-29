@@ -38,7 +38,7 @@ const STATUS_FILTER_COLOR: Record<string, { bg: string; border: string }> = {
   "Not Started":  { bg: "#6B7280",  border: "#4B5563" },
   "In Progress":  { bg: "#1565C0",  border: "#0D3B8E" },
   "Completed":    { bg: "#16A34A",  border: "#15803D" },
-  "Delayed":      { bg: "#D97706",  border: "#B45309" },
+  "Delayed":      { bg: "#B45309",  border: "#92400E" },
 };
 
 const STATUS_OPTIONS = ["All Statuses", "Not Started", "In Progress", "Completed", "Delayed"];
