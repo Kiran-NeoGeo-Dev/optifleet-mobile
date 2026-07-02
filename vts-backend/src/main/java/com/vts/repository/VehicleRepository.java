@@ -12,6 +12,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     List<Vehicle> findByClientId(Long clientId);
     List<Vehicle> findByOrgId(Long orgId);
     long countByOrgId(Long orgId);
+    long countByOrgIdIsNotNull();
     long countByClientId(Long clientId);
     Optional<Vehicle> findByLicensePlate(String licensePlate);
 

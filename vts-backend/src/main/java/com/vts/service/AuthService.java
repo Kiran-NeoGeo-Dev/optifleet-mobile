@@ -115,9 +115,12 @@ public class AuthService {
         }
 
         Client dbClient = clientOpt.get();
+        String dbPassword = loginRepository.findByUsername(request.getUsername())
+                .map(l -> l.getPassword())
+                .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
         logger.info("USER FOUND: id={}, username={}, password_hash={}",
             dbClient.getId(), dbClient.getUsername(),
-            dbClient.getPassword().substring(0, Math.min(20, dbClient.getPassword().length())) + "...");
+            dbPassword.substring(0, Math.min(20, dbPassword.length())) + "...");
         
         // Try authentication
         Authentication authentication;

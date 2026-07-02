@@ -13,6 +13,7 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
     List<Driver> findByClientId(Long clientId);
     List<Driver> findByOrgId(Long orgId);
     long countByOrgId(Long orgId);
+    long countByOrgIdIsNotNull();
     long countByOrgIdAndStatus(Long orgId, Boolean status);
     long countByClientId(Long clientId);
     long countByClientIdAndStatus(Long clientId, Boolean status);

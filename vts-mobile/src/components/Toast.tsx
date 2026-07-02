@@ -59,10 +59,10 @@ export const useToast = () => {
     visible: false, message: "", type: "success",
   });
 
-  const showToast = (message: string, type: ToastType = "success") =>
-    setToast({ visible: true, message, type });
+  const showToast = React.useCallback((message: string, type: ToastType = "success") =>
+    setToast({ visible: true, message, type }), []);
 
-  const hideToast = () => setToast(t => ({ ...t, visible: false }));
+  const hideToast = React.useCallback(() => setToast(t => ({ ...t, visible: false })), []);
 
   return { toast, showToast, hideToast };
 };

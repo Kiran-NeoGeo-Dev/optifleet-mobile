@@ -154,7 +154,8 @@ window.updateVehicles=function(newData){
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
-  const { logout } = useAuth();
+  const { logout, role } = useAuth();
+  const isSuperAdmin = role?.toLowerCase() === "superadmin";
   const [summary, setSummary] = useState({
     activeVehicles: 0, idleVehicles: 0, activeDrivers: 0, activeAlerts: 0,
   });
@@ -338,6 +339,19 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
             <Text style={s.viewLink}>View {">"}</Text>
           </TouchableOpacity>
 
+          {isSuperAdmin && (
+            <TouchableOpacity style={s.tripCard} onPress={() => navigation.navigate("SystemOverview")} activeOpacity={0.82}>
+              <View style={s.systemIconBox}>
+                <Ionicons name="analytics-outline" size={28} color="#2563EB" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.tripTitle}>System Overview</Text>
+                <Text style={s.tripSub}>Enterprise health and org-level analytics</Text>
+              </View>
+              <Text style={s.viewLink}>View {">"}</Text>
+            </TouchableOpacity>
+          )}
+
           {/* ── Recent Fleet Alerts (live only) ── */}
           <View style={s.card}>
             <View style={s.cardHeader}>
@@ -471,6 +485,7 @@ const s = StyleSheet.create({
   mapBox:     { height: 210, borderRadius: 12, overflow: "hidden" },
   tripCard:    { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 18, padding: 16, marginBottom: 14, gap: 14, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   tripIconBox: { width: 52, height: 52, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  systemIconBox:{ width: 52, height: 52, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
   tripLottie:  { width: 44, height: 44 },
   tripTitle:   { fontSize: 15, fontWeight: "800", color: C.text },
   tripSub:     { fontSize: 12, color: C.muted, marginTop: 2 },

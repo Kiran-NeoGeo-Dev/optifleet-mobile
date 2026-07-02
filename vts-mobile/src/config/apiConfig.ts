@@ -1,5 +1,5 @@
 // Production — public IP, works on any network (mobile data, WiFi, etc.)
-export const API_BASE_URL = "http://10.73.10.165:8083";
+export const API_BASE_URL = "http://10.16.105.165:8083";
 
 //export const API_BASE_URL = "http://10.193.230.165:8083";
 
@@ -18,6 +18,8 @@ export const ENDPOINTS = {
   DASHBOARD_SUMMARY: "/api/dashboard/summary",
   DASHBOARD_DRIVERS: "/api/dashboard/drivers",
   DASHBOARD_VEHICLES: "/api/dashboard/vehicles",
+  SYSTEM_OVERVIEW_SUMMARY: "/api/superadmin/system-overview/summary",
+  SYSTEM_OVERVIEW_ORGANIZATIONS: "/api/superadmin/system-overview/organizations",
   DRIVERS: "/api/drivers",
   VEHICLES: "/api/vehicles",
   DRIVER_PHOTOS: "/api/driver-photos",

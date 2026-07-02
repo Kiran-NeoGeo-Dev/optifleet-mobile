@@ -15,6 +15,7 @@ import EditUserScreen         from "../screens/admin/EditUserScreen";
 import CreateClientScreen     from "../screens/admin/CreateClientScreen";
 import DeviceManagementScreen from "../screens/admin/DeviceManagementScreen";
 import FullMapScreen          from "../screens/admin/FullMapScreen";
+import SystemOverviewScreen   from "../screens/admin/SystemOverviewScreen";
 import ViewDriverPhotosScreen from "../screens/driver/ViewDriverPhotosScreen";
 import AddDriverScreen        from "../screens/driver/AddDriverScreen";
 import DriverPhotosScreen     from "../screens/driver/DriverPhotosScreen";
@@ -38,6 +39,7 @@ import type { TripItem }      from "../screens/trips/TripManagementScreen";
 
 export type AdminStackParamList = {
   AdminDashboard:   undefined;
+  SystemOverview:   undefined;
   FullMap:          undefined;
   CreateClient:     undefined;
   AdminDriverList:  undefined;
@@ -68,6 +70,7 @@ export type AdminStackParamList = {
   AddVehicle:       undefined;
   EditVehicle:      { vehicleId: number };
   AssociationList:  { openAddModal?: boolean } | undefined;
+  AdminFullAssociationList: { openAddModal?: boolean } | undefined;
   DeviceManagement: { openAddModal?: boolean } | undefined;
   RegisterTrip:     undefined;
   TripManagement:   undefined;
@@ -207,6 +210,7 @@ const AdminNavigator = () => {
         }}
       >
         <Stack.Screen name="AdminDashboard" component={AdminDashboardWrapper} />
+        <Stack.Screen name="SystemOverview" component={SystemOverviewScreen} />
         <Stack.Screen name="CreateClient"     component={CreateClientScreen} />
         <Stack.Screen name="AdminDriverList"  component={AdminDriverListScreen} />
         <Stack.Screen name="AdminVehicleList" component={AdminVehicleListScreen} />
@@ -224,6 +228,7 @@ const AdminNavigator = () => {
         <Stack.Screen name="AddVehicle"       component={AddVehicleScreen} />
         <Stack.Screen name="EditVehicle"      component={EditVehicleScreen} />
         <Stack.Screen name="AssociationList"  component={AssociationListScreen} />
+        <Stack.Screen name="AdminFullAssociationList" component={AssociationListScreen} />
         <Stack.Screen name="RegisterTrip"     component={RegisterTripScreen} />
         <Stack.Screen name="TripManagement"   component={TripManagementScreen} />
         <Stack.Screen name="EditTrip"         component={EditTripScreen} />

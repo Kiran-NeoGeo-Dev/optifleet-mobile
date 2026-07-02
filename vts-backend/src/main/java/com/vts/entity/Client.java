@@ -1,12 +1,10 @@
 package com.vts.entity;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.Immutable;
 import java.time.Instant;
 
 @Entity
-@Immutable
-@Table(name = "clients")
+@Table(name = "userdetail", schema = "public")
 public class Client {
 
     @Id
@@ -14,10 +12,10 @@ public class Client {
     @Column(name = "client_id")
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, unique = true, length = 50)
     private String username;
 
-    @Column(nullable = false, length = 255)
+    @Transient
     private String password;
 
     @Column(name = "full_name", length = 150)
@@ -38,7 +36,7 @@ public class Client {
     @Column(name = "role_description", columnDefinition = "text")
     private String roleDescription;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private Instant createdAt = Instant.now();
 
     @Column(name = "org_id")
