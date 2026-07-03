@@ -8,6 +8,8 @@ import com.vts.repository.DeviceRepository;
 import com.vts.repository.DriverRepository;
 import com.vts.repository.UserDetailRepository;
 import com.vts.repository.VehicleRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -19,6 +21,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class SystemOverviewService {
+
+    private static final Logger log = LoggerFactory.getLogger(SystemOverviewService.class);
 
     private final UserDetailRepository userDetailRepository;
     private final DeviceRepository userDeviceRepository;
@@ -39,6 +43,7 @@ public class SystemOverviewService {
     }
 
     public SystemOverviewSummaryResponse fetchSummary() {
+        long start = System.currentTimeMillis();
         Client current = authService.getCurrentClient();
         if (!authService.isSuperAdmin(current)) {
             throw new org.springframework.security.access.AccessDeniedException("Super Admin only");
@@ -50,10 +55,12 @@ public class SystemOverviewService {
         long totalVehicles  = vehicleRepository.countByOrgIdIsNotNull();
         long totalDrivers   = driverRepository.countByOrgIdIsNotNull();
 
+        log.info("[SystemOverview] fetchSummary completed in {}ms", System.currentTimeMillis() - start);
         return new SystemOverviewSummaryResponse(organizations, totalUsers, totalDevices, totalVehicles, totalDrivers);
     }
 
     public List<SystemOverviewOrganizationResponse> fetchOrganizations() {
+        long start = System.currentTimeMillis();
         Client current = authService.getCurrentClient();
         if (!authService.isSuperAdmin(current)) {
             throw new org.springframework.security.access.AccessDeniedException("Super Admin only");
@@ -77,13 +84,15 @@ public class SystemOverviewService {
             org.setOwnerName(owner.getFullName() != null ? owner.getFullName() : "");
             org.setUsername(owner.getUsername());
             org.setCreatedDate(owner.getCreatedAt() != null ? owner.getCreatedAt() : Instant.EPOCH);
-            org.setUsers(userDetailRepository.findByOrgId(orgId).size());
+            org.setUsers((int) userDetailRepository.countByOrgId(orgId));
             org.setDevices(userDeviceRepository.countByOrgId(orgId));
             org.setVehicles(vehicleRepository.countByOrgId(orgId));
             org.setDrivers(driverRepository.countByOrgId(orgId));
             organizations.add(org);
         }
 
+        log.info("[SystemOverview] fetchOrganizations completed in {}ms for {} orgs",
+                System.currentTimeMillis() - start, organizations.size());
         return organizations;
     }
 

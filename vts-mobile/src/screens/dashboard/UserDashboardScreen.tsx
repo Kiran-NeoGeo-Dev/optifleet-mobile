@@ -279,7 +279,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
                 source={require("../../../assets/animations/vehicle_animation.json")}
                 autoPlay
                 loop
-                style={{ width: 48, height: 48, marginRight: 6 }}
+                style={{ width: 36, height: 36, marginRight: 4 }}
               />
               <Text style={s.sectionTitle}>Live Fleet Map</Text>
               <View style={s.liveBadge}>
@@ -310,7 +310,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
                 source={require("../../../assets/animations/notification2.json")}
                 autoPlay
                 loop
-                style={[s.tripLottie, { width: 52, height: 52 }]}
+                style={s.tripLottie}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -327,7 +327,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
                 source={require("../../../assets/animations/announcement.json")}
                 autoPlay
                 loop
-                style={{ width: 48, height: 48, marginRight: 6 }}
+                style={{ width: 36, height: 36, marginRight: 4 }}
               />
               <Text style={s.sectionTitle}>Recent Fleet Alerts</Text>
               <TouchableOpacity onPress={() => navigation.navigate("Notifications" as any)}>
@@ -413,53 +413,53 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
 };
 
 const sc = StyleSheet.create({
-  card:    { width: "47%", backgroundColor: "#fff", borderRadius: 12, padding: 10, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  iconBox: { width: 32, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 6 },
-  label:   { fontSize: 10, color: "#6B7280", fontWeight: "600", marginBottom: 2 },
-  count:   { fontSize: 22, fontWeight: "800" },
+  card:    { width: "47.5%", backgroundColor: "#fff", borderRadius: 10, padding: 9, marginBottom: 9, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  iconBox: { width: 28, height: 28, borderRadius: 7, alignItems: "center", justifyContent: "center", marginBottom: 5 },
+  label:   { fontSize: 10, color: "#6B7280", fontWeight: "600", marginBottom: 1 },
+  count:   { fontSize: 20, fontWeight: "800" },
 });
 
 const s = StyleSheet.create({
   root:       { flex: 1, backgroundColor: C.bg },
-  headerBg:   { position: "absolute", top: 0, left: -40, right: -40, height: 280, overflow: "hidden", borderBottomLeftRadius: 180, borderBottomRightRadius: 180 },
+  headerBg:   { position: "absolute", top: 0, left: -40, right: -40, height: 230, overflow: "hidden", borderBottomLeftRadius: 160, borderBottomRightRadius: 160 },
   safe:       { flex: 1 },
-  header:       { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 36 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
-  avatarBtn:    { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
-  menuBtn:      { width: 52, height: 52, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" },
-  notifBtn:     { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
-  notifLottie:  { width: 44, height: 44 },
-  badge:        { position: "absolute", top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.white },
+  header:       { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  avatarBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  menuBtn:      { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" },
+  notifBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  notifLottie:  { width: 34, height: 34 },
+  badge:        { position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.white },
   badgeTxt:     { fontSize: 9, fontWeight: "800", color: "#fff" },
-  title:        { fontSize: 26, fontWeight: "800", color: C.white, letterSpacing: 0.3, marginBottom: 6 },
-  subtitle:     { fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: "500", letterSpacing: 0.2 },
-  logoutBtn:    { width: 38, height: 38, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  scroll:     { paddingHorizontal: 14, paddingBottom: 80 },
+  title:        { fontSize: 20, fontWeight: "800", color: C.white, letterSpacing: 0.3, marginBottom: 3 },
+  subtitle:     { fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: "500", letterSpacing: 0.2 },
+  logoutBtn:    { width: 32, height: 32, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  scroll:     { paddingHorizontal: 12, paddingBottom: 60 },
   cardsGrid:  { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 4 },
-  section:    { backgroundColor: C.card, borderRadius: 18, padding: 14, marginBottom: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  sectionTitle:  { fontSize: 15, fontWeight: "800", color: C.text, flex: 1 },
-  liveBadge:  { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#DCFCE7", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  section:    { backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  sectionTitle:  { fontSize: 14, fontWeight: "800", color: C.text, flex: 1 },
+  liveBadge:  { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#DCFCE7", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
   liveDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" },
-  liveTxt:    { fontSize: 11, fontWeight: "700", color: "#16A34A" },
-  expandBtn:  { width: 30, height: 30, borderRadius: 8, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginLeft: 8 },
-  mapBox:     { height: 200, borderRadius: 12, overflow: "hidden" },
+  liveTxt:    { fontSize: 10, fontWeight: "700", color: "#16A34A" },
+  expandBtn:  { width: 26, height: 26, borderRadius: 7, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginLeft: 6 },
+  mapBox:     { height: 185, borderRadius: 10, overflow: "hidden" },
   map:        { flex: 1 },
-  tripCard:   { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 18, padding: 16, marginBottom: 14, gap: 14, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  tripIconBox:{ width: 52, height: 52, borderRadius: 14, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
-  tripLottie: { width: 44, height: 44 },
-  tripTitle:  { fontSize: 15, fontWeight: "800", color: C.text },
-  tripSub:    { fontSize: 12, color: C.muted, marginTop: 2 },
-  alertRow:   { flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#F0F0F0", gap: 10 },
-  alertBar:   { width: 3, height: 36, borderRadius: 2 },
-  alertIconBox:{ width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  alertTitle: { fontSize: 13, fontWeight: "700", color: C.text },
+  tripCard:   { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 10, gap: 10, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  tripIconBox:{ width: 42, height: 42, borderRadius: 11, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  tripLottie: { width: 36, height: 36 },
+  tripTitle:  { fontSize: 14, fontWeight: "800", color: C.text },
+  tripSub:    { fontSize: 11, color: C.muted, marginTop: 1 },
+  alertRow:   { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#F0F0F0", gap: 8 },
+  alertBar:   { width: 3, height: 32, borderRadius: 2 },
+  alertIconBox:{ width: 36, height: 36, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  alertTitle: { fontSize: 12, fontWeight: "700", color: C.text },
   alertSub:   { fontSize: 11, color: C.muted, marginTop: 1 },
-  alertTime:  { fontSize: 11, color: C.muted },
-  sevBadge:   { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  sevTxt:     { fontSize: 10, fontWeight: "800" },
-  emptyAlerts:{ alignItems: "center", paddingVertical: 20, gap: 8 },
-  emptyAlertsTxt: { fontSize: 13, color: C.muted },
+  alertTime:  { fontSize: 10, color: C.muted },
+  sevBadge:   { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
+  sevTxt:     { fontSize: 9, fontWeight: "800" },
+  emptyAlerts:{ alignItems: "center", paddingVertical: 14, gap: 6 },
+  emptyAlertsTxt: { fontSize: 12, color: C.muted },
   promptOverlay:  { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   promptSheet:    { backgroundColor: "#fff", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingBottom: 36, paddingTop: 0, alignItems: "center" },
   sheetBellBg:    { width: "112%", alignItems: "center", justifyContent: "center", backgroundColor: "#1565C0", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 8, paddingTop: 8, marginBottom: 16 },

@@ -40,7 +40,7 @@ public class Client {
     private Instant createdAt = Instant.now();
 
     @Column(name = "org_id")
-    private Long orgId;
+    private Integer orgId;
 
     public Long getId()                              { return id; }
     public void setId(Long id)                       { this.id = id; }
@@ -62,6 +62,6 @@ public class Client {
     public void setRoleDescription(String v)         { this.roleDescription = v; }
     public Instant getCreatedAt()                    { return createdAt; }
     public void setCreatedAt(Instant createdAt)      { this.createdAt = createdAt; }
-    public Long getOrgId()                           { return orgId; }
-    public void setOrgId(Long orgId)                 { this.orgId = orgId; }
+    public Long getOrgId()                           { return orgId != null ? orgId.longValue() : null; }
+    public void setOrgId(Long orgId)                 { this.orgId = orgId != null ? orgId.intValue() : null; }
 }

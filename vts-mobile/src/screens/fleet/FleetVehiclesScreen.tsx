@@ -9,6 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
 import { fetchLiveVehicles } from "../../services/dashboardService";
 import { fetchVehicles }     from "../../services/vehicleService";
+import { fetchFleetDrivers } from "../../services/fleetService";
 import type { LiveVehicle }  from "../../types/Dashboard";
 import type { Vehicle }      from "../../types/Vehicle";
 
@@ -31,9 +32,9 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 const b = StyleSheet.create({
-  wrap:  { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, gap: 4 },
+  wrap:  { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, gap: 4 },
   dot:   { width: 6, height: 6, borderRadius: 3 },
-  label: { fontSize: 11, fontWeight: "700" },
+  label: { fontSize: 10, fontWeight: "700" },
 });
 
 const ICON_PALETTE: Array<[string, string]> = [
@@ -73,6 +74,13 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
         fetchLiveVehicles().catch(() => [] as LiveVehicle[]),
       ]);
 
+      // Fetch fleet drivers to get a reliable mapping: licensePlate -> driverName
+      const fleetDrivers = await fetchFleetDrivers().catch(() => [] as any[]);
+      const driverByReg = new Map<string, string>();
+      fleetDrivers.forEach((d: any) => {
+        if (d.vehicleRegNo) driverByReg.set((d.vehicleRegNo ?? "").toUpperCase(), d.driverName ?? "");
+      });
+
       // Build quick lookup: registrationNo (vehicleId in LiveVehicle) → live row
       const liveMap = new Map<string, LiveVehicle>();
       liveList.forEach(lv => liveMap.set((lv.vehicleId ?? "").toUpperCase(), lv));
@@ -80,6 +88,7 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
       const merged: VehicleRow[] = vehicles.map(v => {
         const key  = (v.licensePlate ?? "").toUpperCase();
         const live = liveMap.get(key) ?? null;
+        const driverFromFleet = driverByReg.get(key) ?? null;
         return {
           id:           v.id,
           licensePlate: v.licensePlate,
@@ -87,7 +96,8 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
           vehicleModel: v.vehicleModel ?? "",
           vehiclePhoto: v.vehiclePhoto ?? null,
           clientId:     v.clientId,
-          driverName:   live?.driverName ?? "—",
+          // Prefer live driver, then driver assigned in fleet service, else placeholder
+          driverName:   live?.driverName ?? driverFromFleet ?? "—",
           // tripStatus comes from the SAME LiveVehicle data the Dashboard map uses
           tripStatus:   live?.tripStatus ?? "Offline",
           liveData:     live,
@@ -200,23 +210,23 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
 };
 
 const s = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: "#F3F4F6" },
-  header:      { paddingHorizontal: 16, paddingBottom: 22 },
-  headerRow:   { flexDirection: "row", alignItems: "center", marginTop: 8, marginBottom: 18 },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: "#fff" },
-  headerSub:   { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 },
-  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 24, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "#F0C080" },
-  searchInput: { flex: 1, fontSize: 13, color: "#1F2937" },
-  list:        { padding: 12, gap: 8 },
-  card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 14, padding: 10, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 10 },
-  iconBox:     { width: 48, height: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  root:        { flex: 1, backgroundColor: "#F0F4FF" },
+  header:      { paddingHorizontal: 16, paddingBottom: 14 },
+  headerRow:   { flexDirection: "row", alignItems: "center", marginTop: 6, marginBottom: 12 },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: "#fff" },
+  headerSub:   { fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 1 },
+  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6, gap: 6, borderWidth: 1, borderColor: "#F0C080" },
+  searchInput: { flex: 1, fontSize: 12, color: "#1F2937" },
+  list:        { padding: 10, gap: 7, paddingBottom: 80 },
+  card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 12, padding: 9, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 9 },
+  iconBox:     { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   cardBody:    { flex: 1 },
-  regNo:       { fontSize: 14, fontWeight: "800", color: "#0D1B3E" },
-  driver:      { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  viewBtn:     { marginLeft: 4, backgroundColor: "#1565C0", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  viewBtnTxt:  { fontSize: 11, fontWeight: "800", color: "#FFFFFF" },
-  empty:       { alignItems: "center", marginTop: 60, gap: 12 },
-  emptyText:   { fontSize: 15, color: "#9CA3AF" },
+  regNo:       { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
+  driver:      { fontSize: 11, color: "#6B7280", marginTop: 1 },
+  viewBtn:     { marginLeft: 4, backgroundColor: "#3B82F6", borderRadius: 7, paddingHorizontal: 9, paddingVertical: 4 },
+  viewBtnTxt:  { fontSize: 10, fontWeight: "800", color: "#FFFFFF" },
+  empty:       { alignItems: "center", marginTop: 50, gap: 10 },
+  emptyText:   { fontSize: 14, color: "#9CA3AF" },
 });
 
 export default FleetVehiclesScreen;

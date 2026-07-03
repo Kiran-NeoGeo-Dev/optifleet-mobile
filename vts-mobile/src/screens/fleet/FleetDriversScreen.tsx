@@ -7,14 +7,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
-import { fetchFleetDrivers, FleetDriver } from "../../services/fleetService";
+import { fetchFleetDrivers, FleetDriver, fetchFleetVehicles } from "../../services/fleetService";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const initials = (name: string) =>
   (name ?? "?").split(" ").slice(0, 2).map(w => w[0]?.toUpperCase() ?? "").join("");
 
-const scoreColor = (raw: number) =>
-  raw <= 2 ? "#16A34A" : raw <= 4 ? "#22C55E" : raw <= 6 ? "#EAB308" : raw <= 8 ? "#F97316" : raw <= 10 ? "#EF4444" : "#991B1B";
+const scoreColor = (score: number) =>
+  score >= 95 ? "#16A34A" : score >= 90 ? "#22C55E" : score >= 85 ? "#EAB308" : score >= 80 ? "#F97316" : score >= 75 ? "#EF4444" : "#991B1B";
 
 const AVATAR_COLORS = ["#EDE9FE", "#D1FAE5", "#DBEAFE", "#FCE7F3", "#FFEDD5", "#CFFAFE"];
 const AVATAR_TEXT   = ["#7C3AED", "#10B981", "#3B82F6", "#EC4899", "#F97316", "#06B6D4"];
@@ -33,6 +33,28 @@ const FleetDriversScreen = ({ navigation }: Props) => {
     try { setDrivers(await fetchFleetDrivers()); }
     catch (_) {}
     finally { setLoading(false); setRefreshing(false); }
+  }, []);
+
+  // Also fetch fleet vehicle -> driver mapping to provide fallback for vehicleRegNo
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const fv = await fetchFleetVehicles();
+        if (!mounted) return;
+        // build reverse map: driverName -> licensePlate (first match)
+        const map = new Map<string, string>();
+        fv.forEach((v: any) => {
+          if (v.driverName && v.licensePlate) {
+            const k = (v.driverName ?? "").trim();
+            if (!map.has(k)) map.set(k, v.licensePlate);
+          }
+        });
+        // apply fallback to existing drivers list
+        setDrivers(prev => prev.map(d => ({ ...d, vehicleRegNo: d.vehicleRegNo ?? map.get((d.driverName ?? "").trim()) ?? d.vehicleRegNo })));
+      } catch (_) {}
+    })();
+    return () => { mounted = false; };
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -96,9 +118,9 @@ const FleetDriversScreen = ({ navigation }: Props) => {
         {/* Score + Badge + Arrow */}
         <View style={s.cardRight}>
           <Text style={[s.scoreNum, { color: scoreColor(scoreNum) }]}>
-            {scoreNum.toFixed(2)}
+            {scoreNum.toFixed(1)}%
           </Text>
-          <Text style={s.safetyLabel}>Monthly Score</Text>
+          <Text style={s.safetyLabel}>Safety Score</Text>
           <View style={s.badgeRow}>
             <View style={[s.badge, item.active ? s.badgeActive : s.badgeInactive]}>
               <View style={[s.badgeDot, { backgroundColor: item.active ? "#22C55E" : "#EF4444" }]} />
@@ -201,45 +223,45 @@ const FleetDriversScreen = ({ navigation }: Props) => {
 };
 
 const s = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: "#F3F4F6" },
-  header:      { paddingHorizontal: 16, paddingBottom: 22 },
-  headerTitle: { fontSize: 24, fontWeight: "800", color: "#fff", marginTop: 8 },
-  headerSub:   { fontSize: 13, color: "rgba(255,255,255,0.75)", marginTop: 2, marginBottom: 16 },
-  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 24, paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "#F0C080" },
-  searchInput: { flex: 1, fontSize: 13, color: "#1F2937" },
+  root:        { flex: 1, backgroundColor: "#F0F4FF" },
+  header:      { paddingHorizontal: 16, paddingBottom: 14 },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: "#fff", marginTop: 6 },
+  headerSub:   { fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 1, marginBottom: 10 },
+  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6, gap: 6, borderWidth: 1, borderColor: "#F0C080" },
+  searchInput: { flex: 1, fontSize: 12, color: "#1F2937" },
   tabs:        { flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
-  tab:         { flex: 1, alignItems: "center", paddingVertical: 10, position: "relative" },
+  tab:         { flex: 1, alignItems: "center", paddingVertical: 8, position: "relative" },
   tabActive:   {},
-  tabTxt:      { fontSize: 14, fontWeight: "600", color: "#6B7280" },
-  tabTxtActive:      { color: "#1565C0", fontWeight: "800" },
-  tabTxtActiveGreen: { fontSize: 14, fontWeight: "800", color: "#16A34A" },
-  tabTxtActiveRed:   { fontSize: 14, fontWeight: "800", color: "#DC2626" },
-  tabCount:          { fontSize: 14, fontWeight: "700", color: "#0F172A" },
-  tabCountNumActive: { fontSize: 14, fontWeight: "800", color: "#15803D" },
-  tabCountNumInactive:{ fontSize: 14, fontWeight: "800", color: "#B91C1C" },
+  tabTxt:      { fontSize: 13, fontWeight: "600", color: "#6B7280" },
+  tabTxtActive:      { color: "#1A3CC8", fontWeight: "800" },
+  tabTxtActiveGreen: { fontSize: 13, fontWeight: "800", color: "#16A34A" },
+  tabTxtActiveRed:   { fontSize: 13, fontWeight: "800", color: "#DC2626" },
+  tabCount:          { fontSize: 13, fontWeight: "700", color: "#0F172A" },
+  tabCountNumActive: { fontSize: 13, fontWeight: "800", color: "#15803D" },
+  tabCountNumInactive:{ fontSize: 13, fontWeight: "800", color: "#B91C1C" },
   tabLine:     { position: "absolute", bottom: 0, left: "15%", right: "15%", height: 3, backgroundColor: "#FFD700", borderRadius: 2 },
-  list:        { padding: 12, gap: 8 },
-  card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 14, padding: 10, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 10 },
-  avatar:      { width: 44, height: 44, borderRadius: 22 },
-  avatarBox:   { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  avatarText:  { fontSize: 14, fontWeight: "800" },
+  list:        { padding: 10, gap: 7, paddingBottom: 80 },
+  card:        { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 12, padding: 9, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3, gap: 9 },
+  avatar:      { width: 40, height: 40, borderRadius: 20 },
+  avatarBox:   { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  avatarText:  { fontSize: 13, fontWeight: "800" },
   cardInfo:    { flex: 1, gap: 2 },
   driverName:  { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
   infoRow:     { flexDirection: "row", alignItems: "center", gap: 4 },
   infoText:    { fontSize: 11, color: "#6B7280" },
   cardRight:   { alignItems: "flex-end", gap: 2 },
-  scoreNum:    { fontSize: 16, fontWeight: "700" },
-  safetyLabel: { fontSize: 10, fontWeight: "700", color: "#374151", letterSpacing: 0.3 },
-  viewBtn:     { marginLeft: 4, backgroundColor: "#1565C0", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  viewBtnTxt:  { fontSize: 11, fontWeight: "800", color: "#FFFFFF" },
+  scoreNum:    { fontSize: 14, fontWeight: "700" },
+  safetyLabel: { fontSize: 9, fontWeight: "700", color: "#374151", letterSpacing: 0.3 },
+  viewBtn:     { marginLeft: 4, backgroundColor: "#3B82F6", borderRadius: 7, paddingHorizontal: 9, paddingVertical: 4 },
+  viewBtnTxt:  { fontSize: 10, fontWeight: "800", color: "#FFFFFF" },
   badgeRow:    { flexDirection: "row" },
-  badge:       { flexDirection: "row", alignItems: "center", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, gap: 3 },
+  badge:       { flexDirection: "row", alignItems: "center", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, gap: 3 },
   badgeActive: { backgroundColor: "#DCFCE7" },
   badgeInactive:{ backgroundColor: "#FEE2E2" },
   badgeDot:    { width: 5, height: 5, borderRadius: 2.5 },
   badgeTxt:    { fontSize: 10, fontWeight: "700" },
-  empty:       { alignItems: "center", marginTop: 60, gap: 12 },
-  emptyText:   { fontSize: 15, color: "#9CA3AF" },
+  empty:       { alignItems: "center", marginTop: 50, gap: 10 },
+  emptyText:   { fontSize: 14, color: "#9CA3AF" },
 });
 
 export default FleetDriversScreen;

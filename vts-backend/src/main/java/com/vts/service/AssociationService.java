@@ -208,12 +208,20 @@ public class AssociationService {
                 .orElseThrow(() -> new IllegalArgumentException("Device not found"));
         Driver driver = driverRepository.findById(driverId.longValue())
                 .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
-        authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
-        authService.requireOrgAccess(device.getOrgId(), device.getClientId());
-        authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
-        if (!java.util.Objects.equals(vehicle.getOrgId(), device.getOrgId()) ||
-            !java.util.Objects.equals(vehicle.getOrgId(), driver.getOrgId())) {
-            throw new IllegalArgumentException("Vehicle, device and driver must belong to the same organization");
+
+        Client current = authService.getCurrentClient();
+        // superadmin bypasses all org checks
+        if (current != null && !authService.isSuperAdmin(current)) {
+            authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
+            authService.requireOrgAccess(device.getOrgId(), device.getClientId());
+            authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
+            // Only enforce org equality when all three have an orgId set
+            if (vehicle.getOrgId() != null && device.getOrgId() != null && driver.getOrgId() != null) {
+                if (!java.util.Objects.equals(vehicle.getOrgId(), device.getOrgId()) ||
+                    !java.util.Objects.equals(vehicle.getOrgId(), driver.getOrgId())) {
+                    throw new IllegalArgumentException("Vehicle, device and driver must belong to the same organization");
+                }
+            }
         }
         return vehicle;
     }

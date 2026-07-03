@@ -776,7 +776,7 @@ const styles = StyleSheet.create({
   searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 16, marginHorizontal: 16, marginBottom: 14, paddingHorizontal: 14, height: 54, borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", shadowColor: "#7A4010", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   searchInput: { flex: 1, fontSize: 15, color: "#2B1D0E", fontWeight: "500" },
 
-  list: { paddingHorizontal: 16, paddingBottom: 32 },
+  list: { paddingHorizontal: 16, paddingBottom: 90 },
 
   card:      { backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 18, marginBottom: 12, flexDirection: "row", overflow: "hidden", shadowColor: "#1A0040", shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 10 },
   accentBar: { width: 5 },

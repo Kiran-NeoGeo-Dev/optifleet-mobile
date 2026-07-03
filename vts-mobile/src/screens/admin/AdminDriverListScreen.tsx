@@ -158,7 +158,7 @@ const s = StyleSheet.create({
   searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 14, marginHorizontal: 16, marginBottom: 14, paddingHorizontal: 14, height: 48, borderWidth: 1.5, borderColor: "rgba(120,70,20,0.25)" },
   searchInput: { flex: 1, fontSize: 14, color: "#2B1D0E", fontWeight: "500" },
   // List
-  list:        { paddingHorizontal: 16, paddingBottom: 32 },
+  list:        { paddingHorizontal: 16, paddingBottom: 90 },
   // Card
   card:        { backgroundColor: "#FFFFFF", borderRadius: 16, marginBottom: 12, flexDirection: "row", overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   accentBar:   { width: 4 },

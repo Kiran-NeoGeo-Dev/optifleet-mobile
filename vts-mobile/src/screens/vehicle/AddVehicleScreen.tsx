@@ -520,7 +520,7 @@ const s = StyleSheet.create({
   headerTitle:  { fontSize: 22, fontWeight: "800", color: C.white, letterSpacing: -0.3 },
   headerSub:    { fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 2 },
 
-  scroll: { paddingHorizontal: 16, paddingBottom: 48 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 90 },
 
   card: {
     backgroundColor: C.cream, borderRadius: 28,

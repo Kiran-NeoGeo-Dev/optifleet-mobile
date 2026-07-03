@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Text, StyleSheet } from "react-native";
+import { Animated, Text, StyleSheet, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 export type ToastType = "success" | "error" | "warning" | "info";
@@ -23,6 +24,7 @@ const CONFIG: Record<ToastType, { bg: string; icon: any }> = {
 export const Toast = ({ visible, message, type = "success", onHide, duration = 3000 }: ToastProps) => {
   const opacity    = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(40)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!visible) return;
@@ -45,8 +47,13 @@ export const Toast = ({ visible, message, type = "success", onHide, duration = 3
 
   const { bg, icon } = CONFIG[type];
 
+  // compute bottom offset: safe-area inset + nav height (70) + margin
+  const NAV_HEIGHT = 70;
+  const MARGIN = 16;
+  const bottomOffset = (insets.bottom || 0) + NAV_HEIGHT + MARGIN;
+
   return (
-    <Animated.View style={[styles.toast, { backgroundColor: bg, opacity, transform: [{ translateY }] }]}>
+    <Animated.View style={[styles.toast, { backgroundColor: bg, opacity, transform: [{ translateY }], bottom: bottomOffset }]}>
       <Ionicons name={icon} size={22} color="#fff" />
       <Text style={styles.msg}>{message}</Text>
     </Animated.View>
@@ -70,7 +77,6 @@ export const useToast = () => {
 const styles = StyleSheet.create({
   toast: {
     position: "absolute",
-    bottom: 36,
     left: 20,
     right: 20,
     borderRadius: 16,

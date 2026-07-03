@@ -16,6 +16,8 @@ public interface UserDetailRepository extends JpaRepository<UserDetailEntity, In
 
     List<UserDetailEntity> findByOrgId(Long orgId);
 
+    long countByOrgId(Long orgId);
+
     long countByOrgIdIsNotNull();
 
     @org.springframework.data.jpa.repository.Query(value = "SELECT COUNT(DISTINCT org_id) FROM public.userdetail WHERE org_id IS NOT NULL", nativeQuery = true)

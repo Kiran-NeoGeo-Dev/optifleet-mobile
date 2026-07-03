@@ -174,7 +174,7 @@ const EditDriverPhotosScreen = ({ route, navigation }: Props) => {
 };
 
 const s = StyleSheet.create({
-  scroll:       { paddingHorizontal: 16, paddingBottom: 40 },
+  scroll:       { paddingHorizontal: 16, paddingBottom: 90 },
   // White card
   card:         { backgroundColor: "#F8F5EF", borderRadius: 20, padding: 16, marginBottom: 14, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   cardHeader:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },

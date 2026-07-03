@@ -10,18 +10,20 @@ import { useFocusEffect } from "@react-navigation/native";
 import Svg, { Path, Circle, Text as SvgText } from "react-native-svg";
 import { fetchDriverScorecard, FleetDriver, DriverScorecard, EventCounts } from "../../services/fleetService";
 
-// ── Score helpers (exact same logic as backend getRemark) ─────────────────────
-const rawScoreColor = (raw: number) =>
-  raw <= 2 ? "#16A34A" : raw <= 4 ? "#22C55E" : raw <= 6 ? "#EAB308" : raw <= 8 ? "#F97316" : raw <= 10 ? "#EF4444" : "#991B1B";
+// ── Score helpers (new formula: higher = better, 0-100%) ────────────────────
+const scoreColor = (score: number) =>
+  score >= 95 ? "#16A34A" : score >= 90 ? "#22C55E" : score >= 85 ? "#EAB308" : score >= 80 ? "#F97316" : score >= 75 ? "#EF4444" : "#991B1B";
+
+const rawScoreColor = scoreColor;
 
 // 6 equal tiers — each occupies 60° of the pie
 const TIERS = [
-  { label: "Excellent", color: "#16A34A" },
-  { label: "Very Good", color: "#22C55E" },
-  { label: "Good",      color: "#EAB308" },
-  { label: "Fair",      color: "#F97316" },
-  { label: "Poor",      color: "#EF4444" },
-  { label: "Very Poor", color: "#991B1B" },
+  { label: "Excellent",        color: "#16A34A" },
+  { label: "Very Good",        color: "#22C55E" },
+  { label: "Good",             color: "#EAB308" },
+  { label: "Fair",             color: "#F97316" },
+  { label: "Poor",             color: "#EF4444" },
+  { label: "Need Improvement", color: "#991B1B" },
 ];
 
 const remarkToTierIndex = (remark: string) =>
@@ -75,8 +77,8 @@ const ScorePieChart = ({ rawScore, remark }: { rawScore: number; remark: string 
           })}
           <Circle cx={CX} cy={CY} r={IR + 2} fill="rgba(0,0,0,0.04)" />
           <Circle cx={CX} cy={CY} r={IR - 1} fill="#fff" />
-          <SvgText x={CX} y={CY - 8} textAnchor="middle" fontSize="26" fontWeight="900" fill={activeColor}>
-            {rawScore.toFixed(2)}
+          <SvgText x={CX} y={CY - 8} textAnchor="middle" fontSize="22" fontWeight="900" fill={activeColor}>
+            {rawScore.toFixed(1)}%
           </SvgText>
           <SvgText x={CX} y={CY + 10} textAnchor="middle" fontSize="8" fontWeight="700" fill="#9CA3AF">
             SAFETY SCORE
@@ -101,30 +103,30 @@ const ScorePieChart = ({ rawScore, remark }: { rawScore: number; remark: string 
 };
 
 const pie = StyleSheet.create({
-  chartShadow:   { shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
-  legend:        { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 14 },
-  chip:          { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: "#F3F4F6", borderWidth: 1, borderColor: "transparent" },
-  dot:           { width: 7, height: 7, borderRadius: 4 },
-  chipTxt:       { fontSize: 12, color: "#374151", fontWeight: "700" },
+  chartShadow:   { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
+  legend:        { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 5, marginTop: 10 },
+  chip:          { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 14, backgroundColor: "#F0F4FF", borderWidth: 1, borderColor: "transparent" },
+  dot:           { width: 6, height: 6, borderRadius: 3 },
+  chipTxt:       { fontSize: 11, color: "#374151", fontWeight: "700" },
 });
 
 // ── Remark text ───────────────────────────────────────────────────────────────
 const REMARK_DESC: Record<string, string> = {
-  "Excellent": "Excellent! Keep up the great driving habits.",
-  "Very Good": "Very Good! Minor improvements can make you perfect.",
-  "Good":      "Good driving. Watch for occasional violations.",
-  "Fair":      "Fair performance. Focus on reducing violations.",
-  "Poor":      "Poor performance. Needs significant improvement.",
-  "Very Poor": "Critical safety concerns. Immediate action required.",
+  "Excellent":        "Excellent! Keep up the great driving habits.",
+  "Very Good":        "Very Good! Minor improvements can make you perfect.",
+  "Good":             "Good driving. Watch for occasional violations.",
+  "Fair":             "Fair performance. Focus on reducing violations.",
+  "Poor":             "Poor performance. Needs significant improvement.",
+  "Need Improvement": "Critical safety concerns. Immediate action required.",
 };
 
 const REMARK_COLORS: Record<string, string> = {
-  "Excellent": "#16A34A",
-  "Very Good": "#22C55E",
-  "Good":      "#EAB308",
-  "Fair":      "#F97316",
-  "Poor":      "#EF4444",
-  "Very Poor": "#991B1B",
+  "Excellent":        "#16A34A",
+  "Very Good":        "#22C55E",
+  "Good":             "#EAB308",
+  "Fair":             "#F97316",
+  "Poor":             "#EF4444",
+  "Need Improvement": "#991B1B",
 };
 
 const remarkColor = (r: string) => REMARK_COLORS[r] ?? "#6B7280";
@@ -176,21 +178,25 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
 
   const rawScore     = data?.safetyScore ?? 0;
   const remark       = data?.remark ?? "—";
-  const events       = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, kmDriven: 0 };
+  const events       = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, harshBraking: 0, harshAcceleration: 0, rashTurning: 0, kmDriven: 0 };
   const vehicleModel = data?.vehicleModel ?? driver.vehicleModel ?? null;
   const hasNoData    = data != null && events.kmDriven === 0 &&
                        events.smoking === 0 && events.mobile === 0 && events.distraction === 0 &&
-                       events.overspeed === 0 && events.drowsiness === 0 && events.seatbelt === 0;
+                       events.overspeed === 0 && events.drowsiness === 0 && events.seatbelt === 0 &&
+                       events.harshBraking === 0 && events.harshAcceleration === 0 && events.rashTurning === 0;
 
   const accentColor = driver.active ? "#22C55E" : "#EF4444";
 
   const EVENT_ROWS = [
-    { icon: "flame-outline",       label: "Smoking",     count: events.smoking,     color: "#EF4444", bg: "#FEE2E2" },
-    { icon: "call-outline",        label: "Mobile",      count: events.mobile,      color: "#F59E0B", bg: "#FEF3C7" },
-    { icon: "speedometer-outline", label: "Overspeed",   count: events.overspeed,   color: "#F97316", bg: "#FFEDD5" },
-    { icon: "moon-outline",        label: "Drowsy",      count: events.drowsiness,  color: "#8B5CF6", bg: "#EDE9FE" },
-    { icon: "shield-outline",      label: "Seatbelt",    count: events.seatbelt,    color: "#10B981", bg: "#D1FAE5" },
-    { icon: "eye-off-outline",     label: "Distraction", count: events.distraction, color: "#EC4899", bg: "#FCE7F3" },
+    { icon: "flame-outline",       label: "Smoking",             count: events.smoking,            color: "#EF4444", bg: "#FEE2E2" },
+    { icon: "call-outline",        label: "Mobile",              count: events.mobile,             color: "#F59E0B", bg: "#FEF3C7" },
+    { icon: "speedometer-outline", label: "Overspeed",           count: events.overspeed,          color: "#F97316", bg: "#FFEDD5" },
+    { icon: "moon-outline",        label: "Drowsy",              count: events.drowsiness,         color: "#8B5CF6", bg: "#EDE9FE" },
+    { icon: "shield-outline",      label: "Seatbelt",            count: events.seatbelt,           color: "#10B981", bg: "#D1FAE5" },
+    { icon: "eye-off-outline",     label: "Distraction",         count: events.distraction,        color: "#EC4899", bg: "#FCE7F3" },
+    { icon: "warning-outline",     label: "Harsh Braking",       count: events.harshBraking,       color: "#DC2626", bg: "#FEE2E2" },
+    { icon: "flash-outline",       label: "Harsh Acceleration",  count: events.harshAcceleration,  color: "#D97706", bg: "#FEF3C7" },
+    { icon: "refresh-outline",     label: "Rash Turning",        count: events.rashTurning,        color: "#0891B2", bg: "#CFFAFE" },
   ] as const;
 
   return (
@@ -393,85 +399,85 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
 };
 
 const sc = StyleSheet.create({
-  root:             { flex: 1, backgroundColor: "#F3F4F6" },
+  root:             { flex: 1, backgroundColor: "#F0F4FF" },
 
   // Header
-  header:           { paddingHorizontal: 16, paddingBottom: 20 },
-  headerRow:        { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8 },
-  backBtn:          { width: 42, height: 42, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  headerTitle:      { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub:        { fontSize: 12, color: "rgba(255,255,255,0.70)", marginTop: 2 },
-  statusPill:       { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1 },
-  statusDot:        { width: 7, height: 7, borderRadius: 4 },
-  statusTxt:        { fontSize: 10, fontWeight: "800", letterSpacing: 0.6 },
+  header:           { paddingHorizontal: 16, paddingBottom: 14 },
+  headerRow:        { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6 },
+  backBtn:          { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  headerTitle:      { fontSize: 17, fontWeight: "800", color: "#fff" },
+  headerSub:        { fontSize: 11, color: "rgba(255,255,255,0.70)", marginTop: 1 },
+  statusPill:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1 },
+  statusDot:        { width: 6, height: 6, borderRadius: 3 },
+  statusTxt:        { fontSize: 9, fontWeight: "800", letterSpacing: 0.6 },
 
-  scroll:           { padding: 14, gap: 12, paddingBottom: 30 },
+  scroll:           { padding: 12, gap: 10, paddingBottom: 80 },
 
   // Hero card
-  heroCard:         { backgroundColor: "#fff", borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
-  accentBar:        { height: 4, width: "100%" },
-  heroInner:        { flexDirection: "row", alignItems: "center", gap: 16, padding: 16 },
-  avatarRing:       { width: 80, height: 80, borderRadius: 40, borderWidth: 2.5, padding: 2 },
-  photo:            { width: "100%", height: "100%", borderRadius: 37 },
-  photoPlaceholder: { width: "100%", height: "100%", borderRadius: 37, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
-  driverName:       { fontSize: 17, fontWeight: "800", color: "#0D1B3E", marginBottom: 6 },
-  detailRow:        { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  detailTxt:        { fontSize: 12, color: "#6B7280", fontWeight: "500" },
-  vehicleReg:       { fontSize: 13, fontWeight: "700", color: "#1565C0" },
+  heroCard:         { backgroundColor: "#fff", borderRadius: 14, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+  accentBar:        { height: 3, width: "100%" },
+  heroInner:        { flexDirection: "row", alignItems: "center", gap: 12, padding: 12 },
+  avatarRing:       { width: 60, height: 60, borderRadius: 30, borderWidth: 2, padding: 2 },
+  photo:            { width: "100%", height: "100%", borderRadius: 28 },
+  photoPlaceholder: { width: "100%", height: "100%", borderRadius: 28, backgroundColor: "#F0F4FF", alignItems: "center", justifyContent: "center" },
+  driverName:       { fontSize: 15, fontWeight: "800", color: "#0D1B3E", marginBottom: 4 },
+  detailRow:        { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
+  detailTxt:        { fontSize: 11, color: "#6B7280", fontWeight: "500" },
+  vehicleReg:       { fontSize: 12, fontWeight: "700", color: "#1A3CC8" },
 
   // Filter card
-  filterCard:       { paddingHorizontal: 16, paddingVertical: 14, borderRadius: 16 },
+  filterCard:       { paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12 },
   filterRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  filterLeft:       { flexDirection: "row", alignItems: "center", gap: 12 },
-  filterIconBox:    { width: 38, height: 38, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  filterTitle:      { fontSize: 14, color: "#fff", fontWeight: "700" },
-  filterSub:        { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 },
-  dropdown:         { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#fff", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
-  dropdownTxt:      { fontSize: 13, color: "#1565C0", fontWeight: "700" },
+  filterLeft:       { flexDirection: "row", alignItems: "center", gap: 10 },
+  filterIconBox:    { width: 32, height: 32, borderRadius: 8, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  filterTitle:      { fontSize: 13, color: "#fff", fontWeight: "700" },
+  filterSub:        { fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 1 },
+  dropdown:         { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#fff", borderRadius: 8, paddingHorizontal: 11, paddingVertical: 7 },
+  dropdownTxt:      { fontSize: 12, color: "#1A3CC8", fontWeight: "700" },
 
   // Generic card
-  card:             { backgroundColor: "#fff", borderRadius: 20, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  sectionTitle:     { fontSize: 12, fontWeight: "800", color: "#1565C0", letterSpacing: 1.2, marginBottom: 16, textTransform: "uppercase" },
+  card:             { backgroundColor: "#fff", borderRadius: 14, padding: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  sectionTitle:     { fontSize: 10, fontWeight: "800", color: "#1A3CC8", letterSpacing: 1.2, marginBottom: 10, textTransform: "uppercase" },
 
   // Empty state
-  emptyState:       { alignItems: "center", paddingVertical: 32, gap: 10 },
-  emptyIconBox:     { width: 72, height: 72, borderRadius: 36, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
-  emptyTitle:       { fontSize: 15, color: "#374151", fontWeight: "700" },
-  emptyDesc:        { fontSize: 12, color: "#9CA3AF", textAlign: "center" },
+  emptyState:       { alignItems: "center", paddingVertical: 22, gap: 8 },
+  emptyIconBox:     { width: 56, height: 56, borderRadius: 28, backgroundColor: "#F0F4FF", alignItems: "center", justifyContent: "center" },
+  emptyTitle:       { fontSize: 14, color: "#374151", fontWeight: "700" },
+  emptyDesc:        { fontSize: 11, color: "#9CA3AF", textAlign: "center" },
 
   // Remark banner
-  remarkBanner:     { flexDirection: "row", alignItems: "flex-start", gap: 12, borderWidth: 1, borderRadius: 14, padding: 14, marginTop: 16 },
-  remarkDot:        { width: 10, height: 10, borderRadius: 5, marginTop: 3 },
-  remarkLabel:      { fontSize: 16, fontWeight: "900", letterSpacing: 1, marginBottom: 4 },
-  remarkDesc:       { fontSize: 13, color: "#374151", lineHeight: 19, fontWeight: "600" },
+  remarkBanner:     { flexDirection: "row", alignItems: "flex-start", gap: 10, borderWidth: 1, borderRadius: 11, padding: 11, marginTop: 12 },
+  remarkDot:        { width: 8, height: 8, borderRadius: 4, marginTop: 3 },
+  remarkLabel:      { fontSize: 14, fontWeight: "900", letterSpacing: 1, marginBottom: 3 },
+  remarkDesc:       { fontSize: 12, color: "#374151", lineHeight: 17, fontWeight: "600" },
 
   // Events
   evList:           { gap: 0 },
-  evRow:            { flexDirection: "row", alignItems: "center", paddingVertical: 10, gap: 12 },
-  evRowBorder:      { borderBottomWidth: 1, borderBottomColor: "#F3F4F6" },
-  kmRow:            { marginTop: 4, borderTopWidth: 1.5, borderTopColor: "#E5E7EB", paddingTop: 12 },
-  evIconBox:        { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  evLabel:          { flex: 1, fontSize: 13, color: "#374151", fontWeight: "600" },
-  evCountBadge:     { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, minWidth: 36, alignItems: "center" },
-  evCount:          { fontSize: 13, fontWeight: "800" },
+  evRow:            { flexDirection: "row", alignItems: "center", paddingVertical: 8, gap: 10 },
+  evRowBorder:      { borderBottomWidth: 1, borderBottomColor: "#F0F4FF" },
+  kmRow:            { marginTop: 3, borderTopWidth: 1.5, borderTopColor: "#E5E7EB", paddingTop: 9 },
+  evIconBox:        { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  evLabel:          { flex: 1, fontSize: 12, color: "#374151", fontWeight: "600" },
+  evCountBadge:     { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, minWidth: 32, alignItems: "center" },
+  evCount:          { fontSize: 12, fontWeight: "800" },
 
   // Picker modal
   overlay:          { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
-  pickerCard:       { backgroundColor: "#fff", borderRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, width: 320, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, elevation: 12 },
-  pickerTitle:      { fontSize: 16, fontWeight: "800", color: "#0D1B3E", textAlign: "center", marginBottom: 16 },
-  yearRow:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16, backgroundColor: "#F3F4F6", borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12 },
-  yearBtn:          { width: 36, height: 36, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  yearTxt:          { fontSize: 18, fontWeight: "800", color: "#0D1B3E" },
-  monthGrid:        { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
-  monthCell:        { width: "22%", flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 12, backgroundColor: "#F3F4F6" },
-  monthCellActive:  { backgroundColor: "#1565C0" },
-  monthCellTxt:     { fontSize: 13, fontWeight: "700", color: "#374151" },
-  monthCellTxtActive:{ fontSize: 13, fontWeight: "800", color: "#fff" },
-  pickerActions:    { flexDirection: "row", gap: 10 },
-  cancelBtn:        { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: "#E5E7EB", alignItems: "center" },
-  cancelBtnTxt:     { fontSize: 14, fontWeight: "700", color: "#6B7280" },
-  applyBtn:         { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#1565C0", alignItems: "center" },
-  applyBtnTxt:      { fontSize: 14, fontWeight: "800", color: "#fff" },
+  pickerCard:       { backgroundColor: "#fff", borderRadius: 16, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 14, width: 300, shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 16, elevation: 12 },
+  pickerTitle:      { fontSize: 14, fontWeight: "800", color: "#0D1B3E", textAlign: "center", marginBottom: 12 },
+  yearRow:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, backgroundColor: "#F0F4FF", borderRadius: 10, paddingVertical: 6, paddingHorizontal: 10 },
+  yearBtn:          { width: 30, height: 30, borderRadius: 8, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 3, elevation: 2 },
+  yearTxt:          { fontSize: 16, fontWeight: "800", color: "#0D1B3E" },
+  monthGrid:        { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 16 },
+  monthCell:        { width: "22%", flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 10, borderRadius: 10, backgroundColor: "#F0F4FF" },
+  monthCellActive:  { backgroundColor: "#1A3CC8" },
+  monthCellTxt:     { fontSize: 12, fontWeight: "700", color: "#374151" },
+  monthCellTxtActive:{ fontSize: 12, fontWeight: "800", color: "#fff" },
+  pickerActions:    { flexDirection: "row", gap: 8 },
+  cancelBtn:        { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: "#E5E7EB", alignItems: "center" },
+  cancelBtnTxt:     { fontSize: 13, fontWeight: "700", color: "#6B7280" },
+  applyBtn:         { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: "#1A3CC8", alignItems: "center" },
+  applyBtnTxt:      { fontSize: 13, fontWeight: "800", color: "#fff" },
 });
 
 export default DriverScorecardScreen;

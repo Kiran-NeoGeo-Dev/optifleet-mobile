@@ -362,7 +362,7 @@ const s = StyleSheet.create({
   badgeRow:   { alignItems: "center", marginBottom: 12 },
   badge:      { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)" },
   badgeTxt:   { fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.80)" },
-  scroll:     { paddingHorizontal: 16, paddingBottom: 48 },
+  scroll:     { paddingHorizontal: 16, paddingBottom: 90 },
   card:       { backgroundColor: C.cream, borderRadius: 24, padding: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
   cardTopBar: { position: "absolute", top: 0, left: 0, right: 0, height: 4, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   cardTitle:  { fontSize: 20, fontWeight: "800", color: C.cardText, marginBottom: 4, marginTop: 4 },

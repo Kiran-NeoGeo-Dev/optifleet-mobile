@@ -152,7 +152,7 @@ const s = StyleSheet.create({
   headerBg:  { position: "absolute", top: 0, left: -40, right: -40, height: 260, overflow: "hidden", borderBottomLeftRadius: 180, borderBottomRightRadius: 180 },
   safe:      { flex: 1 },
   loader:    { flex: 1, alignItems: "center", justifyContent: "center" },
-  scroll:    { paddingHorizontal: 16, paddingBottom: 40 },
+  scroll:    { paddingHorizontal: 16, paddingBottom: 90 },
 
   navRow:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 8 },
   backBtn:   { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },

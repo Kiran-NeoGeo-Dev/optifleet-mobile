@@ -51,13 +51,16 @@ export interface FleetDriver {
 }
 
 export interface EventCounts {
-  smoking:     number;
-  mobile:      number;
-  overspeed:   number;
-  drowsiness:  number;
-  seatbelt:    number;
-  distraction: number;
-  kmDriven:    number;
+  smoking:            number;
+  mobile:             number;
+  overspeed:          number;
+  drowsiness:         number;
+  seatbelt:           number;
+  distraction:        number;
+  harshBraking:       number;
+  harshAcceleration:  number;
+  rashTurning:        number;
+  kmDriven:           number;
 }
 
 export interface DriverScorecard {

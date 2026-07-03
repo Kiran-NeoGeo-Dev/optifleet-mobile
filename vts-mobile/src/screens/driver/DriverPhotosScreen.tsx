@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   headerBadge:   { backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, marginTop: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)" },
   headerBadgeTxt:{ fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.75)" },
 
-  scroll:        { paddingHorizontal: 16, paddingBottom: 40 },
+  scroll:        { paddingHorizontal: 16, paddingBottom: 90 },
 
   // Photo card — cream background
   card:          { backgroundColor: "#F6F1E9", borderRadius: 20, padding: 16, marginBottom: 14, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 5 },

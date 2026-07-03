@@ -176,7 +176,7 @@ const s = StyleSheet.create({
   headerActions: { flexDirection: "row", alignItems: "center", gap: 10 },
   actionTxt:     { fontSize: 12, fontWeight: "700", color: "#38BDF8" },
   filterBtn:     { width: 34, height: 34, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  list:          { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 30 },
+  list:          { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 90 },
   card:          { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, marginBottom: 10, padding: 14, gap: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   cardUnread:    { backgroundColor: "#F8FAFF" },
   unreadDot:     { position: "absolute", left: 6, top: "50%", width: 8, height: 8, borderRadius: 4, marginTop: -4 },

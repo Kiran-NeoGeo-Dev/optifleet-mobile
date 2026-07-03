@@ -186,10 +186,29 @@ const SystemOverviewScreen = ({ navigation }: Props) => {
 
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Organizations</Text>
-            <Text style={styles.sectionCount}>{filteredOrganizations.length} found</Text>
+            <Text style={styles.sectionCount}>
+              {loading ? "Loading..." : `${filteredOrganizations.length} found`}
+            </Text>
           </View>
 
-          {loading ? null : filteredOrganizations.length === 0 ? (
+          {loading ? (
+            <View style={styles.skeletonContainer}>
+              {[1, 2].map(i => (
+                <View key={i} style={styles.skeletonCard}>
+                  <View style={styles.skeletonTitle} />
+                  <View style={styles.skeletonLine} />
+                  <View style={styles.skeletonRow}>
+                    <View style={styles.skeletonBox} />
+                    <View style={styles.skeletonBox} />
+                  </View>
+                  <View style={styles.skeletonRow}>
+                    <View style={styles.skeletonBox} />
+                    <View style={styles.skeletonBox} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : filteredOrganizations.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="alert-circle-outline" size={48} color="rgba(255,255,255,0.35)" />
               <Text style={styles.emptyText}>No organizations match your search.</Text>
@@ -253,6 +272,12 @@ const styles = StyleSheet.create({
   statText: { fontSize: 12, color: "#6B7280", marginTop: 4 },
   emptyState: { marginTop: 40, alignItems: "center", justifyContent: "center" },
   emptyText: { marginTop: 16, fontSize: 15, color: "#6B7280", textAlign: "center", lineHeight: 22, maxWidth: 260 },
+  skeletonContainer: { gap: 14 },
+  skeletonCard: { backgroundColor: "#fff", borderRadius: 20, padding: 18, borderLeftWidth: 6, borderLeftColor: "#E5E7EB" },
+  skeletonTitle: { height: 16, width: "55%", backgroundColor: "#E5E7EB", borderRadius: 8, marginBottom: 10 },
+  skeletonLine: { height: 12, width: "35%", backgroundColor: "#F3F4F6", borderRadius: 6, marginBottom: 18 },
+  skeletonRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
+  skeletonBox: { flex: 1, height: 60, backgroundColor: "#F3F4F6", borderRadius: 16 },
 });
 
 export default SystemOverviewScreen;

@@ -30,9 +30,9 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 const badge = StyleSheet.create({
-  wrap:  { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
-  dot:   { width: 8, height: 8, borderRadius: 4 },
-  label: { fontSize: 13, fontWeight: "700" },
+  wrap:  { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, gap: 4 },
+  dot:   { width: 6, height: 6, borderRadius: 3 },
+  label: { fontSize: 11, fontWeight: "700" },
 });
 
 // ── Info Cell ─────────────────────────────────────────────────────────────────
@@ -49,10 +49,10 @@ const InfoCell = ({ iconName, iconBg, iconColor, label, value }: {
 );
 
 const cell = StyleSheet.create({
-  wrap:    { flex: 1, backgroundColor: "#F8FAFF", borderRadius: 14, padding: 14, minWidth: "46%", gap: 6, borderLeftWidth: 3 },
-  iconBox: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  label:   { fontSize: 10, fontWeight: "700", color: "#6B7280", letterSpacing: 0.5, textTransform: "uppercase" },
-  value:   { fontSize: 15, fontWeight: "800", color: "#0D1B3E" },
+  wrap:    { flex: 1, backgroundColor: "#F0F4FF", borderRadius: 10, padding: 10, minWidth: "46%", gap: 4, borderLeftWidth: 3 },
+  iconBox: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  label:   { fontSize: 9, fontWeight: "700", color: "#6B7280", letterSpacing: 0.5, textTransform: "uppercase" },
+  value:   { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
           <View style={s.heroInner}>
             {/* Icon */}
             <View style={s.vehicleIconBox}>
-              <Ionicons name="bus-outline" size={34} color="#7C3AED" />
+              <Ionicons name="bus-outline" size={26} color="#7C3AED" />
             </View>
             {/* Info */}
             <View style={{ flex: 1 }}>
@@ -253,49 +253,49 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
 };
 
 const s = StyleSheet.create({
-  root:                { flex: 1, backgroundColor: "#F3F4F6" },
+  root:                { flex: 1, backgroundColor: "#F0F4FF" },
 
   // Header
-  header:              { paddingHorizontal: 16, paddingBottom: 20 },
-  headerRow:           { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8 },
-  backBtn:             { width: 42, height: 42, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  headerTitle:         { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub:           { fontSize: 12, color: "rgba(255,255,255,0.70)", marginTop: 2 },
-  livePill:            { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(34,197,94,0.20)", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: "rgba(34,197,94,0.40)" },
-  liveDot:             { width: 7, height: 7, borderRadius: 4, backgroundColor: "#22C55E" },
-  liveTxt:             { fontSize: 10, fontWeight: "800", color: "#22C55E", letterSpacing: 0.8 },
+  header:              { paddingHorizontal: 16, paddingBottom: 14 },
+  headerRow:           { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6 },
+  backBtn:             { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  headerTitle:         { fontSize: 17, fontWeight: "800", color: "#fff" },
+  headerSub:           { fontSize: 11, color: "rgba(255,255,255,0.70)", marginTop: 1 },
+  livePill:            { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(34,197,94,0.20)", borderRadius: 14, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "rgba(34,197,94,0.40)" },
+  liveDot:             { width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" },
+  liveTxt:             { fontSize: 9, fontWeight: "800", color: "#22C55E", letterSpacing: 0.8 },
 
   scroll:              { flex: 1 },
-  scrollContent:       { padding: 14, gap: 12, paddingBottom: 30 },
+  scrollContent:       { padding: 12, gap: 10, paddingBottom: 80 },
 
   // Hero card
-  heroCard:            { backgroundColor: "#fff", borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
-  accentBar:           { height: 4, width: "100%" },
-  heroInner:           { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
-  vehicleIconBox:      { width: 64, height: 64, borderRadius: 18, backgroundColor: "#EDE9FE", alignItems: "center", justifyContent: "center" },
-  regNo:               { fontSize: 20, fontWeight: "900", color: "#0D1B3E" },
-  modelTxt:            { fontSize: 13, color: "#1565C0", fontWeight: "700", marginTop: 2 },
-  driverRow:           { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 5 },
-  driverName:          { fontSize: 13, color: "#6B7280", fontWeight: "600" },
-  statusCol:           { alignItems: "flex-end", gap: 8 },
-  speedTxt:            { fontSize: 12, fontWeight: "700", color: "#0D1B3E" },
+  heroCard:            { backgroundColor: "#fff", borderRadius: 14, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+  accentBar:           { height: 3, width: "100%" },
+  heroInner:           { flexDirection: "row", alignItems: "center", gap: 10, padding: 12 },
+  vehicleIconBox:      { width: 48, height: 48, borderRadius: 13, backgroundColor: "#EDE9FE", alignItems: "center", justifyContent: "center" },
+  regNo:               { fontSize: 16, fontWeight: "900", color: "#0D1B3E" },
+  modelTxt:            { fontSize: 12, color: "#1A3CC8", fontWeight: "700", marginTop: 1 },
+  driverRow:           { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  driverName:          { fontSize: 12, color: "#6B7280", fontWeight: "600" },
+  statusCol:           { alignItems: "flex-end", gap: 5 },
+  speedTxt:            { fontSize: 11, fontWeight: "700", color: "#0D1B3E" },
 
   // Generic card
-  card:                { backgroundColor: "#fff", borderRadius: 20, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  sectionTitle:        { fontSize: 12, fontWeight: "800", color: "#1565C0", letterSpacing: 1.2, marginBottom: 14, textTransform: "uppercase" },
+  card:                { backgroundColor: "#fff", borderRadius: 14, padding: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  sectionTitle:        { fontSize: 10, fontWeight: "800", color: "#1A3CC8", letterSpacing: 1.2, marginBottom: 10, textTransform: "uppercase" },
 
   // Photo
-  photoWrap:           { borderRadius: 14, overflow: "hidden", position: "relative" },
-  photo:               { width: "100%", height: 210 },
-  photoOverlay:        { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(10,31,68,0.55)", paddingHorizontal: 14, paddingVertical: 8 },
-  photoOverlayTxt:     { fontSize: 13, fontWeight: "700", color: "#fff" },
-  photoPlaceholder:    { height: 160, backgroundColor: "#F3F4F6", borderRadius: 14, alignItems: "center", justifyContent: "center", gap: 10, borderWidth: 1.5, borderColor: "#E5E7EB", borderStyle: "dashed" },
-  photoPlaceholderIcon:{ width: 72, height: 72, borderRadius: 36, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  photoPlaceholderText:{ fontSize: 13, color: "#9CA3AF", fontWeight: "600" },
+  photoWrap:           { borderRadius: 10, overflow: "hidden", position: "relative" },
+  photo:               { width: "100%", height: 170 },
+  photoOverlay:        { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(10,31,68,0.55)", paddingHorizontal: 10, paddingVertical: 6 },
+  photoOverlayTxt:     { fontSize: 12, fontWeight: "700", color: "#fff" },
+  photoPlaceholder:    { height: 120, backgroundColor: "#F0F4FF", borderRadius: 10, alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderColor: "#E5E7EB", borderStyle: "dashed" },
+  photoPlaceholderIcon:{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  photoPlaceholderText:{ fontSize: 12, color: "#9CA3AF", fontWeight: "600" },
 
   // Telemetry grid
-  infoGrid:            { gap: 10 },
-  infoRow:             { flexDirection: "row", gap: 10 },
+  infoGrid:            { gap: 8 },
+  infoRow:             { flexDirection: "row", gap: 8 },
 });
 
 export default VehicleDetailsScreen;

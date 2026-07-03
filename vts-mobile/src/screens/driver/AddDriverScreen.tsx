@@ -524,7 +524,7 @@ const s = StyleSheet.create({
   headerTitle:  { fontSize: 22, fontWeight: "800", color: C.white, letterSpacing: -0.3 },
   headerSub:    { fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 2, letterSpacing: 0.3 },
 
-  scroll: { paddingHorizontal: 16, paddingBottom: 48 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 90 },
 
   // Card — same as LoginScreen
   card: {

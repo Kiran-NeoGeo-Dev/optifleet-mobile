@@ -5,7 +5,6 @@ import com.vts.entity.DeviceDriver;
 import com.vts.service.AssociationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,7 +44,6 @@ public class AssociationController {
 
     // ── CRUD ───────────────────────────────────────────────────────────────────
 
-    @PreAuthorize("@authService.isAdminRole()")
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Map<String, Object> body) {
         try {
@@ -83,7 +81,6 @@ public class AssociationController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("@authService.isAdminRole()")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
         try {
@@ -101,7 +98,6 @@ public class AssociationController {
         }
     }
 
-    @PreAuthorize("@authService.isAdminRole()")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Integer id) {
         try {
