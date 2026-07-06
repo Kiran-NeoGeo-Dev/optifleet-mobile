@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, ActivityIndicator, Modal, StatusBar, Dimensions,
@@ -29,6 +29,8 @@ export interface TripItem {
   duration: string;
   status: string;
   customPolyline: string | null;
+  updatedAt?: string;
+  plannedEndTime?: string | null;
 }
 
 const { width: SW } = Dimensions.get("window");
@@ -43,11 +45,11 @@ const STATUS_FILTER_COLOR: Record<string, { bg: string; border: string }> = {
 
 const STATUS_OPTIONS = ["All Statuses", "Not Started", "In Progress", "Completed", "Delayed"];
 
-const STATUS_STYLE: Record<string, { color: string; bg: string; border: string; icon: any }> = {
-  "Completed":   { color: "#16A34A", bg: "#DCFCE7", border: "#86EFAC", icon: "checkmark-circle" },
-  "In Progress": { color: "#1565C0", bg: "#DBEAFE", border: "#93C5FD", icon: "radio-button-on" },
-  "Delayed":     { color: "#B45309", bg: "#FEF3C7", border: "#FCD34D", icon: "warning" },
-  "Not Started": { color: "#6B7280", bg: "#F3F4F6", border: "#D1D5DB", icon: "time-outline" },
+const STATUS_STYLE: Record<string, { color: string; bg: string; border: string; icon: any; headerColors: [string, string] }> = {
+  "Completed":   { color: "#16A34A", bg: "#DCFCE7", border: "#86EFAC", icon: "checkmark-circle",  headerColors: ["#14532D", "#16A34A"] },
+  "In Progress": { color: "#1565C0", bg: "#DBEAFE", border: "#93C5FD", icon: "radio-button-on",   headerColors: ["#0D3B8E", "#1565C0"] },
+  "Delayed":     { color: "#B45309", bg: "#FEF3C7", border: "#FCD34D", icon: "warning",           headerColors: ["#78350F", "#B45309"] },
+  "Not Started": { color: "#6B7280", bg: "#F3F4F6", border: "#D1D5DB", icon: "time-outline",      headerColors: ["#374151", "#6B7280"] },
 };
 
 const getStatus = (s: string) => STATUS_STYLE[s] ?? STATUS_STYLE["Not Started"];
@@ -64,19 +66,31 @@ const TripManagementScreen = ({ navigation }: Props) => {
   const [deleteTarget, setDeleteTarget] = useState<TripItem | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
-  const loadTrips = useCallback(async () => {
-    setLoading(true);
+  const isFocused = useRef(false);
+
+  const loadTrips = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await api.get<TripItem[]>(ENDPOINTS.TRIPS);
       setTrips(res.data ?? []);
     } catch {
-      showToast("Failed to load trips.", "error");
+      if (!silent) showToast("Failed to load trips.", "error");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { loadTrips(); }, [loadTrips]));
+  useFocusEffect(useCallback(() => {
+    isFocused.current = true;
+    loadTrips();
+    const interval = setInterval(() => {
+      if (isFocused.current) loadTrips(true);
+    }, 30_000);
+    return () => {
+      isFocused.current = false;
+      clearInterval(interval);
+    };
+  }, [loadTrips]));
 
   const filtered = trips.filter(t => {
     const q = search.toLowerCase();
@@ -91,7 +105,7 @@ const TripManagementScreen = ({ navigation }: Props) => {
       await api.delete(`${ENDPOINTS.TRIPS}/${deleteTarget.id}`);
       showToast("Trip deleted.", "success");
       setDeleteTarget(null);
-      loadTrips();
+      loadTrips(false);
     } catch {
       showToast("Failed to delete trip.", "error");
       setDeleteTarget(null);
@@ -102,9 +116,9 @@ const TripManagementScreen = ({ navigation }: Props) => {
     const st = getStatus(item.status);
     return (
       <View style={styles.card}>
-        {/* Gradient header strip */}
+        {/* Gradient header strip — color reflects trip status */}
         <LinearGradient
-          colors={["#0D3B8E", "#1565C0"]}
+          colors={st.headerColors}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
           style={styles.cardHeader}
         >
@@ -152,6 +166,12 @@ const TripManagementScreen = ({ navigation }: Props) => {
               <View style={[styles.chip, styles.chipDist]}>
                 <Ionicons name="speedometer-outline" size={12} color="#B45309" />
                 <Text style={[styles.chipTxt, { color: "#92400E" }]}>{item.distanceKm} km</Text>
+              </View>
+            )}
+            {!!item.duration && (
+              <View style={[styles.chip, styles.chipDuration]}>
+                <Ionicons name="time-outline" size={12} color="#6B21A8" />
+                <Text style={[styles.chipTxt, { color: "#581C87" }]}>{item.duration}</Text>
               </View>
             )}
           </View>
@@ -249,6 +269,7 @@ const TripManagementScreen = ({ navigation }: Props) => {
             data={filtered}
             keyExtractor={item => String(item.id)}
             renderItem={renderItem}
+            extraData={filtered}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
@@ -349,6 +370,7 @@ const styles = StyleSheet.create({
   chipsRow:         { flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 10 },
   chip:             { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#EFF6FF", borderRadius: 7, paddingHorizontal: 7, paddingVertical: 4, borderWidth: 1, borderColor: "#BFDBFE" },
   chipDist:         { backgroundColor: "#FFFBEB", borderColor: "#FDE68A" },
+  chipDuration:     { backgroundColor: "#F5F3FF", borderColor: "#DDD6FE" },
   chipTxt:          { fontSize: 10, color: "#1E3A6D", fontWeight: "700" },
 
   // Actions

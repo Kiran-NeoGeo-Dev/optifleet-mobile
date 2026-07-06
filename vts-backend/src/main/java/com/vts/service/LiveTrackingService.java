@@ -327,21 +327,24 @@ public class LiveTrackingService {
 
     /**
      * Auto-transition trip status based on vehicle movement:
-     *   Not Started  → In Progress  (vehicle is moving)
-     *   In Progress  → Completed    (progress >= 98%)
-     *   In Progress  → Delayed      (speed=0 for extended time — handled externally via scheduler)
+     *   Not Started / Delayed → In Progress  (vehicle is moving, speed > 2 km/h)
+     *   In Progress / Delayed → Completed    (progress >= 98%)
+     *   Not Started / In Progress → Delayed  (time-based, set by TripDelayScheduler)
      */
     private void autoUpdateTripStatus(String tripId, double speedKmh, double progressPct, double totalDistanceM) {
         try {
             String current = jdbc.queryForObject(
                 "SELECT status FROM public.trips WHERE trip_id=?", String.class, tripId);
             if (current == null) return;
+            current = current.trim();
 
             String next = current;
-            if ("Not Started".equals(current) && speedKmh > 2) {
-                next = "In Progress";
-            } else if ("In Progress".equals(current) && progressPct >= 98.0 && totalDistanceM > 0) {
+            // Destination reached — highest priority, overrides Delayed too
+            if (("In Progress".equals(current) || "Delayed".equals(current))
+                    && progressPct >= 98.0 && totalDistanceM > 0) {
                 next = "Completed";
+            } else if (("Not Started".equals(current) || "Delayed".equals(current)) && speedKmh > 2) {
+                next = "In Progress";
             }
 
             if (!next.equals(current)) {

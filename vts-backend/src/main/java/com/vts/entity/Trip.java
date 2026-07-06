@@ -57,6 +57,9 @@ public class Trip {
     @Column(name = "status", length = 20)
     private String status = "Not Started";
 
+    @Column(name = "planned_end_time")
+    private OffsetDateTime plannedEndTime;
+
     @Column(name = "client_id")
     private Long clientId;
 
@@ -101,6 +104,8 @@ public class Trip {
     public void setDriverId(Integer v)            { this.driverId = v; }
     public String getStatus()                     { return status; }
     public void setStatus(String v)               { this.status = v; }
+    public OffsetDateTime getPlannedEndTime()      { return plannedEndTime; }
+    public void setPlannedEndTime(OffsetDateTime v){ this.plannedEndTime = v; }
     public Long getClientId()                     { return clientId; }
     public void setClientId(Long v)               { this.clientId = v; }
     public String getCreatedBy()                  { return createdBy; }

@@ -66,8 +66,10 @@ public class TripService {
         trip.setCustomPolyline(req.getCustomPolyline());
         trip.setDriverId(req.getDriverId());
         trip.setStatus("Not Started");
-        trip.setCreatedAt(OffsetDateTime.now());
-        trip.setUpdatedAt(OffsetDateTime.now());
+        OffsetDateTime now = OffsetDateTime.now();
+        trip.setCreatedAt(now);
+        trip.setUpdatedAt(now);
+        trip.setPlannedEndTime(parsePlannedEndTime(req.getDuration(), now));
         if (client != null) {
             trip.setClientId(vehicle.getClientId());
             trip.setCreatedBy(client.getUsername());
@@ -80,7 +82,6 @@ public class TripService {
         if (client == null) return List.of();
         if (authService.isSuperAdmin(client)) return tripRepository.findAll();
         if (authService.isAdmin(client)) return tripRepository.findByVehicleOrgId(client.getOrgId());
-        // For clients: find trips by vehicle ownership (handles trips created by admin on their behalf)
         return tripRepository.findByVehicleClientId(client.getId());
     }
 
@@ -121,7 +122,11 @@ public class TripService {
         if (req.getEndLat()         != null) trip.setEndLat(req.getEndLat());
         if (req.getEndLng()         != null) trip.setEndLng(req.getEndLng());
         if (req.getDistanceKm()     != null) trip.setDistanceKm(req.getDistanceKm());
-        if (req.getDuration()       != null) trip.setDuration(req.getDuration());
+        if (req.getDuration()       != null) {
+            trip.setDuration(req.getDuration());
+            // Recalculate planned end time when duration changes
+            trip.setPlannedEndTime(parsePlannedEndTime(req.getDuration(), trip.getCreatedAt()));
+        }
         if (req.getCustomPolyline() != null) trip.setCustomPolyline(req.getCustomPolyline());
         trip.setUpdatedAt(java.time.OffsetDateTime.now());
         return tripRepository.save(trip);
@@ -133,7 +138,6 @@ public class TripService {
         if (vehicleId == null || driverId == null) {
             throw new IllegalArgumentException("Vehicle and driver are required");
         }
-
         var vehicle = vehicleRepository.findByLicensePlate(vehicleId)
                 .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
         var driver = driverRepository.findById(driverId.longValue())
@@ -146,12 +150,12 @@ public class TripService {
         if (!associationRepository.existsActiveVehicleDriverAssociation(vehicleId, driverId)) {
             throw new IllegalArgumentException("Selected vehicle does not have a completed driver association");
         }
-
         trip.setVehicleId(vehicleId);
         trip.setDriverId(driverId);
         trip.setDriverName(req.getDriverName() != null ? req.getDriverName() : driver.getDriverName());
         trip.setClientId(vehicle.getClientId());
     }
+
     public void deleteTrip(Long id) {
         Trip trip = tripRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Trip not found: " + id));
@@ -164,5 +168,26 @@ public class TripService {
                 .orElseThrow(() -> new IllegalArgumentException("Trip vehicle not found"));
         authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
     }
-}
 
+    /**
+     * Parse OSRM duration strings like "2.5 hrs", "45 mins", "1 hr 30 mins"
+     * and return base + parsed duration as the planned end time.
+     */
+    static OffsetDateTime parsePlannedEndTime(String duration, OffsetDateTime base) {
+        if (duration == null || duration.isBlank() || base == null) return null;
+        try {
+            String d = duration.trim().toLowerCase();
+            double totalMinutes = 0;
+            java.util.regex.Matcher hm = java.util.regex.Pattern.compile("([\\d.]+)\\s*hr").matcher(d);
+            if (hm.find()) totalMinutes += Double.parseDouble(hm.group(1)) * 60;
+            java.util.regex.Matcher mm = java.util.regex.Pattern.compile("([\\d.]+)\\s*min").matcher(d);
+            if (mm.find()) totalMinutes += Double.parseDouble(mm.group(1));
+            if (totalMinutes == 0) {
+                java.util.regex.Matcher nm = java.util.regex.Pattern.compile("^([\\d.]+)$").matcher(d);
+                if (nm.find()) totalMinutes = Double.parseDouble(nm.group(1)) * 60;
+            }
+            if (totalMinutes <= 0) return null;
+            return base.plusSeconds((long)(totalMinutes * 60));
+        } catch (Exception e) { return null; }
+    }
+}
