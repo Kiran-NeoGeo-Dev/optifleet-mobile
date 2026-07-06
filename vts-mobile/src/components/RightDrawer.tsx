@@ -30,16 +30,54 @@ interface Props {
   onMyProfile: () => void;
 }
 
-// ── Full-screen info page (always mounted, controlled by visible prop) ────────
+// ── Full-screen info page ────────────────────────────────────────────────────
 const InfoPage = ({
-  visible, title, subtitle, icon, onClose, children,
+  visible, title, subtitle, icon, onClose, children, variant,
 }: {
   visible: boolean; title: string; subtitle: string;
   icon: any; onClose: () => void; children: React.ReactNode;
-}) => (
+  variant: "about" | "contact" | "privacy";
+}) => {
+  // Each page gets a unique header shape decoration
+  const renderHeaderShape = () => {
+    if (variant === "about") {
+      // Rectangle style — grid of small squares
+      return (
+        <>
+          <View style={[ip.aboutSq, { top: 18, right: 24, width: 36, height: 36, borderRadius: 6 }]} />
+          <View style={[ip.aboutSq, { top: 44, right: 70, width: 20, height: 20, borderRadius: 3 }]} />
+          <View style={[ip.aboutSq, { top: 72, right: 30, width: 14, height: 14, borderRadius: 2 }]} />
+          <View style={[ip.aboutSq, { top: 28, right: 110, width: 10, height: 10, borderRadius: 2 }]} />
+          <View style={[ip.aboutSq, { top: 90, right: 90, width: 24, height: 24, borderRadius: 4 }]} />
+        </>
+      );
+    }
+    if (variant === "contact") {
+      // Round style — large translucent circles stacked
+      return (
+        <>
+          <View style={ip.contactCircle1} />
+          <View style={ip.contactCircle2} />
+          <View style={ip.contactCircle3} />
+          <View style={ip.contactCircle4} />
+        </>
+      );
+    }
+    // privacy — diagonal slash
+    return (
+      <>
+        <View style={ip.privacySlash1} />
+        <View style={ip.privacySlash2} />
+        <View style={ip.privacySlash3} />
+        <View style={ip.privacyDot1} />
+        <View style={ip.privacyDot2} />
+      </>
+    );
+  };
+
+  return (
   <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
     <View style={{ flex: 1, backgroundColor: "#F0F4FF" }}>
-      {/* Curved blue header — same as AdminProfileScreen / ClientDetailsScreen */}
       <View style={ip.headerBg}>
         <LinearGradient
           colors={[C.bgDark, C.bgMid, C.blue]}
@@ -47,27 +85,37 @@ const InfoPage = ({
           start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
+        {renderHeaderShape()}
+        {/* Bottom edge shape per variant */}
+        {variant === "about"   && <View style={ip.aboutBottomEdge} />}
+        {variant === "contact" && <View style={ip.contactBottomEdge} />}
+        {variant === "privacy" && <View style={ip.privacyBottomEdge} />}
       </View>
+
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-        {/* Nav row */}
         <View style={ip.navRow}>
           <TouchableOpacity style={ip.backBtn} onPress={onClose} activeOpacity={0.8}>
-            <Ionicons name="chevron-back" size={22} color={C.white} />
+            <Ionicons name="chevron-back" size={20} color={C.white} />
           </TouchableOpacity>
           <Text style={ip.navTitle}>{title}</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: 36 }} />
         </View>
 
-        {/* Hero */}
         <View style={ip.hero}>
-          <View style={ip.heroIconRing}>
-            <Ionicons name={icon} size={30} color={C.white} />
+          <View style={[
+            ip.heroIconRing,
+            variant === "about"   && ip.heroIconSquare,
+            variant === "contact" && ip.heroIconCircle,
+            variant === "privacy" && ip.heroIconDiamond,
+          ]}>
+            <View style={variant === "privacy" ? { transform: [{ rotate: "-45deg" }] } : undefined}>
+              <Ionicons name={icon} size={24} color={C.white} />
+            </View>
           </View>
           <Text style={ip.heroTitle}>{title}</Text>
           <Text style={ip.heroSub}>{subtitle}</Text>
         </View>
 
-        {/* White card — overlaps header bottom */}
         <ScrollView contentContainerStyle={ip.scroll} showsVerticalScrollIndicator={false}>
           <View style={ip.card}>
             {children}
@@ -76,7 +124,8 @@ const InfoPage = ({
       </SafeAreaView>
     </View>
   </Modal>
-);
+  );
+};
 
 // ── Section divider ───────────────────────────────────────────────────────────
 const Sect = ({ label }: { label: string }) => (
@@ -307,6 +356,7 @@ const RightDrawer = ({ visible, onClose, onMyProfile }: Props) => {
           title="About Us"
           subtitle='"Vigilance Over Movement"'
           icon="shield-checkmark-outline"
+          variant="about"
           onClose={() => setAboutVisible(false)}
         >
         <Text style={ip.body}>
@@ -343,6 +393,7 @@ const RightDrawer = ({ visible, onClose, onMyProfile }: Props) => {
           title="Contact Us"
           subtitle="We'd love to hear from you"
           icon="call-outline"
+          variant="contact"
           onClose={() => setContactVisible(false)}
         >
         <Sect label="Neogeoinfo Technologies Limited" />
@@ -415,6 +466,7 @@ const RightDrawer = ({ visible, onClose, onMyProfile }: Props) => {
           title="Privacy Policy"
           subtitle="Your privacy is our priority"
           icon="lock-closed-outline"
+          variant="privacy"
           onClose={() => setPrivacyVisible(false)}
         >
         {([
@@ -491,46 +543,72 @@ const d = StyleSheet.create({
 
 // ── InfoPage styles ───────────────────────────────────────────────────────────
 const ip = StyleSheet.create({
-  headerBg:    { position: "absolute", top: 0, left: -40, right: -40, height: 260, overflow: "hidden", borderBottomLeftRadius: 180, borderBottomRightRadius: 180 },
-  navRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
-  backBtn:     { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
-  navTitle:    { fontSize: 18, fontWeight: "800", color: "#fff" },
-  hero:        { alignItems: "center", paddingTop: 6, paddingBottom: 48 },
-  heroIconRing:{ width: 68, height: 68, borderRadius: 34, backgroundColor: "rgba(255,255,255,0.20)", borderWidth: 2, borderColor: "rgba(255,255,255,0.50)", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  heroTitle:   { fontSize: 22, fontWeight: "800", color: "#fff", marginBottom: 6 },
-  heroSub:     { fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: "500", fontStyle: "italic" },
-  scroll:      { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 40 },
-  card:        { backgroundColor: "#fff", borderRadius: 20, padding: 20, marginTop: 0, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  // Shared header bg — flat rectangle base
+  headerBg:         { position: "absolute", top: 0, left: 0, right: 0, height: 210, overflow: "hidden" },
 
-  sectWrap:    { marginTop: 20, marginBottom: 12 },
-  sectTxt:     { fontSize: 12, fontWeight: "800", color: "#1565C0", textTransform: "uppercase", letterSpacing: 1.0, marginBottom: 6 },
+  // ── About Us — Rectangle style: floating squares (no left accent bar)
+  aboutSq:          { position: "absolute", backgroundColor: "rgba(255,255,255,0.10)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
+  aboutBottomEdge:  { position: "absolute", bottom: 0, left: 0, right: 0, height: 0, backgroundColor: "#F0F4FF" },
+
+  // ── Contact Us — Round style: large overlapping circles ──
+  contactCircle1:   { position: "absolute", top: -40,  right: -40,  width: 160, height: 160, borderRadius: 80,  backgroundColor: "rgba(255,255,255,0.07)" },
+  contactCircle2:   { position: "absolute", top: 40,   right: -20,  width: 110, height: 110, borderRadius: 55,  backgroundColor: "rgba(255,255,255,0.06)" },
+  contactCircle3:   { position: "absolute", top: 100,  right: 60,   width: 70,  height: 70,  borderRadius: 35,  backgroundColor: "rgba(255,255,255,0.05)" },
+  contactCircle4:   { position: "absolute", top: -20,  right: 100,  width: 50,  height: 50,  borderRadius: 25,  backgroundColor: "rgba(255,255,255,0.08)" },
+  contactBottomEdge:{ position: "absolute", bottom: 0, left: 0, right: 0, height: 0, borderTopLeftRadius: 32, borderTopRightRadius: 32, backgroundColor: "#F0F4FF" },
+
+  // ── Privacy Policy — Diagonal slash style ──
+  privacySlash1:    { position: "absolute", top: -10, right: -30, width: 220, height: 8,  backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-18deg" }] },
+  privacySlash2:    { position: "absolute", top: 40,  right: -40, width: 260, height: 5,  backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-18deg" }] },
+  privacySlash3:    { position: "absolute", top: 80,  right: -20, width: 180, height: 4,  backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] },
+  privacyDot1:      { position: "absolute", top: 30,  right: 40,  width: 10, height: 10, borderRadius: 5, backgroundColor: "rgba(255,255,255,0.22)" },
+  privacyDot2:      { position: "absolute", top: 70,  right: 80,  width: 6,  height: 6,  borderRadius: 3, backgroundColor: "rgba(255,255,255,0.18)" },
+  privacyBottomEdge:{ position: "absolute", bottom: -1, left: -10, right: -10, height: 0, backgroundColor: "#F0F4FF", transform: [{ skewY: "-2.5deg" }] },
+
+  // ── Icon ring variants ──
+  heroIconRing:     { width: 54, height: 54, borderRadius: 27, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.40)", alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  heroIconSquare:   { borderRadius: 14 },
+  heroIconCircle:   { borderRadius: 27 },
+  heroIconDiamond:  { borderRadius: 8, transform: [{ rotate: "45deg" }] },
+
+  navRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
+  backBtn:     { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" },
+  navTitle:    { fontSize: 16, fontWeight: "800", color: "#fff" },
+  hero:        { alignItems: "center", paddingTop: 4, paddingBottom: 30 },
+  heroTitle:   { fontSize: 18, fontWeight: "800", color: "#fff", marginBottom: 4 },
+  heroSub:     { fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: "500", fontStyle: "italic" },
+  scroll:      { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 36 },
+  card:        { backgroundColor: "#fff", borderRadius: 16, padding: 16, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+
+  sectWrap:    { marginTop: 16, marginBottom: 10 },
+  sectTxt:     { fontSize: 11, fontWeight: "800", color: "#1565C0", textTransform: "uppercase", letterSpacing: 1.0, marginBottom: 5 },
   sectLine:    { height: 1, backgroundColor: "rgba(21,101,192,0.12)" },
 
-  body:        { fontSize: 14, color: "#1A2F4E", lineHeight: 22, marginBottom: 14 },
+  body:        { fontSize: 13, color: "#1A2F4E", lineHeight: 21, marginBottom: 12 },
   bold:        { fontWeight: "700", color: "#0D1B3E" },
 
-  taglineBox:  { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#EFF6FF", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 6, borderWidth: 1, borderColor: "rgba(21,101,192,0.12)" },
-  tagline:     { fontSize: 15, fontWeight: "800", color: "#1565C0", fontStyle: "italic", flex: 1 },
+  taglineBox:  { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#EFF6FF", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 6, borderWidth: 1, borderColor: "rgba(21,101,192,0.12)" },
+  tagline:     { fontSize: 14, fontWeight: "800", color: "#1565C0", fontStyle: "italic", flex: 1 },
   devRow:      { flexDirection: "row", alignItems: "center", gap: 12 },
-  devTxt:      { fontSize: 14, fontWeight: "700", color: "#0D1B3E" },
+  devTxt:      { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
 
-  cRow:        { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(13,27,62,0.06)" },
-  cIcon:       { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  cLabel:      { fontSize: 11, fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
-  cValue:      { fontSize: 14, fontWeight: "600", color: "#0D1B3E" },
+  cRow:        { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(13,27,62,0.06)" },
+  cIcon:       { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  cLabel:      { fontSize: 10, fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
+  cValue:      { fontSize: 13, fontWeight: "600", color: "#0D1B3E" },
 
-  addressCard: { backgroundColor: "#F8FAFF", borderRadius: 12, padding: 14, marginVertical: 8, borderWidth: 1, borderColor: "rgba(21,101,192,0.08)" },
-  addrIconRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  addrTitle:   { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
-  addrTxt:     { fontSize: 13, color: "#1A2F4E", lineHeight: 20, marginLeft: 50 },
+  addressCard: { backgroundColor: "#F8FAFF", borderRadius: 10, padding: 12, marginVertical: 6, borderWidth: 1, borderColor: "rgba(21,101,192,0.08)" },
+  addrIconRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
+  addrTitle:   { fontSize: 12, fontWeight: "700", color: "#0D1B3E" },
+  addrTxt:     { fontSize: 12, color: "#1A2F4E", lineHeight: 19, marginLeft: 48 },
 
-  noteBox:     { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#EFF6FF", borderRadius: 12, padding: 14, marginTop: 16, borderWidth: 1, borderColor: "rgba(21,101,192,0.12)" },
-  noteTxt:     { flex: 1, fontSize: 13, color: "#1A2F4E", lineHeight: 20 },
+  noteBox:     { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#EFF6FF", borderRadius: 10, padding: 12, marginTop: 14, borderWidth: 1, borderColor: "rgba(21,101,192,0.12)" },
+  noteTxt:     { flex: 1, fontSize: 12, color: "#1A2F4E", lineHeight: 19 },
 
-  pBlock:      { marginBottom: 14, borderRadius: 14, borderWidth: 1, borderColor: "rgba(13,27,62,0.07)", padding: 14, backgroundColor: "#FAFBFF" },
-  pHead:       { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
-  pHeadTxt:    { fontSize: 14, fontWeight: "800", color: "#0D1B3E" },
-  pBody:       { fontSize: 13, color: "#1A2F4E", lineHeight: 20 },
+  pBlock:      { marginBottom: 10, borderRadius: 12, borderWidth: 1, borderColor: "rgba(13,27,62,0.07)", padding: 12, backgroundColor: "#FAFBFF" },
+  pHead:       { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  pHeadTxt:    { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
+  pBody:       { fontSize: 12, color: "#1A2F4E", lineHeight: 19 },
 });
 
 export default RightDrawer;

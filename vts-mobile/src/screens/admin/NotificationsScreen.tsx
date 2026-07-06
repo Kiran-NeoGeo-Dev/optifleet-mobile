@@ -83,7 +83,7 @@ const NotificationsScreen = ({ navigation }: Props) => {
         {!item.read && <View style={[s.unreadDot, { backgroundColor: color }]} />}
         <View style={[s.leftBar, { backgroundColor: color }]} />
         <View style={[s.iconBox, { backgroundColor: color + "18" }]}>
-          <Text style={{ fontSize: 22 }}>{emoji}</Text>
+          <Text style={{ fontSize: 15 }}>{emoji}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <View style={s.cardTop}>
@@ -124,11 +124,11 @@ const NotificationsScreen = ({ navigation }: Props) => {
           <View style={s.headerActions}>
             {items.length > 0 && (
               <>
-                <TouchableOpacity onPress={markAllRead}>
-                  <Text style={s.actionTxt}>Mark all read</Text>
+                <TouchableOpacity style={s.markReadBtn} onPress={markAllRead}>
+                  <Text style={s.actionTxt}>Mark read</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={clearAll}>
-                  <Text style={[s.actionTxt, { color: "#F87171" }]}>Clear</Text>
+                <TouchableOpacity style={s.clearBtn} onPress={clearAll}>
+                  <Text style={s.clearTxt}>Clear</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -167,29 +167,32 @@ const s = StyleSheet.create({
   root:          { flex: 1, backgroundColor: "#F0F4FF" },
   headerBg:      { position: "absolute", top: 0, left: 0, right: 0, height: 130 },
   safe:          { flex: 1 },
-  header:        { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 10 },
-  backBtn:       { width: 38, height: 38, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  headerCenter:  { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle:   { fontSize: 20, fontWeight: "800", color: "#fff" },
-  badge:         { backgroundColor: "#EF4444", borderRadius: 10, minWidth: 22, height: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 5 },
-  badgeTxt:      { fontSize: 11, fontWeight: "800", color: "#fff" },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 10 },
-  actionTxt:     { fontSize: 12, fontWeight: "700", color: "#38BDF8" },
-  filterBtn:     { width: 34, height: 34, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  list:          { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 90 },
-  card:          { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, marginBottom: 10, padding: 14, gap: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  header:        { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 8 },
+  backBtn:       { width: 34, height: 34, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  headerCenter:  { flex: 1, flexDirection: "row", alignItems: "center", gap: 7 },
+  headerTitle:   { fontSize: 17, fontWeight: "800", color: "#fff" },
+  badge:         { backgroundColor: "#EF4444", borderRadius: 9, minWidth: 20, height: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 5 },
+  badgeTxt:      { fontSize: 10, fontWeight: "800", color: "#fff" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 6 },
+  actionTxt:     { fontSize: 11, fontWeight: "700", color: "#fff" },
+  markReadBtn:   { backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 7, paddingHorizontal: 9, paddingVertical: 5 },
+  clearBtn:      { backgroundColor: "rgba(239,68,68,0.25)", borderRadius: 7, paddingHorizontal: 9, paddingVertical: 5 },
+  clearTxt:      { fontSize: 11, fontWeight: "700", color: "#FCA5A5" },
+  filterBtn:     { width: 30, height: 30, borderRadius: 7, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  list:          { paddingHorizontal: 12, paddingTop: 6, paddingBottom: 90 },
+  card:          { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 12, marginBottom: 6, paddingVertical: 7, paddingHorizontal: 10, gap: 8, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   cardUnread:    { backgroundColor: "#F8FAFF" },
-  unreadDot:     { position: "absolute", left: 6, top: "50%", width: 8, height: 8, borderRadius: 4, marginTop: -4 },
-  leftBar:       { width: 3, height: 44, borderRadius: 2 },
-  iconBox:       { width: 46, height: 46, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  cardTop:       { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 3 },
-  cardTitle:     { fontSize: 14, fontWeight: "800", color: "#0D1B3E" },
-  cardTime:      { fontSize: 12, color: "#1565C0", fontWeight: "600" },
-  cardVehicle:   { fontSize: 12, color: "#374151", fontWeight: "600", marginBottom: 2 },
-  cardDetail:    { fontSize: 11, color: "#6B7280" },
+  unreadDot:     { position: "absolute", left: 5, top: "50%", width: 6, height: 6, borderRadius: 3, marginTop: -3 },
+  leftBar:       { width: 3, height: 28, borderRadius: 2 },
+  iconBox:       { width: 32, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  cardTop:       { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 1 },
+  cardTitle:     { fontSize: 12, fontWeight: "800", color: "#0D1B3E" },
+  cardTime:      { fontSize: 10, color: "#6B7280", fontWeight: "600" },
+  cardVehicle:   { fontSize: 10, color: "#374151", fontWeight: "600", marginBottom: 1 },
+  cardDetail:    { fontSize: 10, color: "#6B7280" },
   center:        { flex: 1, alignItems: "center", justifyContent: "center" },
   empty:         { alignItems: "center", paddingTop: 80, gap: 12 },
-  emptyTxt:      { fontSize: 15, color: "rgba(255,255,255,0.5)", fontWeight: "600" },
+  emptyTxt:      { fontSize: 14, color: "rgba(255,255,255,0.5)", fontWeight: "600" },
 });
 
 export default NotificationsScreen;

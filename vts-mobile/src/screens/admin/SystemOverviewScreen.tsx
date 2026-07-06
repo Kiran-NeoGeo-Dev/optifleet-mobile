@@ -58,24 +58,24 @@ const SystemOverviewScreen = ({ navigation }: Props) => {
   });
 
   const summaryCards = summary ? [
-    { label: "Organizations", value: summary.organizations, accent: "#2563EB", icon: "layers-outline" },
-    { label: "Users", value: summary.totalUsers, accent: "#0EA5E9", icon: "people-outline" },
+    { label: "Organizations", value: summary.organizations, accent: "#DC2626", icon: "layers-outline" },
+    { label: "Users", value: summary.totalUsers, accent: "#F97316", icon: "people-outline" },
     { label: "Devices", value: summary.totalDevices, accent: "#10B981", icon: "phone-portrait-outline" },
-    { label: "Vehicles", value: summary.totalVehicles, accent: "#F97316", icon: "car-outline" },
-    { label: "Drivers", value: summary.totalDrivers, accent: "#8B5CF6", icon: "person-outline" },
+    { label: "Vehicles", value: summary.totalVehicles, accent: "#8B5CF6", icon: "car-outline" },
+    { label: "Drivers", value: summary.totalDrivers, accent: "#EC4899", icon: "person-outline" },
   ] : [];
 
   const renderSummaryCard = ({ label, value, accent, icon }: { label: string; value: number; accent: string; icon: string }) => (
     <View style={styles.summaryCard}>
-      <LinearGradient colors={[accent, accent + "BB"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.summaryGrad}>
-        <Ionicons name={icon as any} size={20} color="rgba(255,255,255,0.85)" />
+      <LinearGradient colors={[accent, accent + "CC"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.summaryGrad}>
+        <Ionicons name={icon as any} size={18} color="rgba(255,255,255,0.90)" />
         <Text style={styles.summaryValue}>{value}</Text>
       </LinearGradient>
       <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
 
-  const ORG_ACCENTS = ["#1A3CC8", "#10B981", "#F97316", "#8B5CF6", "#EC4899", "#0EA5E9"];
+  const ORG_ACCENTS = ["#DC2626", "#10B981", "#F97316", "#8B5CF6", "#EC4899", "#7C3AED"];
 
   const renderOrganizationCard = ({ item, index }: { item: OrganizationOverview; index: number }) => {
     const accent = ORG_ACCENTS[index % ORG_ACCENTS.length];
@@ -144,7 +144,7 @@ const SystemOverviewScreen = ({ navigation }: Props) => {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
+            <Ionicons name="chevron-back" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerText}> 
             <Text style={styles.title}>System Overview</Text>
@@ -154,7 +154,7 @@ const SystemOverviewScreen = ({ navigation }: Props) => {
 
         <View style={styles.content}>
           <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={18} color="#6B7280" style={{ marginRight: 10 }} />
+            <Ionicons name="search-outline" size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search by name, username or org ID..."
@@ -164,8 +164,8 @@ const SystemOverviewScreen = ({ navigation }: Props) => {
               autoCapitalize="none"
             />
             {query.length > 0 && (
-              <TouchableOpacity onPress={() => setQuery("")}> 
-                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              <TouchableOpacity onPress={() => setQuery("")} style={{ marginLeft: 6 }}>
+                <Ionicons name="close-circle" size={16} color="#9CA3AF" />
               </TouchableOpacity>
             )}
           </View>
@@ -237,62 +237,63 @@ const SystemOverviewScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0A1F44" },
   safeArea: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14 },
-  backButton: { width: 36, height: 36, borderRadius: 11, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", marginRight: 10 },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 },
+  backButton: { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center", marginRight: 10 },
   headerText: { flex: 1 },
-  title: { fontSize: 18, fontWeight: "800", color: "#fff" },
-  subtitle: { fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 2, lineHeight: 16 },
-  content: { flex: 1, backgroundColor: "#F0F4FF", borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 14, paddingTop: 14 },
+  title: { fontSize: 17, fontWeight: "800", color: "#fff" },
+  subtitle: { fontSize: 10, color: "rgba(255,255,255,0.75)", marginTop: 2, lineHeight: 14 },
+  content: { flex: 1, backgroundColor: "#F0F4FF", borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 12, paddingTop: 12 },
 
   // Search bar — warm tone matching TripManagement & FleetDrivers
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 10, paddingHorizontal: 10, height: 40, marginBottom: 12, borderWidth: 1, borderColor: "#F0C080", shadowColor: "#7A4010", shadowOpacity: 0.07, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 10, paddingHorizontal: 10, height: 38, marginBottom: 10, borderWidth: 1, borderColor: "#F0C080", shadowColor: "#7A4010", shadowOpacity: 0.07, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   searchInput: { flex: 1, fontSize: 12, color: "#2B1D0E" },
 
   // Key Metrics section
-  summarySection: { backgroundColor: "#fff", borderRadius: 14, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  summaryHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  summarySectionTitle: { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
-  summarySectionSubtitle: { fontSize: 11, color: "#6B7280" },
-  summaryList: { paddingVertical: 2, paddingRight: 6 },
+  summarySection: { backgroundColor: "#fff", borderRadius: 12, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  summaryHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  summarySectionTitle: { fontSize: 12, fontWeight: "800", color: "#0D1B3E" },
+  summarySectionSubtitle: { fontSize: 10, color: "#6B7280" },
+  summaryList: { paddingVertical: 2, paddingHorizontal: 0 },
 
   // Key Metric cards — gradient top + white count + label below
-  summaryCard:    { width: 90, backgroundColor: "#fff", borderRadius: 12, marginRight: 8, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
-  summaryGrad:    { paddingVertical: 12, paddingHorizontal: 10, alignItems: "center", gap: 6 },
-  summaryValue:   { fontSize: 24, fontWeight: "900", color: "#fff" },
-  summaryLabel:   { fontSize: 9, color: "#6B7280", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center", paddingVertical: 7, paddingHorizontal: 6 },
+  // widen cards so longer labels (e.g. "Organizations") don't wrap awkwardly
+  summaryCard:    { width: 84, backgroundColor: "#fff", borderRadius: 8, marginHorizontal: 4, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  summaryGrad:    { paddingVertical: 8, paddingHorizontal: 6, alignItems: "center", gap: 3 },
+  summaryValue:   { fontSize: 18, fontWeight: "900", color: "#fff" },
+  summaryLabel:   { fontSize: 7, color: "#6B7280", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3, textAlign: "center", paddingVertical: 5, paddingHorizontal: 3 },
 
-  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 2, marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontWeight: "800", color: "#0D1B3E" },
-  sectionCount: { fontSize: 11, color: "#6B7280" },
-  orgList: { paddingBottom: 40 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 2, marginBottom: 6 },
+  sectionTitle: { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
+  sectionCount: { fontSize: 10, color: "#6B7280" },
+  orgList: { paddingBottom: 36 },
 
   // Org cards — compact with colored left border per card
-  orgCard: { backgroundColor: "#fff", borderRadius: 12, padding: 12, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2, borderLeftWidth: 4, borderLeftColor: "#1A3CC8" },
-  orgCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  orgTitle: { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
-  orgSubtitle: { fontSize: 11, color: "#6B7280", marginTop: 2 },
-  orgTag: { borderRadius: 8, backgroundColor: "#EFF6FF", paddingHorizontal: 8, paddingVertical: 3 },
-  orgTagText: { fontSize: 10, color: "#1A3CC8", fontWeight: "700" },
-  orgMetaRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  metaLabelBox: { flex: 1, backgroundColor: "#F0F4FF", borderRadius: 9, padding: 9 },
-  metaLabel: { fontSize: 9, fontWeight: "700", color: "#6B7280", marginBottom: 3 },
-  metaValue: { fontSize: 12, fontWeight: "800", color: "#0D1B3E" },
-  metaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  createdAtLabel: { fontSize: 11, color: "#6B7280" },
-  createdAtValue: { fontSize: 11, color: "#0D1B3E", fontWeight: "700" },
-  statsRow: { flexDirection: "row", justifyContent: "space-between", gap: 8, marginBottom: 8 },
-  statBox: { flex: 1, backgroundColor: "#F0F4FF", borderRadius: 10, paddingVertical: 10, alignItems: "center" },
-  statNumber: { fontSize: 15, fontWeight: "800", color: "#0D1B3E" },
-  statText: { fontSize: 10, color: "#6B7280", marginTop: 2 },
+  orgCard: { backgroundColor: "#fff", borderRadius: 10, padding: 8, marginBottom: 6, shadowColor: "#000", shadowOpacity: 0.03, shadowRadius: 5, shadowOffset: { width: 0, height: 1 }, elevation: 1, borderLeftWidth: 3, borderLeftColor: "#1A3CC8" },
+  orgCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  orgTitle: { fontSize: 11, fontWeight: "800", color: "#0D1B3E" },
+  orgSubtitle: { fontSize: 9, color: "#6B7280", marginTop: 1 },
+  orgTag: { borderRadius: 5, backgroundColor: "#EFF6FF", paddingHorizontal: 5, paddingVertical: 2 },
+  orgTagText: { fontSize: 8, color: "#1A3CC8", fontWeight: "700" },
+  orgMetaRow: { flexDirection: "row", gap: 5, marginBottom: 6 },
+  metaLabelBox: { flex: 1, backgroundColor: "#F0F4FF", borderRadius: 6, padding: 6 },
+  metaLabel: { fontSize: 8, fontWeight: "700", color: "#6B7280", marginBottom: 2 },
+  metaValue: { fontSize: 10, fontWeight: "800", color: "#0D1B3E" },
+  metaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
+  createdAtLabel: { fontSize: 9, color: "#6B7280" },
+  createdAtValue: { fontSize: 9, color: "#0D1B3E", fontWeight: "700" },
+  statsRow: { flexDirection: "row", justifyContent: "space-between", gap: 5, marginBottom: 5 },
+  statBox: { flex: 1, backgroundColor: "#F0F4FF", borderRadius: 6, paddingVertical: 6, alignItems: "center" },
+  statNumber: { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },
+  statText: { fontSize: 8, color: "#6B7280", marginTop: 1 },
 
   emptyState: { marginTop: 36, alignItems: "center", justifyContent: "center" },
-  emptyText: { marginTop: 12, fontSize: 13, color: "#6B7280", textAlign: "center", lineHeight: 20, maxWidth: 240 },
-  skeletonContainer: { gap: 10 },
-  skeletonCard: { backgroundColor: "#fff", borderRadius: 12, padding: 12, borderLeftWidth: 4, borderLeftColor: "#E5E7EB" },
-  skeletonTitle: { height: 13, width: "55%", backgroundColor: "#E5E7EB", borderRadius: 6, marginBottom: 8 },
-  skeletonLine: { height: 10, width: "35%", backgroundColor: "#F3F4F6", borderRadius: 5, marginBottom: 14 },
-  skeletonRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  skeletonBox: { flex: 1, height: 48, backgroundColor: "#F3F4F6", borderRadius: 10 },
+  emptyText: { marginTop: 12, fontSize: 12, color: "#6B7280", textAlign: "center", lineHeight: 18, maxWidth: 240 },
+  skeletonContainer: { gap: 8 },
+  skeletonCard: { backgroundColor: "#fff", borderRadius: 12, padding: 10, borderLeftWidth: 3, borderLeftColor: "#E5E7EB" },
+  skeletonTitle: { height: 12, width: "55%", backgroundColor: "#E5E7EB", borderRadius: 6, marginBottom: 6 },
+  skeletonLine: { height: 9, width: "35%", backgroundColor: "#F3F4F6", borderRadius: 5, marginBottom: 12 },
+  skeletonRow: { flexDirection: "row", gap: 6, marginBottom: 6 },
+  skeletonBox: { flex: 1, height: 40, backgroundColor: "#F3F4F6", borderRadius: 8 },
 });
 
 export default SystemOverviewScreen;
