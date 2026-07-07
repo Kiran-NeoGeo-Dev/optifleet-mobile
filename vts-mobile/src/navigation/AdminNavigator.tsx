@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AdminDashboardScreen from "../screens/admin/AdminDashboardScreen";
 import AdminProfileScreen   from "../screens/admin/AdminProfileScreen";
@@ -117,7 +116,7 @@ const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
             >
               <Ionicons
                 name={tab.icon as any}
-                size={22}
+                size={20}
                 color={isActive ? "#1565C0" : "#9CA3AF"}
               />
               <Text style={[tb.tabLabel, isActive && tb.tabLabelActive]}>{tab.label}</Text>
@@ -135,7 +134,7 @@ const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
       activeOpacity={0.85}
     >
       <View style={tb.fab}>
-        <Ionicons name="add" size={26} color="#fff" />
+        <Ionicons name="add" size={22} color="#fff" />
       </View>
     </TouchableOpacity>
 
@@ -153,7 +152,7 @@ const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
             >
               <Ionicons
                 name={tab.icon as any}
-                size={22}
+                size={20}
                 color={isActive ? "#1565C0" : "#9CA3AF"}
               />
               <Text style={[tb.tabLabel, isActive && tb.tabLabelActive]}>{tab.label}</Text>
@@ -264,28 +263,28 @@ const tb = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 70,
+    height: 60,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     shadowColor: "#000",
-    shadowOpacity: 0.10,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 12,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   leftSection: {
     flex: 1,
-    height: 56,
+    height: 48,
     backgroundColor: "transparent",
   },
   rightSection: {
     flex: 1,
-    height: 56,
+    height: 48,
     backgroundColor: "transparent",
   },
   leftBar: {
@@ -303,9 +302,9 @@ const tb = StyleSheet.create({
   tabItem: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 2,
-    width: 70,
-    height: 56,
+    gap: 1,
+    width: 64,
+    height: 48,
   },
   tabLabel: {
     fontSize: 10,
@@ -319,31 +318,31 @@ const tb = StyleSheet.create({
   },
   tabIndicator: {
     position: "absolute",
-    bottom: 4,
-    width: 20,
-    height: 3,
-    borderRadius: 2,
+    bottom: 3,
+    width: 16,
+    height: 2,
+    borderRadius: 1,
     backgroundColor: "#1565C0",
   },
   fabContainer: {
-    width: 64,
-    height: 64,
+    width: 56,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#1565C0",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#1565C0",
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
-    borderWidth: 4,
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+    borderWidth: 3,
     borderColor: "#fff",
   },
 });

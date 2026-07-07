@@ -332,12 +332,12 @@ const styles = StyleSheet.create({
   gridH:          { position: "absolute", left: 0, right: 0, height: 1, backgroundColor: "rgba(255,255,255,0.025)" },
 
   header:         { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, gap: 0 },
-  backBtn:        { width: 42, height: 42, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  backBtn:        { width: 36, height: 36, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
   headerTitle:    { fontSize: 15, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
   headerSub:      { fontSize: 11, color: "rgba(255,255,255,0.60)", marginTop: 2 },
   deviationBadge: { backgroundColor: "#EF4444", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginRight: 8 },
   deviationText:  { color: "#fff", fontSize: 10, fontWeight: "800" },
-  bellBtn:        { width: 42, height: 42, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginLeft: 8 },
+  bellBtn:        { width: 36, height: 36, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginLeft: 8 },
   bellBadge:      { position: "absolute", top: -4, right: -4, backgroundColor: "#EF4444", borderRadius: 9, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 2, borderColor: "#0A1F44" },
   bellBadgeTxt:   { fontSize: 9, fontWeight: "800", color: "#fff", lineHeight: 13 },
 

@@ -84,7 +84,7 @@ const FleetDriversScreen = ({ navigation }: Props) => {
           ? item.photoFront! : `data:image/jpeg;base64,${item.photoFront}`)
       : null;
 
-    const scoreNum = item.safetyScore != null ? item.safetyScore : 0;
+    const scoreNum = item.safetyScore != null ? item.safetyScore : 100;
     return (
       <TouchableOpacity
         style={s.card}
@@ -224,13 +224,13 @@ const FleetDriversScreen = ({ navigation }: Props) => {
 
 const s = StyleSheet.create({
   root:        { flex: 1, backgroundColor: "#F0F4FF" },
-  header:      { paddingHorizontal: 16, paddingBottom: 14 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: "#fff", marginTop: 6 },
-  headerSub:   { fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 1, marginBottom: 10 },
-  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6, gap: 6, borderWidth: 1, borderColor: "#F0C080" },
-  searchInput: { flex: 1, fontSize: 12, color: "#1F2937" },
+  header:      { paddingHorizontal: 16, paddingBottom: 10 },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: "#fff", marginTop: 4 },
+  headerSub:   { fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 1, marginBottom: 8 },
+  searchBox:   { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 10, paddingHorizontal: 10, height: 40, gap: 6, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)" },
+  searchInput: { flex: 1, fontSize: 12, color: "#2B1D0E" },
   tabs:        { flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
-  tab:         { flex: 1, alignItems: "center", paddingVertical: 8, position: "relative" },
+  tab:         { flex: 1, alignItems: "center", paddingVertical: 7, position: "relative" },
   tabActive:   {},
   tabTxt:      { fontSize: 13, fontWeight: "600", color: "#6B7280" },
   tabTxtActive:      { color: "#1A3CC8", fontWeight: "800" },

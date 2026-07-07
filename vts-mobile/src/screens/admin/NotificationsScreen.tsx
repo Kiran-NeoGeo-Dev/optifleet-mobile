@@ -165,7 +165,7 @@ const NotificationsScreen = ({ navigation }: Props) => {
 
 const s = StyleSheet.create({
   root:          { flex: 1, backgroundColor: "#F0F4FF" },
-  headerBg:      { position: "absolute", top: 0, left: 0, right: 0, height: 130 },
+  headerBg:      { position: "absolute", top: 0, left: 0, right: 0, height: 110 },
   safe:          { flex: 1 },
   header:        { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 8 },
   backBtn:       { width: 34, height: 34, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },

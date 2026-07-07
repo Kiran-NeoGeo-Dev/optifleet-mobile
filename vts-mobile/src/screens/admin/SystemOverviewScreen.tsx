@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, backgroundColor: "#F0F4FF", borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 12, paddingTop: 12 },
 
   // Search bar — warm tone matching TripManagement & FleetDrivers
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#FDE8C8", borderRadius: 10, paddingHorizontal: 10, height: 38, marginBottom: 10, borderWidth: 1, borderColor: "#F0C080", shadowColor: "#7A4010", shadowOpacity: 0.07, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 10, paddingHorizontal: 10, height: 38, marginBottom: 10, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)", elevation: 2 },
   searchInput: { flex: 1, fontSize: 12, color: "#2B1D0E" },
 
   // Key Metrics section

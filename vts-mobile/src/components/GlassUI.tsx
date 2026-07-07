@@ -33,11 +33,11 @@ export const PageHeader = ({ title, subtitle, onBack }: { title: string; subtitl
 );
 
 const hStyles = StyleSheet.create({
-  row:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
-  backBtn: { width: 42, height: 42, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+  row:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
   center:  { flex: 1, alignItems: "center" },
-  title:   { fontSize: 20, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
-  sub:     { fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 2 },
+  title:   { fontSize: 17, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
+  sub:     { fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 2 },
 });
 
 // ─── Glass Field ──────────────────────────────────────────────────────────────
@@ -105,7 +105,7 @@ export const GlassToggle = ({ value, onChange }: { value: "ACTIVE" | "INACTIVE";
 
 const tStyles = StyleSheet.create({
   row:        { flexDirection: "row", gap: 10 },
-  btn:        { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: "#F3F4F6", borderWidth: 1.5, borderColor: "#D1D5DB" },
+  btn:        { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: "#F3F4F6", borderWidth: 1.5, borderColor: "#D1D5DB" },
   activeOn:   { backgroundColor: "#DCFCE7", borderColor: "#22C55E" },
   inactiveOn: { backgroundColor: "#FEE2E2", borderColor: "#EF4444" },
   txt:        { fontSize: 14, fontWeight: "700", color: "#6B7280" },
@@ -125,7 +125,7 @@ export const FuelSelector = ({ value, onChange }: { value: string; onChange: (v:
 
 const fuStyles = StyleSheet.create({
   row:    { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  btn:    { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: "#F3F4F6", borderWidth: 1, borderColor: "rgba(0,0,0,0.10)" },
+  btn:    { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: "#F3F4F6", borderWidth: 1, borderColor: "rgba(0,0,0,0.10)" },
   active: { backgroundColor: "rgba(21,101,192,0.12)", borderColor: "rgba(21,101,192,0.40)" },
   txt:    { fontSize: 13, fontWeight: "600", color: "#6B7280" },
 });
@@ -144,8 +144,8 @@ export const GlassButton = ({ label, onPress, loading, color, icon }: { label: s
 );
 
 const bStyles = StyleSheet.create({
-  btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", borderRadius: 14, paddingVertical: 16, marginTop: 8 },
-  txt: { fontSize: 16, fontWeight: "800", color: COLORS.white, letterSpacing: 0.3 },
+  btn: { flexDirection: "row", alignItems: "center", justifyContent: "center", borderRadius: 11, paddingVertical: 11, marginTop: 4 },
+  txt: { fontSize: 14, fontWeight: "800", color: COLORS.white, letterSpacing: 0.3 },
 });
 
 // ─── Form Screen Wrapper ──────────────────────────────────────────────────────
@@ -187,14 +187,14 @@ const fsStyles = StyleSheet.create({
 });
 
 const cStyles = StyleSheet.create({
-  card: { backgroundColor: W.cardBg, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: W.cardBorder, marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  card: { backgroundColor: W.cardBg, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: W.cardBorder, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
 });
 
 const fStyles = StyleSheet.create({
-  wrap:       { marginBottom: 16 },
-  labelRow:   { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
-  label:      { fontSize: 12, fontWeight: "700", color: "#1A2F5C", textTransform: "uppercase", letterSpacing: 0.7 },
-  input:      { backgroundColor: W.inputBg, borderRadius: 12, borderWidth: 1, borderColor: W.inputBorder, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: W.inputText },
+  wrap:       { marginBottom: 12 },
+  labelRow:   { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 5 },
+  label:      { fontSize: 10, fontWeight: "700", color: "#1A2F5C", textTransform: "uppercase", letterSpacing: 0.7 },
+  input:      { backgroundColor: W.inputBg, borderRadius: 9, borderWidth: 1, borderColor: W.inputBorder, paddingHorizontal: 11, paddingVertical: 9, fontSize: 13, color: W.inputText },
   inputError: { borderColor: "rgba(239,68,68,0.60)" },
   multiline:  { height: 100, textAlignVertical: "top" },
   error:      { fontSize: 12, color: "#EF4444", marginTop: 5, marginLeft: 2 },

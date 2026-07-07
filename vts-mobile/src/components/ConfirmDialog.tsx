@@ -44,13 +44,13 @@ export const ConfirmDialog = ({
 
 const styles = StyleSheet.create({
   overlay:    { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", paddingHorizontal: 32 },
-  box:        { backgroundColor: COLORS.cardBg, borderRadius: 24, padding: 28, width: "100%", alignItems: "center", borderWidth: 1, borderColor: COLORS.cardBorder },
-  iconWrap:   { width: 60, height: 60, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  title:      { fontSize: 18, fontWeight: "800", color: COLORS.white, marginBottom: 8, textAlign: "center" },
-  message:    { fontSize: 14, color: COLORS.whiteMuted, textAlign: "center", lineHeight: 20, marginBottom: 24 },
-  btnRow:     { flexDirection: "row", gap: 12, width: "100%" },
-  cancelBtn:  { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: "center" },
-  cancelTxt:  { fontSize: 15, fontWeight: "700", color: COLORS.whiteMuted },
-  confirmBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: "center" },
-  confirmTxt: { fontSize: 15, fontWeight: "800", color: COLORS.white },
+  box:        { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 18, width: "100%", alignItems: "center", borderWidth: 1, borderColor: COLORS.cardBorder },
+  iconWrap:   { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  title:      { fontSize: 15, fontWeight: "800", color: COLORS.white, marginBottom: 5, textAlign: "center" },
+  message:    { fontSize: 12, color: COLORS.whiteMuted, textAlign: "center", lineHeight: 18, marginBottom: 16 },
+  btnRow:     { flexDirection: "row", gap: 8, width: "100%" },
+  cancelBtn:  { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: "center" },
+  cancelTxt:  { fontSize: 13, fontWeight: "700", color: COLORS.whiteMuted },
+  confirmBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center" },
+  confirmTxt: { fontSize: 13, fontWeight: "800", color: COLORS.white },
 });

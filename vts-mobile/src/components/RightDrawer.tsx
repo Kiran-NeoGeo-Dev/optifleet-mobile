@@ -10,7 +10,8 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { useAuth } from "../hooks/useAuth";
 
 const { width: SW } = Dimensions.get("window");
-const DRAWER_W = SW * 0.72;
+const DRAWER_W = SW * 0.68;
+const HEADER_H = 156;
 
 const C = {
   bgDark:  "#0A1F44",
@@ -273,7 +274,7 @@ const RightDrawer = ({ visible, onClose, onMyProfile }: Props) => {
             {/* Shield + title row — pushed down to clear status bar */}
             <View style={d.headerRow}>
               <View style={d.shieldBox}>
-                <Ionicons name="shield-checkmark" size={32} color={C.blue} />
+                <Ionicons name="shield-checkmark" size={24} color={C.blue} />
               </View>
               <View style={{ flex: 1, marginLeft: 14 }}>
                 <Text style={d.headerTitle}>OptiFleet</Text>
@@ -512,8 +513,7 @@ const d = StyleSheet.create({
   overlay:     { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.48)", zIndex: 100 },
   drawer:      { position: "absolute", top: 0, right: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#fff", shadowColor: "#000", shadowOpacity: 0.26, shadowRadius: 24, shadowOffset: { width: -6, height: 0 }, elevation: 24, zIndex: 101 },
 
-  // Issue 2 fix: paddingTop accounts for status bar so blue covers it fully
-  header:      { paddingTop: (Platform.OS === "android" ? StatusBar.currentHeight ?? 32 : 52) + 24, paddingBottom: 64, paddingHorizontal: 24, overflow: "hidden", borderBottomLeftRadius: 38 },
+  header:      { height: HEADER_H, paddingTop: (Platform.OS === "android" ? StatusBar.currentHeight ?? 24 : 44) + 8, paddingBottom: 16, paddingHorizontal: 16, overflow: "hidden", borderBottomLeftRadius: 22, justifyContent: "center", gap: 14 },
   wave1:       { position: "absolute", top: 28, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-12deg" }] },
   wave2:       { position: "absolute", top: 72, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-8deg" }] },
   wave3:       { position: "absolute", top: 116, right: -50, width: 160, height: 3, backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] },
@@ -524,19 +524,19 @@ const d = StyleSheet.create({
   p4:          { position: "absolute", top: 180, right: 85,  width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.14)" },
   closeBtn:    { alignSelf: "flex-end", width: 34, height: 34, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 10 },
   headerRow:   { flexDirection: "row", alignItems: "center" },
-  shieldBox:   { width: 64, height: 64, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-  headerTitle: { fontSize: 22, fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
-  headerSub:   { fontSize: 12, color: "rgba(255,255,255,0.82)", marginTop: 4 },
-  progressRow: { flexDirection: "row", alignItems: "center", marginTop: 24 },
-  progressLine:{ flex: 1, height: 4, backgroundColor: "#10B981", borderRadius: 2 },
-  progressDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFD700", marginLeft: 10 },
+  shieldBox:   { width: 48, height: 48, borderRadius: 13, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+  headerTitle: { fontSize: 15, fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
+  headerSub:   { fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 3 },
+  progressRow: { flexDirection: "row", alignItems: "center" },
+  progressLine:{ flex: 1, height: 3, backgroundColor: "#10B981", borderRadius: 2 },
+  progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFD700", marginLeft: 8 },
 
-  menuContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
-  item:        { flexDirection: "row", alignItems: "center", paddingVertical: 15, paddingHorizontal: 4, gap: 14 },
-  itemIcon:    { width: 44, height: 44, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  itemLabel:   { flex: 1, fontSize: 15, fontWeight: "700", color: "#0D1B3E" },
+  menuContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 },
+  item:        { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 4, gap: 14 },
+  itemIcon:    { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  itemLabel:   { flex: 1, fontSize: 14, fontWeight: "700", color: "#0D1B3E" },
   sep:         { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(13,27,62,0.08)", marginHorizontal: 4 },
-  footer:      { alignItems: "center", justifyContent: "center", minHeight: 64, paddingHorizontal: 12, paddingBottom: 16, paddingTop: 12, backgroundColor: "#F8FAFF", borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(13,27,62,0.08)" },
+  footer:      { alignItems: "center", justifyContent: "center", minHeight: 60, paddingHorizontal: 16, paddingBottom: 16, paddingTop: 14, backgroundColor: "#F8FAFF", borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(13,27,62,0.08)" },
   footerTxt:   { width: "100%", fontSize: 12, color: "#475569", fontWeight: "700", textAlign: "center", lineHeight: 17 },
   footerVer:   { width: "100%", fontSize: 11, color: "#1565C0", fontWeight: "700", marginTop: 3, textAlign: "center", lineHeight: 15 },
 });

@@ -139,9 +139,9 @@ const AdminProfileScreen = ({ navigation }: Props) => {
 };
 
 const f = StyleSheet.create({
-  row:       { flexDirection: "row", alignItems: "center", paddingVertical: 13, gap: 12 },
+  row:       { flexDirection: "row", alignItems: "center", paddingVertical: 10, gap: 10 },
   rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(0,0,0,0.07)" },
-  iconBox:   { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  iconBox:   { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   textWrap:  { flex: 1 },
   label:     { fontSize: 11, fontWeight: "700", color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2 },
   value:     { fontSize: 14, fontWeight: "600", color: "#0D1B3E" },
@@ -149,7 +149,7 @@ const f = StyleSheet.create({
 
 const s = StyleSheet.create({
   root:      { flex: 1, backgroundColor: "#F0F4FF" },
-  headerBg:  { position: "absolute", top: 0, left: -40, right: -40, height: 260, overflow: "hidden", borderBottomLeftRadius: 180, borderBottomRightRadius: 180 },
+  headerBg:  { position: "absolute", top: 0, left: -40, right: -40, height: 190, overflow: "hidden", borderBottomLeftRadius: 120, borderBottomRightRadius: 120 },
   safe:      { flex: 1 },
   loader:    { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll:    { paddingHorizontal: 16, paddingBottom: 90 },
@@ -158,14 +158,14 @@ const s = StyleSheet.create({
   backBtn:   { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.18)", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", alignItems: "center", justifyContent: "center" },
   navTitle:  { fontSize: 18, fontWeight: "800", color: "#FFFFFF" },
 
-  heroArea:    { alignItems: "center", paddingTop: 8, paddingBottom: 50 },
-  avatarRing:  { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.22)", borderWidth: 2.5, borderColor: "rgba(255,255,255,0.60)", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  avatarTxt:   { fontSize: 28, fontWeight: "800", color: "#FFFFFF" },
-  heroName:    { fontSize: 20, fontWeight: "800", color: "#FFFFFF", marginBottom: 8, letterSpacing: 0.2 },
-  heroBadge:   { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, borderWidth: 1, borderColor: "rgba(255,255,255,0.30)" },
-  heroBadgeTxt:{ fontSize: 11, fontWeight: "800", color: "#FFFFFF", letterSpacing: 1.2 },
+  heroArea:    { alignItems: "center", paddingTop: 4, paddingBottom: 22 },
+  avatarRing:  { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(255,255,255,0.22)", borderWidth: 2, borderColor: "rgba(255,255,255,0.60)", alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  avatarTxt:   { fontSize: 18, fontWeight: "800", color: "#FFFFFF" },
+  heroName:    { fontSize: 15, fontWeight: "800", color: "#FFFFFF", marginBottom: 5, letterSpacing: 0.2 },
+  heroBadge:   { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: "rgba(255,255,255,0.30)" },
+  heroBadgeTxt:{ fontSize: 9, fontWeight: "800", color: "#FFFFFF", letterSpacing: 0.8 },
 
-  card:         { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 16, marginTop: -28, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  card:         { backgroundColor: "#FFFFFF", borderRadius: 14, padding: 12, marginTop: -14, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
   sectionTitle: { fontSize: 13, fontWeight: "800", color: "#0D1B3E", marginBottom: 4, letterSpacing: 0.3 },
 });
 

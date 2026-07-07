@@ -1,10 +1,11 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, Dimensions,
+  Animated, PanResponder, ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import UserDashboardScreen from "../screens/dashboard/UserDashboardScreen";
 import ClientDetailsScreen from "../screens/dashboard/ClientDetailsScreen";
@@ -25,6 +26,7 @@ import TripLiveTrackingScreen from "../screens/trips/TripLiveTrackingScreen";
 import NotificationsScreen from "../screens/admin/NotificationsScreen";
 import ManagementDrawer from "../components/ManagementDrawer";
 import CreateDrawer from "../components/CreateDrawer";
+import { useAuth } from "../hooks/useAuth";
 import FleetVehiclesScreen  from "../screens/fleet/FleetVehiclesScreen";
 import VehicleDetailsScreen from "../screens/fleet/VehicleDetailsScreen";
 import FleetDriversScreen   from "../screens/fleet/FleetDriversScreen";
@@ -118,7 +120,7 @@ const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
             >
               <Ionicons
                 name={tab.icon as any}
-                size={22}
+                size={20}
                 color={isActive ? "#1565C0" : "#9CA3AF"}
               />
               <Text style={[tb.tabLabel, isActive && tb.tabLabelActive]}>{tab.label}</Text>
@@ -136,7 +138,7 @@ const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
       activeOpacity={0.85}
     >
       <View style={tb.fab}>
-        <Ionicons name="add" size={26} color="#fff" />
+        <Ionicons name="add" size={22} color="#fff" />
       </View>
     </TouchableOpacity>
 
@@ -154,7 +156,7 @@ const BottomBar = ({ activeTab, onTabPress }: BottomBarProps) => (
             >
               <Ionicons
                 name={tab.icon as any}
-                size={22}
+                size={20}
                 color={isActive ? "#1565C0" : "#9CA3AF"}
               />
               <Text style={[tb.tabLabel, isActive && tb.tabLabelActive]}>{tab.label}</Text>
@@ -173,38 +175,23 @@ const USER_MGMT_ITEMS = [
   { label: "Associations",   sub: "Driver & vehicle associations", icon: "git-network-outline",    iconBg: "#FCE4EC", iconColor: "#C2185B", accent: "#EC4899", nav: "AssociationList" },
 ] as const;
 
-const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boolean; onClose: () => void; navigation: any }) => {
-  const slideX = useRef(new (require("react-native").Animated).Value(-300)).current;
-  const bgOpacity = useRef(new (require("react-native").Animated).Value(0)).current;
-  const { useEffect } = require("react");
-  const { Animated, Dimensions, ScrollView: SV, PanResponder } = require("react-native");
-  const { SafeAreaView } = require("react-native-safe-area-context");
-  const { useAuth } = require("../hooks/useAuth");
-  const { logout } = useAuth();
-  const SW = Dimensions.get("window").width;
-  const DRAWER_W = SW * 0.72;
+const { width: UMD_SW } = Dimensions.get("window");
+const UMD_DRAWER_W = UMD_SW * 0.65;
 
-  // Swipe-to-close gesture
+const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boolean; onClose: () => void; navigation: any }) => {
+  const slideX = useRef(new Animated.Value(-UMD_DRAWER_W)).current;
+  const bgOpacity = useRef(new Animated.Value(0)).current;
+  const { logout } = useAuth();
+
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_: any, gestureState: any) => {
-        return gestureState.dx < -10 && Math.abs(gestureState.dy) < 50;
-      },
-      onPanResponderMove: (_: any, gestureState: any) => {
-        if (gestureState.dx < 0) {
-          slideX.setValue(gestureState.dx);
-        }
-      },
-      onPanResponderRelease: (_: any, gestureState: any) => {
-        if (gestureState.dx < -DRAWER_W * 0.3) {
+      onMoveShouldSetPanResponder: (_: any, g: any) => g.dx < -10 && Math.abs(g.dy) < 50,
+      onPanResponderMove: (_: any, g: any) => { if (g.dx < 0) slideX.setValue(g.dx); },
+      onPanResponderRelease: (_: any, g: any) => {
+        if (g.dx < -UMD_DRAWER_W * 0.3) {
           onClose();
         } else {
-          Animated.spring(slideX, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 80,
-            friction: 12,
-          }).start();
+          Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
         }
       },
     })
@@ -213,13 +200,13 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slideX,    { toValue: 0,   useNativeDriver: true, tension: 80, friction: 12 }),
-        Animated.timing(bgOpacity, { toValue: 1,   duration: 250, useNativeDriver: true }),
+        Animated.spring(slideX,    { toValue: 0,             useNativeDriver: true, tension: 80, friction: 12 }),
+        Animated.timing(bgOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slideX,    { toValue: -DRAWER_W, duration: 220, useNativeDriver: true }),
-        Animated.timing(bgOpacity, { toValue: 0,          duration: 200, useNativeDriver: true }),
+        Animated.timing(slideX,    { toValue: -UMD_DRAWER_W, duration: 220, useNativeDriver: true }),
+        Animated.timing(bgOpacity, { toValue: 0,             duration: 200, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
@@ -233,87 +220,61 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <Animated.View style={[{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 100 }, { opacity: bgOpacity }]}>
+      <Animated.View style={[ud.backdrop, { opacity: bgOpacity }]}>
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
       </Animated.View>
-      <Animated.View 
-        style={[{ position: "absolute", top: 0, left: 0, bottom: 0, width: DRAWER_W, backgroundColor: "#fff", borderTopRightRadius: 24, borderBottomRightRadius: 24, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 20, shadowOffset: { width: 6, height: 0 }, elevation: 20, zIndex: 101 }, { transform: [{ translateX: slideX }] }]}
-        {...panResponder.panHandlers}
-      >
+      <Animated.View style={[ud.drawer, { transform: [{ translateX: slideX }] }]} {...panResponder.panHandlers}>
         <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-          {/* Blue Gradient Header with Wave Lines */}
           <LinearGradient
             colors={["#0A1F44", "#0D3B8E", "#1565C0", "#3B82F6"]}
             locations={[0, 0.3, 0.7, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ height: 230, paddingTop: 50, paddingBottom: 28, paddingHorizontal: 32, borderBottomRightRadius: 45, overflow: "hidden" }}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={ud.header}
           >
-            {/* Wave decoration lines */}
-            <View style={{ position: "absolute", top: 30, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.12)", transform: [{ rotate: "-12deg" }] }} />
-            <View style={{ position: "absolute", top: 75, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.08)", transform: [{ rotate: "-8deg" }] }} />
-            <View style={{ position: "absolute", top: 120, right: -50, width: 160, height: 3, backgroundColor: "rgba(255,255,255,0.06)", transform: [{ rotate: "-18deg" }] }} />
-            <View style={{ position: "absolute", top: 165, right: -70, width: 200, height: 3, backgroundColor: "rgba(255,255,255,0.04)", transform: [{ rotate: "-5deg" }] }} />
-            <View style={{ position: "absolute", top: 205, right: -50, width: 170, height: 3, backgroundColor: "rgba(255,255,255,0.03)", transform: [{ rotate: "-10deg" }] }} />
-            
-            {/* Glowing particles */}
-            <View style={{ position: "absolute", top: 50, right: 80, width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.3)" }} />
-            <View style={{ position: "absolute", top: 100, right: 120, width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)" }} />
-            <View style={{ position: "absolute", top: 150, right: 60, width: 5, height: 5, borderRadius: 2.5, backgroundColor: "rgba(255,255,255,0.2)" }} />
-            <View style={{ position: "absolute", top: 190, right: 90, width: 4, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.15)" }} />
-            
-            {/* Header Content */}
-            <View style={{ flexDirection: "row", alignItems: "flex-start", zIndex: 1, marginTop: 10 }}>
-              <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
-                <Ionicons name="shield-checkmark" size={36} color="#1565C0" />
+            <View style={{ position: "absolute", top: 28, right: -40, width: 180, height: 3, backgroundColor: "rgba(255,255,255,0.1)", transform: [{ rotate: "-12deg" }] }} />
+            <View style={{ position: "absolute", top: 70, right: -60, width: 220, height: 3, backgroundColor: "rgba(255,255,255,0.07)", transform: [{ rotate: "-8deg" }] }} />
+            <View style={{ flexDirection: "row", alignItems: "center", zIndex: 1 }}>
+              <View style={ud.shieldBox}>
+                <Ionicons name="shield-checkmark" size={26} color="#1565C0" />
               </View>
-              <View style={{ flex: 1, marginLeft: 16 }}>
-                <Text style={{ fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.5, marginTop: 4 }}>OptiFleet User</Text>
-                <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 4, letterSpacing: 0.3 }}>Fleet Management System</Text>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={ud.title}>OptiFleet User</Text>
+                <Text style={ud.sub}>Fleet Management System</Text>
               </View>
             </View>
-
-            {/* Progress Indicator */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 24, zIndex: 1 }}>
-              <View style={{ flex: 1, height: 4, backgroundColor: "#10B981", borderRadius: 2 }} />
-              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFD700", marginLeft: 10, shadowColor: "#FFD700", shadowOpacity: 0.6, shadowRadius: 6 }} />
+            <View style={{ flexDirection: "row", alignItems: "center", zIndex: 1 }}>
+              <View style={{ flex: 1, height: 3, backgroundColor: "#10B981", borderRadius: 2 }} />
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFD700", marginLeft: 8 }} />
             </View>
           </LinearGradient>
 
-          {/* Menu Items */}
-          <SV style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 14, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={ud.menuList} showsVerticalScrollIndicator={false}>
             {USER_MGMT_ITEMS.map((item) => (
-              <TouchableOpacity
-                key={item.label}
-                style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, marginVertical: 3, backgroundColor: "#fff", borderRadius: 12, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3, minHeight: 52 }}
-                onPress={() => navigate(item.nav)}
-                activeOpacity={0.75}
-              >
-                <View style={[{ width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" }, { backgroundColor: item.iconBg }]}>
-                  <Ionicons name={item.icon as any} size={20} color={item.iconColor} />
+              <TouchableOpacity key={item.label} style={ud.menuItem} onPress={() => navigate(item.nav)} activeOpacity={0.75}>
+                <View style={[ud.menuIconBox, { backgroundColor: item.iconBg }]}>
+                  <Ionicons name={item.icon as any} size={16} color={item.iconColor} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#0D1B3E" }}>{item.label}</Text>
-                  <Text style={{ fontSize: 11, color: "#4B5563", marginTop: 1, fontWeight: "500" }}>{item.sub}</Text>
+                  <Text style={ud.menuLabel}>{item.label}</Text>
+                  <Text style={ud.menuSub}>{item.sub}</Text>
                 </View>
-                <Text style={[{ fontSize: 13, fontWeight: "700" }, { color: item.accent }]}>View {"\u003E"}</Text>
+                <Text style={[ud.viewTxt, { color: item.accent }]}>View {"\u003E"}</Text>
               </TouchableOpacity>
             ))}
-          </SV>
+          </ScrollView>
 
-          {/* Footer */}
-          <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, marginHorizontal: 14, marginBottom: 14, marginTop: 4, backgroundColor: "#F8FAFF", borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
-            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="person-outline" size={20} color="#1565C0" />
+          <View style={ud.footer}>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View style={ud.footerIconBox}>
+                <Ionicons name="person-outline" size={16} color="#1565C0" />
               </View>
               <View>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: "#0D1B3E" }}>OptiFleet User</Text>
-                <Text style={{ fontSize: 11, color: "#6B7280" }}>Version 1.0.0</Text>
+                <Text style={ud.footerName}>OptiFleet User</Text>
+                <Text style={ud.footerVer}>Version 1.0.0</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={logout} style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+            <TouchableOpacity onPress={logout} style={ud.logoutBtn}>
+              <Ionicons name="log-out-outline" size={16} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -321,6 +282,26 @@ const UserManagementDrawer = ({ visible, onClose, navigation }: { visible: boole
     </View>
   );
 };
+
+const ud = StyleSheet.create({
+  backdrop:    { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 100 },
+  drawer:      { position: "absolute", top: 0, left: 0, bottom: 0, width: UMD_DRAWER_W, backgroundColor: "#fff", borderTopRightRadius: 20, borderBottomRightRadius: 20, shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 16, shadowOffset: { width: 5, height: 0 }, elevation: 18, zIndex: 101 },
+  header:      { height: 156, paddingTop: 20, paddingBottom: 16, paddingHorizontal: 16, borderBottomRightRadius: 22, overflow: "hidden", justifyContent: "center", gap: 14 },
+  shieldBox:   { width: 48, height: 48, borderRadius: 13, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+  title:       { fontSize: 15, fontWeight: "800", color: "#fff", letterSpacing: 0.3 },
+  sub:         { fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 3 },
+  menuList:    { paddingVertical: 10, paddingHorizontal: 10, paddingBottom: 16 },
+  menuItem:    { flexDirection: "row", alignItems: "center", paddingVertical: 10, paddingHorizontal: 12, marginVertical: 5, backgroundColor: "#fff", borderRadius: 14, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2, minHeight: 52 },
+  menuIconBox: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", marginRight: 10 },
+  menuLabel:   { fontSize: 12, fontWeight: "700", color: "#0D1B3E" },
+  menuSub:     { fontSize: 10, color: "#4B5563", marginTop: 2, fontWeight: "500" },
+  viewTxt:     { fontSize: 11, fontWeight: "700" },
+  footer:      { flexDirection: "row", alignItems: "center", paddingVertical: 8, paddingHorizontal: 12, marginHorizontal: 10, marginBottom: 12, marginTop: 4, backgroundColor: "#F8FAFF", borderRadius: 12, borderWidth: 1, borderColor: "#E5E7EB", elevation: 1 },
+  footerIconBox:{ width: 34, height: 34, borderRadius: 9, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  footerName:  { fontSize: 12, fontWeight: "700", color: "#0D1B3E" },
+  footerVer:   { fontSize: 10, color: "#6B7280", marginTop: 1 },
+  logoutBtn:   { width: 34, height: 34, borderRadius: 9, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center" },
+});
 
 const MainNavigator = () => {
   const [activeTab,      setActiveTab]      = useState("Dashboard");
@@ -411,28 +392,28 @@ const tb = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 70,
+    height: 60,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     shadowColor: "#000",
-    shadowOpacity: 0.10,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 12,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   leftSection: {
     flex: 1,
-    height: 56,
+    height: 48,
     backgroundColor: "transparent",
   },
   rightSection: {
     flex: 1,
-    height: 56,
+    height: 48,
     backgroundColor: "transparent",
   },
   leftBar: {
@@ -450,9 +431,9 @@ const tb = StyleSheet.create({
   tabItem: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 2,
-    width: 70,
-    height: 56,
+    gap: 1,
+    width: 64,
+    height: 48,
   },
   tabLabel: {
     fontSize: 10,
@@ -466,31 +447,31 @@ const tb = StyleSheet.create({
   },
   tabIndicator: {
     position: "absolute",
-    bottom: 4,
-    width: 20,
-    height: 3,
-    borderRadius: 2,
+    bottom: 3,
+    width: 16,
+    height: 2,
+    borderRadius: 1,
     backgroundColor: "#1565C0",
   },
   fabContainer: {
-    width: 64,
-    height: 64,
+    width: 56,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#1565C0",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#1565C0",
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
-    borderWidth: 4,
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+    borderWidth: 3,
     borderColor: "#fff",
   },
 });

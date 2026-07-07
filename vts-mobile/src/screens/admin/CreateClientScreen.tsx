@@ -118,10 +118,10 @@ const RoleDropdown = ({
 
 const rd = StyleSheet.create({
   backdrop:        { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", alignItems: "center" },
-  menu:            { backgroundColor: "#fff", borderRadius: 16, width: 220, overflow: "hidden", elevation: 10, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-  option:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 16, paddingHorizontal: 20 },
+  menu:            { backgroundColor: "#fff", borderRadius: 12, width: 200, overflow: "hidden", elevation: 8, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
+  option:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, paddingHorizontal: 16 },
   optionActive:    { backgroundColor: C.inputBg },
-  optionTxt:       { fontSize: 15, color: C.inputText, fontWeight: "600" },
+  optionTxt:       { fontSize: 13, color: C.inputText, fontWeight: "600" },
   optionTxtActive: { color: C.accent },
 });
 
@@ -261,7 +261,7 @@ const CreateClientScreen = ({ navigation }: Props) => {
                     autoCapitalize="none"
                   />
                   <TouchableOpacity onPress={() => setShowPassword(p => !p)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={C.mutedText} />
+                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={16} color={C.mutedText} />
                   </TouchableOpacity>
                 </View>
                 {!!errors.password && (
@@ -323,7 +323,7 @@ const CreateClientScreen = ({ navigation }: Props) => {
                   {loading
                     ? <ActivityIndicator size="small" color={C.white} />
                     : <>
-                        <Ionicons name="person-add-outline" size={20} color={C.white} style={{ marginRight: 8 }} />
+                        <Ionicons name="person-add-outline" size={16} color={C.white} style={{ marginRight: 6 }} />
                         <Text style={s.submitTxt}>Create Account</Text>
                       </>
                   }
@@ -341,13 +341,13 @@ const CreateClientScreen = ({ navigation }: Props) => {
 };
 
 const f = StyleSheet.create({
-  wrap:      { marginBottom: 16 },
-  label:     { fontSize: 11, fontWeight: "700", color: C.labelText, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 7 },
-  input:     { backgroundColor: C.inputBg, borderRadius: 12, borderWidth: 1, borderColor: C.inputBorder, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: C.inputText },
-  rowInput:  { flexDirection: "row", alignItems: "center", paddingVertical: 0, height: 50 },
+  wrap:      { marginBottom: 10 },
+  label:     { fontSize: 10, fontWeight: "700", color: C.labelText, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 5 },
+  input:     { backgroundColor: C.inputBg, borderRadius: 10, borderWidth: 1, borderColor: C.inputBorder, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, color: C.inputText },
+  rowInput:  { flexDirection: "row", alignItems: "center", paddingVertical: 0, height: 42 },
   inputErr:  { borderColor: C.red + "88" },
-  multiline: { height: 90, textAlignVertical: "top", paddingTop: 12 },
-  error:     { fontSize: 12, color: C.red, marginTop: 5, marginLeft: 2 },
+  multiline: { height: 72, textAlignVertical: "top", paddingTop: 10 },
+  error:     { fontSize: 11, color: C.red, marginTop: 3, marginLeft: 2 },
 });
 
 const s = StyleSheet.create({
@@ -355,23 +355,23 @@ const s = StyleSheet.create({
   gridH:      { position: "absolute", left: 0, right: 0, height: 1, backgroundColor: "rgba(255,255,255,0.025)" },
   gridV:      { position: "absolute", top: 0, bottom: 0, width: 1, backgroundColor: "rgba(255,255,255,0.025)" },
   bgGlow:     { position: "absolute", bottom: 60, left: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(13,59,142,0.12)" },
-  header:     { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6 },
-  backBtn:    { width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.20)", alignItems: "center", justifyContent: "center" },
-  brandTxt:   { fontSize: 12, fontWeight: "800", letterSpacing: 0.4 },
-  pageTitle:  { fontSize: 22, fontWeight: "800", color: C.white, marginTop: 2 },
-  badgeRow:   { alignItems: "center", marginBottom: 12 },
-  badge:      { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)" },
-  badgeTxt:   { fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.80)" },
-  scroll:     { paddingHorizontal: 16, paddingBottom: 90 },
-  card:       { backgroundColor: C.cream, borderRadius: 24, padding: 20, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
-  cardTopBar: { position: "absolute", top: 0, left: 0, right: 0, height: 4, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  cardTitle:  { fontSize: 20, fontWeight: "800", color: C.cardText, marginBottom: 4, marginTop: 4 },
-  cardSub:    { fontSize: 13, color: C.mutedText, marginBottom: 22, lineHeight: 18 },
-  divider:    { height: 1, backgroundColor: "rgba(160,90,30,0.12)", marginVertical: 12 },
-  submitBtn:  { borderRadius: 16, overflow: "hidden", marginTop: 8, shadowColor: "#14532D", shadowOpacity: 0.30, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
-  submitGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", height: 56, borderRadius: 16, overflow: "hidden" },
-  submitGloss:{ position: "absolute", top: 0, left: 0, right: 0, height: 26, borderRadius: 16 },
-  submitTxt:  { fontSize: 16, fontWeight: "800", color: C.white, letterSpacing: 0.3 },
+  header:     { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  backBtn:    { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.20)", alignItems: "center", justifyContent: "center" },
+  brandTxt:   { fontSize: 11, fontWeight: "800", letterSpacing: 0.4 },
+  pageTitle:  { fontSize: 18, fontWeight: "800", color: C.white, marginTop: 1 },
+  badgeRow:   { alignItems: "center", marginBottom: 8 },
+  badge:      { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 16, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)" },
+  badgeTxt:   { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.80)" },
+  scroll:     { paddingHorizontal: 14, paddingBottom: 70 },
+  card:       { backgroundColor: C.cream, borderRadius: 18, padding: 14, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.10, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  cardTopBar: { position: "absolute", top: 0, left: 0, right: 0, height: 3, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  cardTitle:  { fontSize: 16, fontWeight: "800", color: C.cardText, marginBottom: 2, marginTop: 2 },
+  cardSub:    { fontSize: 12, color: C.mutedText, marginBottom: 14, lineHeight: 16 },
+  divider:    { height: 1, backgroundColor: "rgba(160,90,30,0.12)", marginVertical: 8 },
+  submitBtn:  { borderRadius: 12, overflow: "hidden", marginTop: 6, shadowColor: "#14532D", shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  submitGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", height: 46, borderRadius: 12, overflow: "hidden" },
+  submitGloss:{ position: "absolute", top: 0, left: 0, right: 0, height: 20, borderRadius: 12 },
+  submitTxt:  { fontSize: 14, fontWeight: "800", color: C.white, letterSpacing: 0.3 },
 });
 
 export default CreateClientScreen;

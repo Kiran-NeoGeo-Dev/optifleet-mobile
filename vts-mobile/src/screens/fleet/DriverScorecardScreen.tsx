@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
   ActivityIndicator, Modal,
@@ -164,11 +164,13 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
   const load = useCallback(async (year: number, month: MonthName) => {
     setLoading(true);
     try { setData(await fetchDriverScorecard(driver.id, year, monthNum(month))); }
-    catch (_) {}
+    catch (_) { setData(null); }
     finally { setLoading(false); }
   }, [driver.id]);
 
-  useFocusEffect(useCallback(() => { load(selYear, selMonth); }, [selYear, selMonth]));
+  useFocusEffect(useCallback(() => { load(selYear, selMonth); }, [load]));
+
+  useEffect(() => { load(selYear, selMonth); }, [selYear, selMonth]);
 
   const hasPhoto = !imgError && !!driver.photoFront && driver.photoFront.length > 4;
   const photoUri = hasPhoto
@@ -176,8 +178,8 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
         ? driver.photoFront! : `data:image/jpeg;base64,${driver.photoFront}`)
     : null;
 
-  const rawScore     = data?.safetyScore ?? 0;
-  const remark       = data?.remark ?? "—";
+  const rawScore     = data?.safetyScore ?? 100;
+  const remark       = data?.remark ?? "Excellent";
   const events       = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, harshBraking: 0, harshAcceleration: 0, rashTurning: 0, kmDriven: 0 };
   const vehicleModel = data?.vehicleModel ?? driver.vehicleModel ?? null;
   const hasNoData    = data != null && events.kmDriven === 0 &&

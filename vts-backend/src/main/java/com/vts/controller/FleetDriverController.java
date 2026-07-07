@@ -71,8 +71,8 @@ public class FleetDriverController {
             boolean active = "Moving".equalsIgnoreCase(tripStatus) || "Idle".equalsIgnoreCase(tripStatus);
 
             double rawScore = vehicleReg != null
-                    ? vehicleScores.getOrDefault(vehicleReg.toUpperCase(), 0.0)
-                    : 0.0;
+                    ? vehicleScores.getOrDefault(vehicleReg.toUpperCase(), 100.0)
+                    : 100.0;
 
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("id",           d.getId());

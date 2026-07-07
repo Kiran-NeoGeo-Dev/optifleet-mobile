@@ -10,9 +10,10 @@ import Svg, { Polygon, Defs, LinearGradient as SvgGradient, Stop } from "react-n
 import { useAuth } from "../hooks/useAuth";
 
 const { width: SW } = Dimensions.get("window");
-const DRAWER_W = SW * 0.72;
+const DRAWER_W = SW * 0.62;
+const HEADER_H = 156;
 const CARD_H   = 48;
-const CTA_W    = 100;
+const CTA_W    = 80;
 
 // ── Item definitions ──────────────────────────────────────────────────────────
 const ADMIN_ITEMS = [
@@ -71,8 +72,8 @@ const SimpleCTA = ({ color, bg }: { color: string; bg: string }) => (
 );
 
 const cta = StyleSheet.create({
-  box:   { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
-  txt:   { fontSize: 12, fontWeight: "700" },
+  box:   { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 6, marginRight: 6 },
+  txt:   { fontSize: 10, fontWeight: "700" },
 });
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -148,7 +149,7 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
             <View style={s.headerRow}>
               <View style={s.shieldOuter}>
                 <View style={s.shieldInner}>
-                  <Ionicons name="shield-checkmark" size={32} color="#1565C0" />
+                  <Ionicons name="shield-checkmark" size={22} color="#1565C0" />
                 </View>
               </View>
               <View style={s.headerMeta}>
@@ -177,7 +178,7 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
                 activeOpacity={0.78}
               >
                 <View style={[s.iconBox, { backgroundColor: item.bg }]}>
-                  <Ionicons name={item.icon as any} size={20} color={item.color} />
+                  <Ionicons name={item.icon as any} size={15} color={item.color} />
                 </View>
                 <View style={[s.accentBar, { backgroundColor: item.color }]} />
                 <Text style={s.cardLabel}>{item.label}</Text>
@@ -190,7 +191,7 @@ const CreateDrawer = ({ visible, onClose, navigation, isAdmin = true }: Props) =
           <View style={s.footer}>
             <View style={s.footerLeft}>
               <View style={s.avatar}>
-                <Ionicons name="person" size={18} color="#fff" />
+                <Ionicons name="person" size={14} color="#fff" />
               </View>
               <View>
                 <Text style={s.footerName}>{roleLabel}</Text>
@@ -216,38 +217,38 @@ const s = StyleSheet.create({
   safeArea:     { flex: 1 },
 
   // Header
-  header:    { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24, overflow: "hidden" },
-  dline1:    { position: "absolute", top: 16, right: -25, width: 150, height: 1.5, backgroundColor: "rgba(255,255,255,0.1)", transform: [{ rotate: "38deg" }] },
-  dline2:    { position: "absolute", top: 44, right: -35, width: 170, height: 1.5, backgroundColor: "rgba(255,255,255,0.07)", transform: [{ rotate: "38deg" }] },
-  dline3:    { position: "absolute", top: 72, right: -20, width: 130, height: 1.5, backgroundColor: "rgba(255,255,255,0.05)", transform: [{ rotate: "38deg" }] },
+  header:    { height: HEADER_H, paddingTop: 20, paddingBottom: 16, paddingHorizontal: 16, overflow: "hidden", justifyContent: "center", gap: 14 },
+  dline1:    { position: "absolute", top: 12, right: -25, width: 130, height: 1.5, backgroundColor: "rgba(255,255,255,0.1)", transform: [{ rotate: "38deg" }] },
+  dline2:    { position: "absolute", top: 34, right: -35, width: 150, height: 1.5, backgroundColor: "rgba(255,255,255,0.07)", transform: [{ rotate: "38deg" }] },
+  dline3:    { position: "absolute", top: 56, right: -20, width: 110, height: 1.5, backgroundColor: "rgba(255,255,255,0.05)", transform: [{ rotate: "38deg" }] },
   headerRow: { flexDirection: "row", alignItems: "center" },
-  shieldOuter:{ width: 72, height: 72, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  shieldInner:{ width: 62, height: 62, borderRadius: 17, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  headerMeta:{ flex: 1, marginLeft: 16 },
-  title:     { fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
-  sub:       { fontSize: 13, color: "rgba(255,255,255,0.80)", marginTop: 4 },
-  cyan:      { width: 36, height: 3, backgroundColor: "#06B6D4", borderRadius: 2, marginTop: 10 },
-  progressRow:  { flexDirection: "row", alignItems: "center", marginTop: 24 },
-  progressLine: { flex: 1, height: 3, backgroundColor: "#16A34A", borderRadius: 2 },
-  progressDot:  { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFD700", marginLeft: 8 },
+  shieldOuter:{ width: 48, height: 48, borderRadius: 13, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
+  shieldInner:{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", elevation: 3, shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  headerMeta:{ flex: 1, marginLeft: 12 },
+  title:     { fontSize: 15, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
+  sub:       { fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 3 },
+  cyan:      { width: 28, height: 2, backgroundColor: "#06B6D4", borderRadius: 2, marginTop: 6 },
+  progressRow:  { flexDirection: "row", alignItems: "center" },
+  progressLine: { flex: 1, height: 2, backgroundColor: "#16A34A", borderRadius: 2 },
+  progressDot:  { width: 6, height: 6, borderRadius: 3, backgroundColor: "#FFD700", marginLeft: 5 },
 
   // Cards
   scroll:       { flex: 1 },
-  scrollContent:{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 8, gap: 6 },
-  card:         { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 12, height: CARD_H, overflow: "hidden", elevation: 3, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
-  iconBox:      { width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center", marginLeft: 10 },
-  accentBar:    { width: 3, height: 20, borderRadius: 2, marginLeft: 6 },
-  cardLabel:    { flex: 1, fontSize: 13, fontWeight: "700", color: "#0D1B3E", marginLeft: 6 },
+  scrollContent:{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 10, gap: 7 },
+  card:         { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 14, height: CARD_H, overflow: "hidden", elevation: 2, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  iconBox:      { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center", marginLeft: 10 },
+  accentBar:    { width: 3, height: 20, borderRadius: 2, marginLeft: 7 },
+  cardLabel:    { flex: 1, fontSize: 11, fontWeight: "700", color: "#0D1B3E", marginLeft: 7 },
 
   // Footer
-  footer:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F8F9FC", paddingVertical: 8, paddingHorizontal: 12, marginHorizontal: 14, marginBottom: 14, marginTop: 4, borderRadius: 12, borderWidth: 1, borderTopColor: "#E5E7EB", borderColor: "#E5E7EB" },
+  footer:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F8F9FC", paddingVertical: 8, paddingHorizontal: 10, marginHorizontal: 8, marginBottom: 10, marginTop: 4, borderRadius: 12, borderWidth: 1, borderTopColor: "#E5E7EB", borderColor: "#E5E7EB" },
   footerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
-  avatar:     { width: 34, height: 34, borderRadius: 17, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center" },
-  footerName: { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
-  footerVer:  { fontSize: 10, color: "#6B7280", marginTop: 1 },
-  divider:    { width: 1, height: 24, backgroundColor: "#D1D5DB", marginHorizontal: 8 },
-  logoutRow:  { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4 },
-  logoutTxt:  { fontSize: 13, fontWeight: "700", color: "#2563EB" },
+  avatar:     { width: 30, height: 30, borderRadius: 15, backgroundColor: "#1565C0", alignItems: "center", justifyContent: "center" },
+  footerName: { fontSize: 11, fontWeight: "700", color: "#0D1B3E" },
+  footerVer:  { fontSize: 9, color: "#6B7280", marginTop: 1 },
+  divider:    { width: 1, height: 20, backgroundColor: "#D1D5DB", marginHorizontal: 8 },
+  logoutRow:  { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 6, paddingVertical: 4 },
+  logoutTxt:  { fontSize: 11, fontWeight: "700", color: "#2563EB" },
 });
 
 export default CreateDrawer;
