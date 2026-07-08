@@ -11,6 +11,7 @@ import { AdminStackParamList } from "../../navigation/AdminNavigator";
 import { createClientAccount } from "../../services/adminService";
 import { Toast, useToast } from "../../components/Toast";
 import { useAuth } from "../../hooks/useAuth";
+import { CountryCodePicker } from "../../components/CountryCodePicker";
 
 type Props = NativeStackScreenProps<AdminStackParamList, "CreateClient">;
 
@@ -135,6 +136,7 @@ const CreateClientScreen = ({ navigation }: Props) => {
   const [fullName,        setFullName]        = useState("");
   const [emailAddress,    setEmailAddress]    = useState("");
   const [phoneNumber,     setPhoneNumber]     = useState("");
+  const [dialCode,        setDialCode]        = useState("+91");
   const [role,            setRole]            = useState(isSuperAdmin ? "Admin" : "User");
   const [roleDescription, setRoleDescription] = useState("");
   const [errors,          setErrors]          = useState<Record<string, string>>({});
@@ -151,8 +153,8 @@ const CreateClientScreen = ({ navigation }: Props) => {
       e.fullName = "Full name is required.";
     if (!emailAddress.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress))
       e.emailAddress = "Valid email is required.";
-    if (!phoneNumber.trim() || !/^[6-9]\d{9}$/.test(phoneNumber))
-      e.phoneNumber = "10 digits starting with 6–9.";
+    if (!phoneNumber.trim() || !/^\d{4,15}$/.test(phoneNumber.trim()))
+      e.phoneNumber = "Please enter a valid phone number.";
     if (!role.trim())
       e.role = "Role is required.";
     setErrors(e);
@@ -168,7 +170,7 @@ const CreateClientScreen = ({ navigation }: Props) => {
       await createClientAccount({
         username: username.trim(), password: password.trim(),
         fullName: fullName.trim(), emailAddress: emailAddress.trim(),
-        phoneNumber: phoneNumber.trim(), role: role.trim(),
+        phoneNumber: `${dialCode}${phoneNumber.trim()}`, role: role.trim(),
         roleDescription: roleDescription.trim(),
       });
       showToast(`${role} account created successfully!`, "success");
@@ -283,11 +285,35 @@ const CreateClientScreen = ({ navigation }: Props) => {
                 placeholder="email@example.com" keyboardType="email-address" error={errors.emailAddress}
               />
 
-              <Field
-                icon="call-outline" label="Phone Number *"
-                value={phoneNumber} onChangeText={t => { setPhoneNumber(t); clear("phoneNumber"); }}
-                placeholder="10 digits starting 6–9" keyboardType="phone-pad" maxLength={10} error={errors.phoneNumber}
-              />
+              <View style={f.wrap}>
+                <Text style={f.label}>
+                  <Ionicons name="call-outline" size={12} color={C.accent} />{"  "}Phone Number *
+                </Text>
+                <View style={[{ flexDirection: "row", gap: 8 }, !!errors.phoneNumber && {}]}>
+                  <CountryCodePicker
+                    value={dialCode}
+                    onChange={v => { setDialCode(v); clear("phoneNumber"); }}
+                    inputBg={C.inputBg}
+                    inputBorder={C.inputBorder}
+                    inputText={C.inputText}
+                    error={!!errors.phoneNumber}
+                  />
+                  <TextInput
+                    style={[f.input, { flex: 1 }, !!errors.phoneNumber && f.inputErr]}
+                    value={phoneNumber}
+                    onChangeText={t => { setPhoneNumber(t.replace(/[^0-9]/g, "")); clear("phoneNumber"); }}
+                    placeholder="Phone number"
+                    placeholderTextColor={C.placeholder}
+                    keyboardType="phone-pad"
+                    maxLength={15}
+                  />
+                </View>
+                {!!errors.phoneNumber && (
+                  <Text style={f.error}>
+                    <Ionicons name="alert-circle-outline" size={11} /> {errors.phoneNumber}
+                  </Text>
+                )}
+              </View>
 
               <View style={s.divider} />
 

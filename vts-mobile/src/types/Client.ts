@@ -3,7 +3,6 @@ export interface Client {
   username: string;
   fullName?: string;
   emailAddress?: string;
-  dialCode?: string;
   phoneNumber?: string;
   role?: string;
   roleDescription?: string;

@@ -10,6 +10,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../navigation/AuthNavigator";
 import { Toast, useToast } from "../../components/Toast";
 import { api } from "../../services/api";
+import { CountryCodePicker } from "../../components/CountryCodePicker";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "AdminRecovery">;
 
@@ -72,6 +73,7 @@ const AdminRecoveryScreen = ({ navigation }: Props) => {
   const [confirmPass, setConfirmPass] = useState("");
   const [fullName,    setFullName]    = useState("");
   const [phone,       setPhone]       = useState("");
+  const [dialCode,    setDialCode]    = useState("+91");
   const [showNew,     setShowNew]     = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading,     setLoading]     = useState(false);
@@ -79,7 +81,7 @@ const AdminRecoveryScreen = ({ navigation }: Props) => {
 
   const clearAll = () => {
     setEmail(""); setNewUsername(""); setNewPass(""); setConfirmPass("");
-    setFullName(""); setPhone("");
+    setFullName(""); setPhone(""); setDialCode("+91");
   };
 
   const onReset = async () => {
@@ -96,7 +98,7 @@ const AdminRecoveryScreen = ({ navigation }: Props) => {
         newUsername: newUsername.trim(),
         newPassword: newPass.trim(),
         fullName:    fullName.trim() || undefined,
-        phone:       phone.trim() || undefined,
+        phone:       phone.trim() ? `${dialCode}${phone.trim()}` : undefined,
       });
       showToast("Credentials updated! Please login with your new username & password.", "success");
       setTimeout(() => navigation.goBack(), 2000);
@@ -186,19 +188,22 @@ const AdminRecoveryScreen = ({ navigation }: Props) => {
                   <Text style={s.fieldLabel}>Phone Number</Text>
                 </View>
                 <View style={s.phoneRow}>
-                  <View style={s.dialBox}>
-                    <Text style={s.dialFlag}>🇮🇳</Text>
-                    <Text style={s.dialCode}>+91</Text>
-                  </View>
+                  <CountryCodePicker
+                    value={dialCode}
+                    onChange={setDialCode}
+                    inputBg={C.inputBg}
+                    inputBorder={C.inputBorder}
+                    inputText={C.inputText}
+                  />
                   <View style={[s.field, { flex: 1 }]}>
                     <TextInput
                       style={[s.input, { flex: 1 }]}
                       value={phone}
-                      onChangeText={setPhone}
+                      onChangeText={t => setPhone(t.replace(/[^0-9]/g, ""))}
                       placeholder="Enter phone number"
                       placeholderTextColor={C.placeholder}
                       keyboardType="phone-pad"
-                      maxLength={10}
+                      maxLength={15}
                     />
                   </View>
                 </View>
@@ -274,10 +279,7 @@ const s = StyleSheet.create({
   },
   input: { fontSize: 14, color: C.inputText, paddingVertical: 12 },
 
-  phoneRow: { flexDirection: "row", gap: 10 },
-  dialBox:  { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.inputBg, borderRadius: 12, paddingHorizontal: 12, height: 48, borderWidth: 1, borderColor: C.inputBorder },
-  dialFlag: { fontSize: 18 },
-  dialCode: { fontSize: 14, fontWeight: "700", color: C.inputText },
+  phoneRow: { flexDirection: "row", gap: 10, alignItems: "center" },
 
   btnShadow: { borderRadius: 16, marginBottom: 12, shadowColor: "#14532D", shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   btnOuter:  { borderRadius: 16, overflow: "hidden" },

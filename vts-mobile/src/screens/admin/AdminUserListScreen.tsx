@@ -71,7 +71,7 @@ const AdminUserListScreen = ({ navigation }: Props) => {
           )}
           <View style={s.infoRow}>
             <Ionicons name="call-outline" size={13} color="#6B7280" />
-            <Text style={s.infoTxt}>{item.dial_code ? `${item.dial_code} ` : ""}{item.phone_number || "—"}</Text>
+            <Text style={s.infoTxt}>{item.phone_number || "—"}</Text>
           </View>
           <View style={s.divider} />
           <View style={s.actions}>

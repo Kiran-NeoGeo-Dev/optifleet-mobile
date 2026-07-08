@@ -54,7 +54,7 @@ const ViewUserScreen = ({ route, navigation }: Props) => {
         <Row icon="at-outline"            label="Username"         value={user?.username || ""} />
         <Row icon="person-outline"        label="Full Name"        value={user?.full_name || ""} />
         <Row icon="mail-outline"          label="Email Address"    value={user?.email_address || ""} />
-        <Row icon="call-outline"          label="Phone Number"     value={`${user?.dial_code || ""} ${user?.phone_number || ""}`.trim()} />
+        <Row icon="call-outline"          label="Phone Number"     value={user?.phone_number || ""} />
         <Row icon="shield-outline"        label="Role"             value={user?.role || ""} />
         <Row icon="document-text-outline" label="Role Description" value={user?.role_description || ""} />
         <Row icon="calendar-outline"      label="Created At"       value={createdAt} />

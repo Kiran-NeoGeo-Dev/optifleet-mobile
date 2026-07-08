@@ -21,7 +21,7 @@ public class UserDetailEntity {
     @Column(name = "email_address", length = 150, unique = true)
     private String emailAddress;
 
-    @Column(name = "phone_number", nullable = false, length = 10)
+    @Column(name = "phone_number", nullable = false, length = 20)
     private String phoneNumber;
 
     @Column(name = "role", length = 50)

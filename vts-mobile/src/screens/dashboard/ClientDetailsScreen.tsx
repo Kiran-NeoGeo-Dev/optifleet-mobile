@@ -49,9 +49,7 @@ const ClientDetailsScreen = ({ navigation }: Props) => {
   const initials  = (client?.fullName || client?.username || "U")
     .split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
   const roleLabel = client?.role === "Client" ? "USER" : (client?.role || "USER").toUpperCase();
-  const phone     = client?.dialCode || client?.phoneNumber
-    ? `${client?.dialCode ?? ""} ${client?.phoneNumber ?? ""}`.trim()
-    : undefined;
+  const phone     = client?.phoneNumber || undefined;
 
   return (
     <View style={s.root}>

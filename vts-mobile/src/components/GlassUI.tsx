@@ -42,17 +42,19 @@ const hStyles = StyleSheet.create({
 
 // ─── Glass Field ──────────────────────────────────────────────────────────────
 export const GlassField = ({
-  icon, label, value, onChangeText, placeholder, keyboardType, autoCapitalize, autoCorrect, secureTextEntry, multiline, maxLength, error,
+  icon, label, value, onChangeText, placeholder, keyboardType, autoCapitalize, autoCorrect, secureTextEntry, multiline, maxLength, error, noMargin,
 }: {
   icon: any; label: string; value: string; onChangeText: (t: string) => void;
   placeholder?: string; keyboardType?: any; autoCapitalize?: any; autoCorrect?: boolean; secureTextEntry?: boolean;
-  multiline?: boolean; maxLength?: number; error?: string;
+  multiline?: boolean; maxLength?: number; error?: string; noMargin?: boolean;
 }) => (
-  <View style={fStyles.wrap}>
-    <View style={fStyles.labelRow}>
-      <Ionicons name={icon} size={14} color="#1565C0" />
-      <Text style={fStyles.label}>{label}</Text>
-    </View>
+  <View style={[fStyles.wrap, noMargin && { marginBottom: 0 }]}>
+    {!!label && (
+      <View style={fStyles.labelRow}>
+        <Ionicons name={icon} size={14} color="#1565C0" />
+        <Text style={fStyles.label}>{label}</Text>
+      </View>
+    )}
     <TextInput
       style={[fStyles.input, multiline && fStyles.multiline, error && fStyles.inputError]}
       value={value}

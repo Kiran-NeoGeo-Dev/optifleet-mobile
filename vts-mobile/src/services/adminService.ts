@@ -36,7 +36,6 @@ export interface UserDetail {
   full_name:           string;
   email_address:       string;
   phone_number:        string;
-  dial_code:           string;
   role:                string;
   role_description:    string;
   created_at:          string;
@@ -47,7 +46,6 @@ export interface UpdateUserPayload {
   fullName:        string;
   emailAddress:    string;
   phoneNumber:     string;
-  dialCode:        string;
   role:            string;
   roleDescription: string;
   newUsername?:    string;

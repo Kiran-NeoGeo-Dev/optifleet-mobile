@@ -137,7 +137,6 @@ public class AuthController {
             ud.setUsername(newUsername.trim());
             if (fullName != null && !fullName.isBlank()) ud.setFullName(fullName.trim());
             if (phone != null && !phone.isBlank()) {
-                ud.setDialCode("+91");
                 ud.setPhoneNumber(phone.trim());
             }
             userDetailRepository.save(ud);
@@ -164,7 +163,7 @@ public class AuthController {
         if (client == null) return ResponseEntity.status(401).build();
         ClientDetailsResponse response = new ClientDetailsResponse(
             client.getId(), client.getUsername(), client.getFullName(),
-            client.getEmailAddress(), client.getDialCode(), client.getPhoneNumber(),
+            client.getEmailAddress(), "", client.getPhoneNumber(),
             client.getRole(), client.getRoleDescription()
         );
         return ResponseEntity.ok(response);
@@ -190,6 +189,10 @@ public class AuthController {
                 userDetailRepository.findByEmailAddress(email).isPresent()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Email address already exists"));
             }
+            String rawPhone = body.getOrDefault("phoneNumber", "").trim();
+            if (!rawPhone.isBlank() && userDetailRepository.findByPhoneNumber(rawPhone).isPresent()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Phone number already exists"));
+            }
             String requestedRole = body.getOrDefault("role", "User").trim();
             if (!"User".equalsIgnoreCase(requestedRole) && !"Admin".equalsIgnoreCase(requestedRole)) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Role must be User or Admin"));
@@ -198,14 +201,11 @@ public class AuthController {
             if (authService.isSuperAdmin(creator) && !"Admin".equals(role)) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Super Admin creates organization Admin accounts; organization Admins create Users"));
             }
-            String phone = body.getOrDefault("phoneNumber", "0000000000");
-
             UserDetailEntity ud = new UserDetailEntity();
             ud.setUsername(username);
             ud.setFullName(body.get("fullName"));
             ud.setEmailAddress(body.get("emailAddress"));
-            ud.setDialCode("+91");
-            ud.setPhoneNumber(phone.isBlank() ? "0000000000" : phone);
+            ud.setPhoneNumber(rawPhone.isBlank() ? "0000000000" : rawPhone);
             ud.setRole(role);
             ud.setRoleDescription(body.getOrDefault("roleDescription", ""));
             ud.setCreatedByAdminId(creator.getId().intValue());
@@ -296,11 +296,28 @@ public class AuthController {
                 body.put("role", "Admin".equalsIgnoreCase(requestedRole) ? "Admin" : "User");
             }
             if (body.containsKey("fullName"))        ud.setFullName(body.get("fullName"));
-            if (body.containsKey("emailAddress"))    ud.setEmailAddress(body.get("emailAddress"));
-            if (body.containsKey("phoneNumber"))     ud.setPhoneNumber(body.get("phoneNumber"));
+            if (body.containsKey("emailAddress")) {
+                String newEmail = body.get("emailAddress");
+                if (newEmail != null && !newEmail.isBlank()) {
+                    userDetailRepository.findByEmailAddress(newEmail).ifPresent(existing -> {
+                        if (!existing.getClientId().equals(clientId))
+                            throw new RuntimeException("Email address already exists");
+                    });
+                }
+                ud.setEmailAddress(newEmail);
+            }
+            if (body.containsKey("phoneNumber")) {
+                String newPhone = body.get("phoneNumber");
+                if (newPhone != null && !newPhone.isBlank()) {
+                    userDetailRepository.findByPhoneNumber(newPhone).ifPresent(existing -> {
+                        if (!existing.getClientId().equals(clientId))
+                            throw new RuntimeException("Phone number already exists");
+                    });
+                }
+                ud.setPhoneNumber(newPhone);
+            }
             if (body.containsKey("role"))            ud.setRole(body.get("role"));
             if (body.containsKey("roleDescription")) ud.setRoleDescription(body.get("roleDescription"));
-            if (body.containsKey("dialCode"))        ud.setDialCode(body.get("dialCode"));
 
             String newUsername = body.get("newUsername");
             String newPassword = body.get("newPassword");
@@ -402,7 +419,6 @@ public class AuthController {
         m.put("full_name",           u.getFullName() != null ? u.getFullName() : "");
         m.put("email_address",       u.getEmailAddress() != null ? u.getEmailAddress() : "");
         m.put("phone_number",        u.getPhoneNumber() != null ? u.getPhoneNumber() : "");
-        m.put("dial_code",           u.getDialCode() != null ? u.getDialCode() : "");
         m.put("role",                u.getRole() != null ? u.getRole() : "");
         m.put("role_description",    u.getRoleDescription() != null ? u.getRoleDescription() : "");
         m.put("created_at",          u.getCreatedAt() != null ? u.getCreatedAt().toString() : "");
