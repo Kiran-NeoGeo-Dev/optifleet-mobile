@@ -56,7 +56,7 @@ const AdminProfileScreen = ({ navigation }: Props) => {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.blueDk} />
 
-      {/* Curved blue header background */}
+      {/* Blue header background */}
       <View style={s.headerBg}>
         <LinearGradient
           colors={[C.blueDk, C.blueMd, C.blue]}
@@ -149,7 +149,7 @@ const f = StyleSheet.create({
 
 const s = StyleSheet.create({
   root:      { flex: 1, backgroundColor: "#F0F4FF" },
-  headerBg:  { position: "absolute", top: 0, left: -40, right: -40, height: 190, overflow: "hidden", borderBottomLeftRadius: 120, borderBottomRightRadius: 120 },
+  headerBg:  { position: "absolute", top: 0, left: -40, right: -40, height: 260, overflow: "hidden", borderBottomLeftRadius: 120, borderBottomRightRadius: 120 },
   safe:      { flex: 1 },
   loader:    { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll:    { paddingHorizontal: 16, paddingBottom: 90 },

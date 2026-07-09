@@ -353,8 +353,12 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
 
           {isSuperAdmin && (
             <TouchableOpacity style={s.tripCard} onPress={() => navigation.navigate("SystemOverview")} activeOpacity={0.82}>
-              <View style={s.systemIconBox}>
-                <Ionicons name="analytics-outline" size={24} color="#2563EB" />
+              <View style={s.tripIconBox}>
+                <LottieView
+                  source={require("../../../assets/animations/system.json")}
+                  autoPlay loop
+                  style={s.tripLottie}
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.tripTitle}>System Overview</Text>
