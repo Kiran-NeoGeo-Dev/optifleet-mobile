@@ -34,20 +34,23 @@ const C = {
   indigo: "#3B82F6",
 };
 
-// ── Stat Card — count only, no View > ────────────────────────────────────────
-const StatCard = ({ icon, label, count, accent }: {
-  icon: any; label: string; count: number; accent: string;
+// ── Stat Card — with arrow navigation ───────────────────────────────────────
+const StatCard = ({ icon, label, count, accent, onPress }: {
+  icon: any; label: string; count: number; accent: string; onPress?: () => void;
 }) => (
-  <View style={sc.card}>
+  <TouchableOpacity style={sc.card} onPress={onPress} activeOpacity={onPress ? 0.75 : 1}>
     <View style={[sc.accentBar, { backgroundColor: accent }]} />
     <View style={[sc.iconBox, { backgroundColor: accent + "18" }]}>
       <Ionicons name={icon} size={18} color={accent} />
     </View>
     <View style={sc.cardBody}>
       <Text style={sc.label}>{label}</Text>
-      <Text style={[sc.count, { color: accent }]}>{count}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text style={[sc.count, { color: accent }]}>{count}</Text>
+        <Ionicons name="chevron-forward" size={18} color={accent} />
+      </View>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 // ── Alert severity ────────────────────────────────────────────────────────────
@@ -198,17 +201,16 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
         fetchNotifications(new Set()).catch(() => []),
       ]);
 
+      const liveAlerts = notifs.filter((n: any) => n.status !== "Resolved");
+
       setSummary({
         activeVehicles: (sum as any).activeVehicles ?? 0,
         idleVehicles:   (sum as any).idleVehicles   ?? 0,
         activeDrivers:  (sum as any).activeDrivers  ?? 0,
-        activeAlerts:   (sum as any).activeAlerts   ?? 0,
+        activeAlerts:   liveAlerts.length,
       });
 
       setLiveVehicles(vehicles);
-
-      // Only live (non-resolved) alerts
-      const liveAlerts = notifs.filter((n: any) => n.status !== "Resolved");
       setAlerts(liveAlerts.slice(0, 6));
 
       // Update map markers live without full reload
@@ -277,16 +279,20 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
 
-          {/* ── 4 Stat Cards — count only ── */}
+          {/* ── 4 Stat Cards — with navigation ── */}
           <View style={s.grid}>
             <StatCard icon="car-sport-outline" label="Active Vehicles"
-              count={summary.activeVehicles} accent={C.green} />
+              count={summary.activeVehicles} accent={C.green}
+              onPress={() => navigation.navigate("FleetVehicles")} />
             <StatCard icon="time-outline" label="Idle Vehicles"
-              count={summary.idleVehicles} accent={C.orange} />
+              count={summary.idleVehicles} accent={C.orange}
+              onPress={() => navigation.navigate("FleetVehicles")} />
             <StatCard icon="person-outline" label="Active Drivers"
-              count={summary.activeDrivers} accent={C.indigo} />
+              count={summary.activeDrivers} accent={C.indigo}
+              onPress={() => navigation.navigate("FleetDrivers")} />
             <StatCard icon="shield-outline" label="Active Alerts"
-              count={summary.activeAlerts} accent={C.red} />
+              count={summary.activeAlerts} accent={C.red}
+              onPress={() => navigation.navigate("Notifications")} />
           </View>
 
           {/* ── Live Fleet Map ── */}
@@ -322,13 +328,12 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
             </View>
           </View>
 
-          {/* ── Trip Management ── */}
+          {/* ── Trip Management + System Overview ── */}
           <TouchableOpacity style={s.tripCard} onPress={() => navigation.navigate("TripManagement")} activeOpacity={0.82}>
             <View style={s.tripIconBox}>
               <LottieView
                 source={require("../../../assets/animations/notification2.json")}
-                autoPlay
-                loop
+                autoPlay loop
                 style={s.tripLottie}
               />
             </View>
@@ -336,19 +341,19 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
               <Text style={s.tripTitle}>Trip Management</Text>
               <Text style={s.tripSub}>Route logistics & geofence monitoring</Text>
             </View>
-            <Text style={s.viewLink}>View {">"}</Text>
+            <Text style={s.viewLink}>{">"}</Text>
           </TouchableOpacity>
 
           {isSuperAdmin && (
             <TouchableOpacity style={s.tripCard} onPress={() => navigation.navigate("SystemOverview")} activeOpacity={0.82}>
               <View style={s.systemIconBox}>
-                <Ionicons name="analytics-outline" size={28} color="#2563EB" />
+                <Ionicons name="analytics-outline" size={24} color="#2563EB" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.tripTitle}>System Overview</Text>
                 <Text style={s.tripSub}>Enterprise health and org-level analytics</Text>
               </View>
-              <Text style={s.viewLink}>View {">"}</Text>
+              <Text style={s.viewLink}>{">"}</Text>
             </TouchableOpacity>
           )}
 
@@ -483,13 +488,15 @@ const s = StyleSheet.create({
   liveTxt:    { fontSize: 10, fontWeight: "700", color: "#16A34A" },
   expandBtn:  { width: 26, height: 26, borderRadius: 7, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
   mapBox:     { height: 185, borderRadius: 10, overflow: "hidden" },
-  tripCard:    { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 10, gap: 10, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  tripIconBox: { width: 42, height: 42, borderRadius: 11, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
-  systemIconBox:{ width: 42, height: 42, borderRadius: 11, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
-  tripLottie:  { width: 36, height: 36 },
-  tripTitle:   { fontSize: 14, fontWeight: "800", color: C.text },
-  tripSub:     { fontSize: 11, color: C.muted, marginTop: 1 },
-  viewLink:    { fontSize: 12, fontWeight: "700", color: C.blue },
+  miniCardsRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  miniCard:    { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, padding: 10, gap: 8, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  tripCard:    { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, padding: 10, marginBottom: 8, gap: 8, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  tripIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  systemIconBox:{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  tripLottie:  { width: 30, height: 30 },
+  tripTitle:   { fontSize: 13, fontWeight: "800", color: C.text },
+  tripSub:     { fontSize: 10, color: C.muted, marginTop: 1 },
+  viewLink:    { fontSize: 20, fontWeight: "800", color: C.blue },
   viewAllTxt:  { fontSize: 11, fontWeight: "700", color: C.blue },
   alertRow:    { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#F0F0F0", gap: 8 },
   alertBar:    { width: 3, height: 32, borderRadius: 2 },

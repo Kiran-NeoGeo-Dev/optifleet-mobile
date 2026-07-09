@@ -192,36 +192,36 @@ const AddDriverScreen = ({ navigation }: Props) => {
     const today = new Date(); today.setHours(0,0,0,0);
 
     if (!driverName.trim())
-      e.driverName = "Driver name is required.";
+      e.driverName = "This field is required.";
     else if (!/^[a-zA-Z\s]+$/.test(driverName.trim()))
       e.driverName = "Only letters and spaces allowed.";
     else if (driverName.trim().length < 3 || driverName.trim().length > 50)
       e.driverName = "Must be 3 to 50 characters.";
 
     if (!phoneNumber.trim())
-      e.phoneNumber = "Phone number is required.";
+      e.phoneNumber = "This field is required.";
     else if (!/^[6-9]\d{9}$/.test(phoneNumber.trim()))
-      e.phoneNumber = "Enter a valid 10-digit mobile number.";
+      e.phoneNumber = "Please enter a valid 10-digit mobile number starting with 6, 7, 8 or 9.";
 
     if (!licenseNumber.trim())
-      e.licenseNumber = "License number is required.";
+      e.licenseNumber = "This field is required.";
     else if (!/^[A-Z0-9\s]{10,18}$/i.test(licenseNumber.trim()))
-      e.licenseNumber = "Enter 10 to 18 letters or numbers.";
+      e.licenseNumber = "Enter a valid license number (10 to 18 letters or digits).";
 
     if (!aadharNumber.trim())
-      e.aadharNumber = "Aadhaar number is required.";
+      e.aadharNumber = "This field is required.";
     else if (!/^\d{12}$/.test(aadharNumber.trim()))
-      e.aadharNumber = "Aadhaar must be exactly 12 digits.";
+      e.aadharNumber = "Aadhaar number must be exactly 12 digits.";
 
     if (!licenseExpiry)
-      e.licenseExpiry = "Please pick the license expiry date.";
+      e.licenseExpiry = "This field is required.";
     else if (licenseExpiry <= today)
-      e.licenseExpiry = "Expiry date must be a future date.";
+      e.licenseExpiry = "License expiry date must be a future date.";
 
     if (!dob.trim())
-      e.dob = "Date of birth is required.";
+      e.dob = "This field is required.";
     else if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dob.trim()))
-      e.dob = "Enter date in DD/MM/YYYY format.";
+      e.dob = "Please enter date in DD/MM/YYYY format.";
 
     if (comments.trim().length > 250)
       e.comments = "Maximum 250 characters allowed.";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Image, TouchableOpacity, Modal, ScrollView, StyleSheet, StatusBar, ActivityIndicator, Linking, Platform } from "react-native";
+import { View, Text, Image, TouchableOpacity, Modal, ScrollView, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -58,39 +58,11 @@ const DriverPhotosScreen = ({ route, navigation }: Props) => {
     setModal({ visible: false, setter: () => {} });
   };
 
-  const openSmsApp = (phone: string, name: string, mobileNumber: string, dateOfBirth: string) => {
-    const msg =
-      `Dear ${name}, Welcome to OptiFleet - A Solution by NeoGeoInfo Technologies!\n\n` +
-      `Welcome aboard! We're excited to have you with us.\n\n` +
-      `Your account is now fully set up. Below are your login details:\n\n` +
-      `Your Login Credentials\n` +
-      `Mobile Number: ${mobileNumber}\n` +
-      `________________________\n` +
-      `Date of Birth: ${dateOfBirth}\n` +
-      `________________________\n\n` +
-      `To login: Open OptiFleet app → Select Driver → Enter your Mobile Number and Date of Birth (DD/MM/YYYY).\n\n` +
-      `We look forward to helping you optimize your fleet operations!\n\n` +
-      `Best regards,\nThe OptiFleet Team\nNeoGeoInfo Technologies`;
-    const smsUrl = `sms:${phone}${Platform.OS === "ios" ? "&" : "?"}body=${encodeURIComponent(msg)}`;
-    Linking.canOpenURL(smsUrl)
-      .then(supported => { if (supported) Linking.openURL(smsUrl); })
-      .catch(() => {});
-  };
-
   const onSubmit = async () => {
     setLoading(true);
     try {
       await createDriver({ ...driverPayload, frontFaceImage: frontFace, leftFaceImage: leftFace, rightFaceImage: rightFace, status: driverPayload.status, clientId: driverPayload.clientId });
-      showToast("Driver added successfully.", "success");
-      // Open device SMS app with prefilled credentials
-      if (driverPayload.phoneNumber && driverPayload.password) {
-        openSmsApp(
-          driverPayload.phoneNumber,
-          driverPayload.driverName,
-          driverPayload.phoneNumber,   // mobile number = username
-          driverPayload.password        // date of birth = password
-        );
-      }
+      showToast("Driver Details Saved Successfully.", "success");
       setTimeout(() => navigation.popToTop(), 1500);
     } catch { showToast("Failed to create driver. Please try again.", "error"); }
     finally { setLoading(false); }

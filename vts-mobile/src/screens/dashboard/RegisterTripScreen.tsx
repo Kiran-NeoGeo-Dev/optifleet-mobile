@@ -648,45 +648,43 @@ ${includeControls ? `
             </View>
           )}
 
-          {/* Back arrow + Bell — anchored top-right row */}
-          <View style={styles.fsTopControls}>
-            <TouchableOpacity
-              style={styles.fsBackBtn}
-              onPress={() => {
-                setFullScreen(false);
-                fsMapReadyRef.current = false;
-                if (tripConfirmed) navigation.goBack();
-              }}
-            >
-              <Ionicons name="arrow-back" size={22} color="#fff" />
+          {/* Back arrow — top-left, below info bar when trip is active */}
+          <TouchableOpacity
+            style={[styles.fsBackBtn, tripConfirmed && { top: 108 }]}
+            onPress={() => {
+              setFullScreen(false);
+              fsMapReadyRef.current = false;
+              if (tripConfirmed) navigation.goBack();
+            }}
+          >
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Zoom controls — top-left, below back button */}
+          <View style={[styles.fsZoomControls, tripConfirmed && { top: 160 }]}>
+            <TouchableOpacity style={styles.fsZoomBtn} onPress={() => fullScreenWebViewRef.current?.injectJavaScript("map.zoomIn(); true;")}>
+              <Ionicons name="add" size={20} color="#fff" />
             </TouchableOpacity>
-
-            <View style={{ flex: 1 }} />
-
-            <View style={styles.fsZoomControls}>
-              <TouchableOpacity style={styles.fsZoomBtn} onPress={() => fullScreenWebViewRef.current?.injectJavaScript("map.zoomIn(); true;")}>
-                <Ionicons name="add" size={20} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.fsZoomBtn} onPress={() => fullScreenWebViewRef.current?.injectJavaScript("map.zoomOut(); true;")}>
-                <Ionicons name="remove" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            {tripConfirmed && (
-              <TouchableOpacity
-                style={styles.fsBellBtn}
-                onPress={() => { markAllRead(); }}
-                activeOpacity={0.75}
-              >
-                <Ionicons name="notifications-outline" size={22} color="#fff" />
-                {unreadCount > 0 && (
-                  <View style={styles.fsBellBadge}>
-                    <Text style={styles.fsBellBadgeTxt}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.fsZoomBtn} onPress={() => fullScreenWebViewRef.current?.injectJavaScript("map.zoomOut(); true;")}>
+              <Ionicons name="remove" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
+
+          {/* Bell — top-right, below info bar, no overlap */}
+          {tripConfirmed && (
+            <TouchableOpacity
+              style={styles.fsBellBtn}
+              onPress={() => { markAllRead(); }}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="notifications-outline" size={22} color="#fff" />
+              {unreadCount > 0 && (
+                <View style={styles.fsBellBadge}>
+                  <Text style={styles.fsBellBadgeTxt}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
 
           {tripConfirmed && (
             <AlertNotifications
@@ -818,11 +816,10 @@ const styles = StyleSheet.create({
   expandBtn:       { position: "absolute", top: 8, right: 8, backgroundColor: "rgba(0,0,0,0.65)", padding: 6, borderRadius: 7 },
   mapControlsOverlay: { position: "absolute", top: 8, left: 8, zIndex: 10 },
   mapControlBtn:   { width: 36, height: 36, borderRadius: 9, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" },
-  fsTopControls:   { position: "absolute", top: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", paddingTop: 90, paddingHorizontal: 16, paddingBottom: 12, zIndex: 20 },
-  fsBackBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" },
-  fsZoomControls:  { flexDirection: "column", gap: 8 },
+  fsBackBtn:       { position: "absolute", top: 44, left: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center", zIndex: 20 },
+  fsZoomControls:  { position: "absolute", top: 96, left: 16, flexDirection: "column", gap: 8, zIndex: 20 },
   fsZoomBtn:       { width: 40, height: 40, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" },
-  fsBellBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" },
+  fsBellBtn:       { position: "absolute", top: 108, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center", zIndex: 20 },
   fsBellBadge:     { position: "absolute", top: -3, right: -3, backgroundColor: "#EF4444", borderRadius: 9, minWidth: 18, height: 18, alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 2, borderColor: "#000" },
   fsBellBadgeTxt:  { fontSize: 9, fontWeight: "800", color: "#fff", lineHeight: 13 },
   fsCloseBtn:      { position: "absolute", top: 44, right: 16, backgroundColor: "rgba(0,0,0,0.7)", padding: 10, borderRadius: 8 },

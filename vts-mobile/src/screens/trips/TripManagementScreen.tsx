@@ -337,11 +337,11 @@ const styles = StyleSheet.create({
   tripCountTxt:     { fontSize: 14, fontWeight: "800", color: "#fff" },
 
   // Search card
-  searchCard:       { marginHorizontal: 14, marginTop: 10, marginBottom: 10, flexDirection: "row", gap: 8 },
-  searchBox:        { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, gap: 8, borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", shadowColor: "#7A4010", shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  searchIconBox:    { width: 24, height: 24, borderRadius: 7, backgroundColor: "rgba(120,70,20,0.12)", alignItems: "center", justifyContent: "center" },
-  searchInput:      { flex: 1, fontSize: 13, color: "#2B1D0E", fontWeight: "500" },
-  filterBtn:        { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#059669", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1.5, borderColor: "#047857" },
+  searchCard:       { marginHorizontal: 14, marginTop: 10, marginBottom: 10, flexDirection: "row", gap: 8, alignItems: "center" },
+  searchBox:        { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 10, paddingHorizontal: 10, height: 40, gap: 6, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)" },
+  searchIconBox:    { width: 22, height: 22, borderRadius: 6, backgroundColor: "rgba(120,70,20,0.12)", alignItems: "center", justifyContent: "center" },
+  searchInput:      { flex: 1, fontSize: 12, color: "#2B1D0E", fontWeight: "500" },
+  filterBtn:        { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#059669", borderRadius: 10, paddingHorizontal: 10, height: 40, borderWidth: 1.5, borderColor: "#047857" },
   filterBtnActive:  { backgroundColor: "#F59E0B", borderColor: "#D97706" },
   filterBtnTxt:     { fontSize: 11, color: "#fff", fontWeight: "800" },
 

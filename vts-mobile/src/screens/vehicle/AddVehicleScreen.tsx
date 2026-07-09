@@ -233,29 +233,52 @@ const AddVehicleScreen = ({ navigation }: Props) => {
   const validate = () => {
     const e: Record<string, string> = {};
     const t = today();
-    if (!regNum.trim()) e.regNum = "Registration number is required.";
-    else if (!/^[A-Z0-9]{8,12}$/i.test(regNum.trim().replace(/\s/g,""))) e.regNum = "Must be 8–12 alphanumeric characters.";
-    if (!dateOfReg) e.dateOfReg = "Date of registration is required.";
-    else if (dateOfReg > t) e.dateOfReg = "Cannot be a future date.";
-    if (!regValidity) e.regValidity = "Registration validity is required.";
-    else if (regValidity <= t) e.regValidity = "Must be a future date.";
-    if (!chassis.trim()) e.chassis = "Chassis number is required.";
-    else if (chassis.trim().length !== 17) e.chassis = "Must be exactly 17 characters.";
-    else if (/[IOQ]/i.test(chassis.trim())) e.chassis = "Cannot contain I, O, or Q.";
-    if (!engine.trim()) e.engine = "Engine number is required.";
-    else if (!/^[A-Z0-9]{8,20}$/i.test(engine.trim())) e.engine = "Must be 8–20 alphanumeric characters.";
-    if (!owner.trim()) e.owner = "Owner name is required.";
-    else if (!/^[a-zA-Z\s]+$/.test(owner.trim())) e.owner = "Only letters and spaces allowed.";
-    if (!make.trim()) e.make = "Vehicle make is required.";
-    if (!model.trim()) e.model = "Vehicle model is required.";
-    if (!dateOfMfg) e.dateOfMfg = "Date of manufacturing is required.";
-    else if (dateOfMfg > t) e.dateOfMfg = "Cannot be a future date.";
-    if (!insNum.trim()) e.insNum = "Insurance number is required.";
-    else if (!/^[A-Z0-9]{8,25}$/i.test(insNum.trim())) e.insNum = "Must be 8–25 alphanumeric characters.";
-    if (!insDate) e.insDate = "Insurance date is required.";
-    if (!lastPuc) e.lastPuc = "Last PUC date is required.";
-    if (!pucDue) e.pucDue = "PUC due date is required.";
-    else if (lastPuc && pucDue <= lastPuc) e.pucDue = "Must be after Last PUC Date.";
+    if (!regNum.trim())
+      e.regNum = "This field is required.";
+    else if (!/^[A-Z0-9]{8,12}$/i.test(regNum.trim().replace(/\s/g,"")))
+      e.regNum = "Please enter a valid registration number (8–12 alphanumeric characters).";
+    if (!dateOfReg)
+      e.dateOfReg = "This field is required.";
+    else if (dateOfReg > t)
+      e.dateOfReg = "Date of registration cannot be a future date.";
+    if (!regValidity)
+      e.regValidity = "This field is required.";
+    else if (regValidity <= t)
+      e.regValidity = "Registration validity must be a future date.";
+    if (!chassis.trim())
+      e.chassis = "This field is required.";
+    else if (chassis.trim().length !== 17)
+      e.chassis = "Chassis number (VIN) must be exactly 17 characters.";
+    else if (/[IOQ]/i.test(chassis.trim()))
+      e.chassis = "Chassis number cannot contain the letters I, O, or Q.";
+    if (!engine.trim())
+      e.engine = "This field is required.";
+    else if (!/^[A-Z0-9]{8,20}$/i.test(engine.trim()))
+      e.engine = "Please enter a valid engine number (8–20 alphanumeric characters).";
+    if (!owner.trim())
+      e.owner = "This field is required.";
+    else if (!/^[a-zA-Z\s]+$/.test(owner.trim()))
+      e.owner = "Owner name must contain only letters and spaces.";
+    if (!make.trim())
+      e.make = "This field is required.";
+    if (!model.trim())
+      e.model = "This field is required.";
+    if (!dateOfMfg)
+      e.dateOfMfg = "This field is required.";
+    else if (dateOfMfg > t)
+      e.dateOfMfg = "Date of manufacturing cannot be a future date.";
+    if (!insNum.trim())
+      e.insNum = "This field is required.";
+    else if (!/^[A-Z0-9]{8,25}$/i.test(insNum.trim()))
+      e.insNum = "Please enter a valid insurance number (8–25 alphanumeric characters).";
+    if (!insDate)
+      e.insDate = "This field is required.";
+    if (!lastPuc)
+      e.lastPuc = "This field is required.";
+    if (!pucDue)
+      e.pucDue = "This field is required.";
+    else if (lastPuc && pucDue <= lastPuc)
+      e.pucDue = "PUC due date must be after the last PUC date.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };

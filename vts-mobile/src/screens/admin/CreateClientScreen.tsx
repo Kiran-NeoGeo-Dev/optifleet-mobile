@@ -145,18 +145,28 @@ const CreateClientScreen = ({ navigation }: Props) => {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!username.trim() || username.trim().length < 3)
-      e.username = "Min 3 characters required.";
-    if (!password.trim() || password.trim().length < 6)
-      e.password = "Min 6 characters required.";
+    if (!username.trim())
+      e.username = "This field is required.";
+    else if (username.trim().length < 3)
+      e.username = "Username must be at least 3 characters.";
+    if (!password.trim())
+      e.password = "This field is required.";
+    else if (password.trim().length < 6)
+      e.password = "Password must be at least 6 characters.";
     if (!fullName.trim())
-      e.fullName = "Full name is required.";
-    if (!emailAddress.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress))
-      e.emailAddress = "Valid email is required.";
-    if (!phoneNumber.trim() || !/^\d{4,15}$/.test(phoneNumber.trim()))
-      e.phoneNumber = "Please enter a valid phone number.";
+      e.fullName = "This field is required.";
+    else if (!/^[a-zA-Z\s]+$/.test(fullName.trim()))
+      e.fullName = "Only letters and spaces are allowed.";
+    if (!emailAddress.trim())
+      e.emailAddress = "This field is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress))
+      e.emailAddress = "Please enter a valid email address.";
+    if (!phoneNumber.trim())
+      e.phoneNumber = "This field is required.";
+    else if (!/^\d{4,15}$/.test(phoneNumber.trim()))
+      e.phoneNumber = "Please enter a valid phone number (4–15 digits).";
     if (!role.trim())
-      e.role = "Role is required.";
+      e.role = "This field is required.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
