@@ -26,6 +26,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, String> body = new HashMap<>();
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleNotFound(ResourceNotFoundException ex) {
         logger.error("Resource not found: {}", ex.getMessage());
@@ -79,7 +86,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
         logger.error("Unexpected error: {}", ex.getMessage(), ex);
         Map<String, String> body = new HashMap<>();
-        body.put("error", "Internal server error: " + ex.getMessage());
+        body.put("error", "An unexpected error occurred. Please try again.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

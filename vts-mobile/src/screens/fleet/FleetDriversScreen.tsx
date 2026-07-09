@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, RefreshControl, Image,
@@ -30,31 +30,24 @@ const FleetDriversScreen = ({ navigation }: Props) => {
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    try { setDrivers(await fetchFleetDrivers()); }
-    catch (_) {}
+    try {
+      const [fleetDrivers, fleetVehicles] = await Promise.all([
+        fetchFleetDrivers(),
+        fetchFleetVehicles().catch(() => [] as any[]),
+      ]);
+      const map = new Map<string, string>();
+      fleetVehicles.forEach((v: any) => {
+        if (v.driverName && v.licensePlate) {
+          const k = (v.driverName ?? "").trim();
+          if (!map.has(k)) map.set(k, v.licensePlate);
+        }
+      });
+      setDrivers(fleetDrivers.map((d: any) => ({
+        ...d,
+        vehicleRegNo: d.vehicleRegNo ?? map.get((d.driverName ?? "").trim()) ?? d.vehicleRegNo,
+      })));
+    } catch (_) {}
     finally { setLoading(false); setRefreshing(false); }
-  }, []);
-
-  // Also fetch fleet vehicle -> driver mapping to provide fallback for vehicleRegNo
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const fv = await fetchFleetVehicles();
-        if (!mounted) return;
-        // build reverse map: driverName -> licensePlate (first match)
-        const map = new Map<string, string>();
-        fv.forEach((v: any) => {
-          if (v.driverName && v.licensePlate) {
-            const k = (v.driverName ?? "").trim();
-            if (!map.has(k)) map.set(k, v.licensePlate);
-          }
-        });
-        // apply fallback to existing drivers list
-        setDrivers(prev => prev.map(d => ({ ...d, vehicleRegNo: d.vehicleRegNo ?? map.get((d.driverName ?? "").trim()) ?? d.vehicleRegNo })));
-      } catch (_) {}
-    })();
-    return () => { mounted = false; };
   }, []);
 
   useFocusEffect(useCallback(() => {

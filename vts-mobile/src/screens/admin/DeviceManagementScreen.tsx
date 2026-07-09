@@ -52,7 +52,6 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
   const [modalMode, setModalMode]     = useState<"add" | "edit" | "view">("add");
   const [form, setForm]               = useState<DevicePayload & { id?: number }>(EMPTY);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-  const [formErrors, setFormErrors]     = useState<Record<string, string>>({});
   const { toast, showToast, hideToast } = useToast();
   const openAddModal = route.params?.openAddModal;
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -74,7 +73,6 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
   }, [openAddModal]);
 
   const openModal = (mode: "add" | "edit" | "view", device?: Device) => {
-    setFormErrors({});
     setModalMode(mode);
     setForm(device
       ? { id: device.id, deviceId: device.deviceId, deviceType: device.deviceType, mobileNumber: device.mobileNumber, imeiNumber: device.imeiNumber, deviceModel: device.deviceModel, status: device.status }
@@ -89,21 +87,11 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
   };
 
   const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.deviceId.trim())
-      e.deviceId = "This field is required.";
-    if (!form.mobileNumber.trim())
-      e.mobileNumber = "This field is required.";
-    else if (!/^\d{10}$/.test(form.mobileNumber))
-      e.mobileNumber = "Please enter a valid 10-digit mobile number.";
-    if (!form.imeiNumber.trim())
-      e.imeiNumber = "This field is required.";
-    else if (!/^\d{15}$/.test(form.imeiNumber))
-      e.imeiNumber = "Please enter a valid 15-digit IMEI number.";
-    if (!form.deviceModel.trim())
-      e.deviceModel = "This field is required.";
-    setFormErrors(e);
-    return Object.keys(e).length === 0;
+    if (!form.deviceId.trim())      { showToast("Device ID is required", "error"); return false; }
+    if (!/^\d{10}$/.test(form.mobileNumber)) { showToast("Mobile number must be 10 digits", "error"); return false; }
+    if (!/^\d{15}$/.test(form.imeiNumber))   { showToast("IMEI must be 15 digits", "error"); return false; }
+    if (!form.deviceModel.trim())   { showToast("Device model is required", "error"); return false; }
+    return true;
   };
 
   const handleSave = async () => {
@@ -316,60 +304,56 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
                   <View style={styles.dot} />
                   <Text style={styles.dotLabelTxt}>DEVICE ID</Text>
                 </View>
-                <View style={[styles.fieldBox, modalMode === "view" && styles.fieldBoxReadonly, !!formErrors.deviceId && styles.fieldBoxErr]}>
+                <View style={[styles.fieldBox, modalMode === "view" && styles.fieldBoxReadonly]}>
                   <View style={[styles.fieldIconBox, { backgroundColor: "#FFF3E0" }]}>
                     <Ionicons name="phone-portrait-outline" size={18} color="#F57C00" />
                   </View>
                   <TextInput style={styles.fieldInput} placeholder="Enter device ID" placeholderTextColor={C.placeholder}
-                    value={form.deviceId} onChangeText={t => { setForm(f => ({ ...f, deviceId: t })); setFormErrors(e => ({ ...e, deviceId: "" })); }}
+                    value={form.deviceId} onChangeText={t => setForm(f => ({ ...f, deviceId: t }))}
                     editable={modalMode !== "view"} autoCapitalize="none" />
                 </View>
-                {!!formErrors.deviceId && <Text style={styles.errTxt}><Ionicons name="alert-circle-outline" size={11} /> {formErrors.deviceId}</Text>}
 
                 {/* Mobile Number */}
                 <View style={styles.dotLabel}>
                   <View style={styles.dot} />
                   <Text style={styles.dotLabelTxt}>MOBILE NUMBER</Text>
                 </View>
-                <View style={[styles.fieldBox, modalMode === "view" && styles.fieldBoxReadonly, !!formErrors.mobileNumber && styles.fieldBoxErr]}>
+                <View style={[styles.fieldBox, modalMode === "view" && styles.fieldBoxReadonly]}>
                   <View style={[styles.fieldIconBox, { backgroundColor: "#EDE7F6" }]}>
                     <Ionicons name="call-outline" size={18} color="#7B2CBF" />
                   </View>
                   <TextInput style={styles.fieldInput} placeholder="10-digit mobile number" placeholderTextColor={C.placeholder}
-                    value={form.mobileNumber} onChangeText={t => { setForm(f => ({ ...f, mobileNumber: t })); setFormErrors(e => ({ ...e, mobileNumber: "" })); }}
+                    value={form.mobileNumber} onChangeText={t => setForm(f => ({ ...f, mobileNumber: t }))}
                     keyboardType="numeric" maxLength={10} editable={modalMode !== "view"} />
                 </View>
-                {!!formErrors.mobileNumber && <Text style={styles.errTxt}><Ionicons name="alert-circle-outline" size={11} /> {formErrors.mobileNumber}</Text>}
 
                 {/* IMEI */}
                 <View style={styles.dotLabel}>
                   <View style={styles.dot} />
                   <Text style={styles.dotLabelTxt}>IMEI NUMBER</Text>
                 </View>
-                <View style={[styles.fieldBox, modalMode === "view" && styles.fieldBoxReadonly, !!formErrors.imeiNumber && styles.fieldBoxErr]}>
+                <View style={[styles.fieldBox, modalMode === "view" && styles.fieldBoxReadonly]}>
                   <View style={[styles.fieldIconBox, { backgroundColor: "#E8F5E9" }]}>
                     <Ionicons name="barcode-outline" size={18} color="#2E7D32" />
                   </View>
                   <TextInput style={styles.fieldInput} placeholder="15-digit IMEI number" placeholderTextColor={C.placeholder}
-                    value={form.imeiNumber} onChangeText={t => { setForm(f => ({ ...f, imeiNumber: t })); setFormErrors(e => ({ ...e, imeiNumber: "" })); }}
+                    value={form.imeiNumber} onChangeText={t => setForm(f => ({ ...f, imeiNumber: t }))}
                     keyboardType="numeric" maxLength={15} editable={modalMode !== "view"} />
                 </View>
-                {!!formErrors.imeiNumber && <Text style={styles.errTxt}><Ionicons name="alert-circle-outline" size={11} /> {formErrors.imeiNumber}</Text>}
 
                 {/* Device Model */}
                 <View style={styles.dotLabel}>
                   <View style={styles.dot} />
                   <Text style={styles.dotLabelTxt}>DEVICE MODEL</Text>
                 </View>
-                <View style={[styles.fieldBox, modalMode === "view" && styles.fieldBoxReadonly, !!formErrors.deviceModel && styles.fieldBoxErr]}>
+                <View style={[styles.fieldBox, modalMode === "view" && styles.fieldBoxReadonly]}>
                   <View style={[styles.fieldIconBox, { backgroundColor: "#E3F2FD" }]}>
                     <Ionicons name="hardware-chip-outline" size={18} color="#1565C0" />
                   </View>
                   <TextInput style={styles.fieldInput} placeholder="e.g. Samsung Galaxy A32" placeholderTextColor={C.placeholder}
-                    value={form.deviceModel} onChangeText={t => { setForm(f => ({ ...f, deviceModel: t })); setFormErrors(e => ({ ...e, deviceModel: "" })); }}
+                    value={form.deviceModel} onChangeText={t => setForm(f => ({ ...f, deviceModel: t }))}
                     editable={modalMode !== "view"} />
                 </View>
-                {!!formErrors.deviceModel && <Text style={styles.errTxt}><Ionicons name="alert-circle-outline" size={11} /> {formErrors.deviceModel}</Text>}
 
                 {/* Status */}
                 <View style={styles.dotLabel}>
@@ -451,7 +435,7 @@ const styles = StyleSheet.create({
   title:         { flex: 1, fontSize: 18, fontWeight: "800", color: C.white },
   countBadge:    { backgroundColor: "rgba(245,158,11,0.18)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.orange + "44" },
   countTxt:      { fontSize: 12, fontWeight: "800", color: C.orange },
-  searchWrap:    { flexDirection: "row", alignItems: "center", marginHorizontal: 14, marginBottom: 10, backgroundColor: "#E8CBA7", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", shadowColor: "#7A4010", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  searchWrap:    { flexDirection: "row", alignItems: "center", marginHorizontal: 14, marginBottom: 10, backgroundColor: "#E8CBA7", borderRadius: 12, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)", elevation: 2 },
   searchInput:   { flex: 1, color: "#2B1D0E", fontSize: 13, fontWeight: "500" },
   empty:         { textAlign: "center", color: "rgba(255,255,255,0.55)", marginTop: 40 },
   card:          { backgroundColor: C.cream, borderRadius: 12, padding: 11, marginBottom: 8, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
@@ -477,10 +461,8 @@ const styles = StyleSheet.create({
   dotLabel:      { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6, marginTop: 3 },
   dot:           { width: 6, height: 6, borderRadius: 3, backgroundColor: C.bgMid },
   dotLabelTxt:   { fontSize: 10, fontWeight: "800", color: C.bgDark, letterSpacing: 0.9 },
-  fieldBox:      { flexDirection: "row", alignItems: "center", backgroundColor: C.inputBg, borderRadius: 10, borderWidth: 1, borderColor: C.inputBorder, minHeight: 44, marginBottom: 4, overflow: "hidden" },
+  fieldBox:      { flexDirection: "row", alignItems: "center", backgroundColor: C.inputBg, borderRadius: 10, borderWidth: 1, borderColor: C.inputBorder, minHeight: 44, marginBottom: 10, overflow: "hidden" },
   fieldBoxReadonly: { opacity: 0.65 },
-  fieldBoxErr:   { borderColor: C.red },
-  errTxt:        { fontSize: 11, color: C.red, marginBottom: 8, marginLeft: 2 },
   fieldIconBox:  { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   fieldIcon:     { marginLeft: 10, marginRight: 3 },
   fieldInput:    { flex: 1, fontSize: 13, color: C.inputText, paddingVertical: 10, paddingRight: 10 },

@@ -20,12 +20,12 @@ const AdminUserListScreen = ({ navigation }: Props) => {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
-    fetchAllUsers().then(setUsers).catch(() => {}).finally(() => setLoading(false));
-  };
+    fetchAllUsers().then(setUsers).catch(() => setUsers([])).finally(() => setLoading(false));
+  }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleDelete = async () => {
     if (!deleteTarget) return;

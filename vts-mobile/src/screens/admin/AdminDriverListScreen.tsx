@@ -21,12 +21,12 @@ const AdminDriverListScreen = ({ navigation }: Props) => {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
-    fetchAllDriversAdmin().then(setDrivers).catch(() => {}).finally(() => setLoading(false));
-  };
+    fetchAllDriversAdmin().then(setDrivers).catch(() => setDrivers([])).finally(() => setLoading(false));
+  }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleDelete = async () => {
     if (!deleteTarget) return;

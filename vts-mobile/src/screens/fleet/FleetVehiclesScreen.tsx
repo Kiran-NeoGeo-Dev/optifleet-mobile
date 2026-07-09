@@ -65,23 +65,20 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Merge vehicles DB list with live telemetry — same source as Dashboard
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [vehicles, liveList] = await Promise.all([
+      const [vehicles, liveList, fleetDrivers] = await Promise.all([
         fetchVehicles().catch(() => [] as Vehicle[]),
         fetchLiveVehicles().catch(() => [] as LiveVehicle[]),
+        fetchFleetDrivers().catch(() => [] as any[]),
       ]);
 
-      // Fetch fleet drivers to get a reliable mapping: licensePlate -> driverName
-      const fleetDrivers = await fetchFleetDrivers().catch(() => [] as any[]);
       const driverByReg = new Map<string, string>();
       fleetDrivers.forEach((d: any) => {
         if (d.vehicleRegNo) driverByReg.set((d.vehicleRegNo ?? "").toUpperCase(), d.driverName ?? "");
       });
 
-      // Build quick lookup: registrationNo (vehicleId in LiveVehicle) → live row
       const liveMap = new Map<string, LiveVehicle>();
       liveList.forEach(lv => liveMap.set((lv.vehicleId ?? "").toUpperCase(), lv));
 
@@ -96,9 +93,7 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
           vehicleModel: v.vehicleModel ?? "",
           vehiclePhoto: v.vehiclePhoto ?? null,
           clientId:     v.clientId,
-          // Prefer live driver, then driver assigned in fleet service, else placeholder
           driverName:   live?.driverName ?? driverFromFleet ?? "—",
-          // tripStatus comes from the SAME LiveVehicle data the Dashboard map uses
           tripStatus:   live?.tripStatus ?? "Offline",
           liveData:     live,
         };
@@ -107,7 +102,7 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
       setRows(merged);
     } catch (_) {
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
       setRefreshing(false);
     }
   }, []);

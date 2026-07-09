@@ -168,9 +168,8 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
     finally { setLoading(false); }
   }, [driver.id]);
 
-  useFocusEffect(useCallback(() => { load(selYear, selMonth); }, [load]));
+  useFocusEffect(useCallback(() => { load(selYear, selMonth); }, [load, selYear, selMonth]));
 
-  useEffect(() => { load(selYear, selMonth); }, [selYear, selMonth]);
 
   const hasPhoto = !imgError && !!driver.photoFront && driver.photoFront.length > 4;
   const photoUri = hasPhoto

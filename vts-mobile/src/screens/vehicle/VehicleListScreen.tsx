@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet, StatusBar } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -19,9 +19,16 @@ const FUEL_ACCENT: Record<string, string> = {
 const VehicleListScreen = ({ navigation }: Props) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useFocusEffect(useCallback(() => {
-    fetchVehicles().then(setVehicles).catch(() => {});
+    setLoading(true);
+    setError(false);
+    fetchVehicles()
+      .then(setVehicles)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
   }, []));
 
   const filtered = vehicles.filter(v =>
@@ -131,10 +138,21 @@ const VehicleListScreen = ({ navigation }: Props) => {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="car-outline" size={52} color="rgba(255,255,255,0.30)" />
-              <Text style={styles.emptyTxt}>No vehicles found</Text>
-            </View>
+            loading ? (
+              <View style={styles.empty}>
+                <ActivityIndicator size="large" color="rgba(255,255,255,0.7)" />
+              </View>
+            ) : error ? (
+              <View style={styles.empty}>
+                <Ionicons name="cloud-offline-outline" size={52} color="rgba(255,255,255,0.30)" />
+                <Text style={styles.emptyTxt}>Failed to load vehicles</Text>
+              </View>
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="car-outline" size={52} color="rgba(255,255,255,0.30)" />
+                <Text style={styles.emptyTxt}>No vehicles found</Text>
+              </View>
+            )
           }
         />
       </SafeAreaView>

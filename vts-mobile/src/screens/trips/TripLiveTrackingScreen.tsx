@@ -48,10 +48,10 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
       try {
         const res = await api.get<any>(`${ENDPOINTS.LIVE_TRACKING_STATE}/${trip.vehicleId}`);
         const u = res.data;
-        if (!u) return;
-        setRemainingKm(Number.parseFloat(u.remainingDistanceKm.toFixed(1)));
-        setEtaMin(Math.round(u.etaMinutes));
-        setProgress(Number.parseFloat(u.progressPercentage.toFixed(1)));
+        if (!u || u.lat == null) return;
+        setRemainingKm(u.remainingDistanceKm != null ? Number.parseFloat(u.remainingDistanceKm.toFixed(1)) : null);
+        setEtaMin(u.etaMinutes != null ? Math.round(u.etaMinutes) : null);
+        setProgress(u.progressPercentage != null ? Number.parseFloat(u.progressPercentage.toFixed(1)) : 0);
         setLiveSpeed(u.speed ?? 0);
         setIsDeviating(u.isDeviating ?? false);
         if (u.popupData) { setPopup(u.popupData); processPopup(u.popupData); }
@@ -231,7 +231,7 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
           source={{ html: mapHtml }}
           javaScriptEnabled
           originWhitelist={["*"]}
-          onLoad={injectRoute}
+          onLoadEnd={injectRoute}
           onMessage={onWebViewMessage}
         />
 

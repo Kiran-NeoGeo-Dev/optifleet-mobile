@@ -33,11 +33,12 @@ const INFO_ROWS = [
 const DriverProfileScreen = ({ navigation }: Props) => {
   const [driver,  setDriver]  = useState<Driver | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(false);
 
   useEffect(() => {
     fetchMyDriverProfile()
       .then(setDriver)
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -76,6 +77,21 @@ const DriverProfileScreen = ({ navigation }: Props) => {
         {loading ? (
           <View style={s.loader}>
             <ActivityIndicator size="large" color={C.white} />
+          </View>
+        ) : error ? (
+          <View style={s.loader}>
+            <Ionicons name="cloud-offline-outline" size={48} color="rgba(255,255,255,0.5)" />
+            <Text style={{ color: "rgba(255,255,255,0.6)", marginTop: 12, fontSize: 14 }}>Failed to load profile</Text>
+            <TouchableOpacity
+              style={{ marginTop: 16, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 }}
+              onPress={() => {
+                setError(false);
+                setLoading(true);
+                fetchMyDriverProfile().then(setDriver).catch(() => setError(true)).finally(() => setLoading(false));
+              }}
+            >
+              <Text style={{ color: C.white, fontWeight: "700" }}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>

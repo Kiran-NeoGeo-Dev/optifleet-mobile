@@ -122,7 +122,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
   const [driverSearch, setDriverSearch]   = useState("");
   const { toast, showToast, hideToast } = useToast();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       if (isAdminFullMode) {
@@ -152,15 +152,14 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
         setAssociations(assocs as ClientAssociation[]);
         setVehicles(vehs as VehicleWithDevice[]);
       }
-    } catch (error) {
-      console.error("Load error:", error);
+    } catch {
       showToast("Failed to load data", "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdminFullMode, isAdminMode]);
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   // Initialize form when modal opens via openAddModal parameter
   useEffect(() => {
@@ -194,8 +193,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
           license_no: d.licenseNumber || ""
         })));
       }
-    } catch (error) {
-      console.error("Driver load error:", error);
+    } catch {
       setDrivers([]);
     }
   };
@@ -503,7 +501,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
                 ? "Association Details"
                 : modalMode === "edit"
                   ? "Edit " + (isAdminFullMode ? "Association" : isAdminMode ? "Link" : "Association")
-                  : "New " + (isAdminFullMode ? "Association" : isAdminMode ? "Link" : "Association")},
+                  : "New " + (isAdminFullMode ? "Association" : isAdminMode ? "Link" : "Association")}
             </Text>
             <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollContent}>
               

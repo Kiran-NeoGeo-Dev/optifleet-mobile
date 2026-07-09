@@ -105,7 +105,7 @@ const TripManagementScreen = ({ navigation }: Props) => {
       await api.delete(`${ENDPOINTS.TRIPS}/${deleteTarget.id}`);
       showToast("Trip deleted.", "success");
       setDeleteTarget(null);
-      loadTrips(false);
+      loadTrips(true);
     } catch {
       showToast("Failed to delete trip.", "error");
       setDeleteTarget(null);

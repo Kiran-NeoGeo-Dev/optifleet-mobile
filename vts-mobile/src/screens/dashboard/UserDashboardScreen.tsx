@@ -157,6 +157,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   const [drawerOpen,   setDrawerOpen]   = useState(false);
   const [enablePrompt, setEnablePrompt] = useState(false);
   const notifEnabled = useRef(false);
+  const readKeysRef  = useRef<Set<string>>(new Set());
   const lottieRef   = useRef<LottieView>(null);
   const webViewRef   = useRef<any>(null);
   const mapInitRef   = useRef(false);
@@ -185,12 +186,19 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   const loadAll = useCallback(async () => {
     try {
       const [sum, vehicles, notifs] = await Promise.all([
-        fetchDashboardSummary(),
+        fetchDashboardSummary().catch(() => ({ activeVehicles: 0, idleVehicles: 0, activeDrivers: 0, activeAlerts: 0 })),
         fetchLiveVehicles().catch(() => [] as LiveVehicle[]),
-        fetchNotifications(new Set()).catch(() => []),
+        fetchNotifications(readKeysRef.current).catch(() => []),
       ]);
 
       const liveAlerts = notifs.filter((n: any) => n.status !== "Resolved");
+
+      // Preserve read state across polls
+      liveAlerts.forEach((n: any) => { if (n.read) readKeysRef.current.add(n.id); });
+      const alertsWithReadState = liveAlerts.map((n: any) => ({
+        ...n,
+        read: readKeysRef.current.has(n.id),
+      }));
 
       setSummary({
         activeVehicles: (sum as any).activeVehicles ?? 0,
@@ -200,9 +208,8 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
       });
 
       setLiveVehicles(vehicles);
-      setAlerts(liveAlerts.slice(0, 6));
+      setAlerts(alertsWithReadState.slice(0, 6));
 
-      // Update map markers live without full reload
       if (mapInitRef.current && webViewRef.current && vehicles.length > 0) {
         const vJson = JSON.stringify(vehicles.map(v => ({
           lat: v.lat, lng: v.lng, id: v.vehicleId, regNo: v.vehicleId,

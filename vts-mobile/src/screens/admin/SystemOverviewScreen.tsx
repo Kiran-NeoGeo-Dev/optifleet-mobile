@@ -154,18 +154,18 @@ const SystemOverviewScreen = ({ navigation }: Props) => {
 
         <View style={styles.content}>
           <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
+            <Ionicons name="search-outline" size={16} color="#9C6B30" style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search by name, username or org ID..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#7A4A20"
               value={query}
               onChangeText={setQuery}
               autoCapitalize="none"
             />
             {query.length > 0 && (
               <TouchableOpacity onPress={() => setQuery("")} style={{ marginLeft: 6 }}>
-                <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={16} color="#9C6B30" />
               </TouchableOpacity>
             )}
           </View>
@@ -245,8 +245,8 @@ const styles = StyleSheet.create({
   content: { flex: 1, backgroundColor: "#F0F4FF", borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 12, paddingTop: 12 },
 
   // Search bar — warm tone matching TripManagement & FleetDrivers
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 10, paddingHorizontal: 10, height: 38, marginBottom: 10, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)", elevation: 2 },
-  searchInput: { flex: 1, fontSize: 12, color: "#2B1D0E" },
+  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 10, paddingHorizontal: 12, height: 44, marginBottom: 10, borderWidth: 1.5, borderColor: "rgba(120,70,20,0.35)", elevation: 3 },
+  searchInput: { flex: 1, fontSize: 14, color: "#1A0A00", fontWeight: "700" },
 
   // Key Metrics section
   summarySection: { backgroundColor: "#fff", borderRadius: 12, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
@@ -257,10 +257,10 @@ const styles = StyleSheet.create({
 
   // Key Metric cards — gradient top + white count + label below
   // widen cards so longer labels (e.g. "Organizations") don't wrap awkwardly
-  summaryCard:    { width: 84, backgroundColor: "#fff", borderRadius: 8, marginHorizontal: 4, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  summaryGrad:    { paddingVertical: 8, paddingHorizontal: 6, alignItems: "center", gap: 3 },
-  summaryValue:   { fontSize: 18, fontWeight: "900", color: "#fff" },
-  summaryLabel:   { fontSize: 7, color: "#6B7280", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.3, textAlign: "center", paddingVertical: 5, paddingHorizontal: 3 },
+  summaryCard:    { width: 100, backgroundColor: "#fff", borderRadius: 8, marginHorizontal: 4, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  summaryGrad:    { paddingVertical: 10, paddingHorizontal: 6, alignItems: "center", gap: 4 },
+  summaryValue:   { fontSize: 20, fontWeight: "900", color: "#fff" },
+  summaryLabel:   { fontSize: 9, color: "#0D1B3E", fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4, textAlign: "center", paddingVertical: 6, paddingHorizontal: 4 },
 
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 2, marginBottom: 6 },
   sectionTitle: { fontSize: 13, fontWeight: "800", color: "#0D1B3E" },

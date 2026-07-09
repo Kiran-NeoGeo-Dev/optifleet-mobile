@@ -1,5 +1,5 @@
 import { api } from "./api";
-import { ENDPOINTS, API_BASE_URL } from "../config/apiConfig";
+import { ENDPOINTS } from "../config/apiConfig";
 import { Client } from "../types/Client";
 
 export interface LoginRequest {
@@ -15,20 +15,8 @@ export interface LoginResponse {
 }
 
 export const login = async (payload: LoginRequest) => {
-  console.log("=== LOGIN DEBUG ===");
-  console.log("URL:", API_BASE_URL + ENDPOINTS.LOGIN);
-  console.log("Payload:", JSON.stringify(payload));
-  try {
-    const res = await api.post<LoginResponse>(ENDPOINTS.LOGIN, payload);
-    console.log("LOGIN SUCCESS:", JSON.stringify(res.data));
-    return res.data;
-  } catch (err: any) {
-    console.log("LOGIN ERROR status:", err?.response?.status);
-    console.log("LOGIN ERROR data:", JSON.stringify(err?.response?.data));
-    console.log("LOGIN ERROR message:", err?.message);
-    console.log("LOGIN ERROR code:", err?.code);
-    throw err;
-  }
+  const res = await api.post<LoginResponse>(ENDPOINTS.LOGIN, payload);
+  return res.data;
 };
 
 export const fetchForgotPasswordMessage = async () => {

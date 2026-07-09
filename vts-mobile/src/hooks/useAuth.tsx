@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from "react";
-import { setAuthToken } from "../services/api";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { setAuthToken, setUnauthorizedHandler } from "../services/api";
 
 interface AuthContextValue {
   token:    string | null;
@@ -35,6 +35,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRole(null);
     setAuthToken(null);
   };
+
+  useEffect(() => {
+    setUnauthorizedHandler(logout);
+  }, []);
 
   const isAdmin  = role?.toLowerCase() === "admin" || role?.toLowerCase() === "superadmin";
   const isClient = role?.toLowerCase() === "client";

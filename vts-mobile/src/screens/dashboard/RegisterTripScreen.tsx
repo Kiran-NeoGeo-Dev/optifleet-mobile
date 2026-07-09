@@ -89,34 +89,36 @@ const RegisterTripScreen = ({ navigation }: Props) => {
   };
 
   // ── Detect GPS → auto-fill From + set map center ───────────────────────────
+  const mapReadyRef = useRef(false);
+
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") { setMapReady(true); return; }
+        if (status !== "granted") { setMapReady(true); mapReadyRef.current = true; return; }
 
-        // watchPositionAsync gets the LIVE device GPS — not emulator default
         sub = await Location.watchPositionAsync(
           { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 0, timeInterval: 0 },
           async (loc) => {
-            sub?.remove(); // only need first real fix
+            sub?.remove();
             const { latitude: lat, longitude: lng, accuracy } = loc.coords;
             setUserLocation({ lat, lng, acc: accuracy ?? 30 });
             setMapReady(true);
+            mapReadyRef.current = true;
             const name = await reverseGeocodeCoords(lat, lng);
             setStartPlace(name);
             setStartCoords({ lat, lng });
           }
         );
 
-        // Safety timeout — if GPS takes > 8s, show map with fallback
         setTimeout(() => {
-          if (!mapReady) setMapReady(true);
+          if (!mapReadyRef.current) { setMapReady(true); mapReadyRef.current = true; }
         }, 8000);
 
       } catch {
         setMapReady(true);
+        mapReadyRef.current = true;
       }
     })();
     return () => { sub?.remove(); };

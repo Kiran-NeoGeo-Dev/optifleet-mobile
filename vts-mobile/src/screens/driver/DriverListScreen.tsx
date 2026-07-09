@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet, StatusBar } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -15,9 +15,16 @@ type Props = NativeStackScreenProps<MainStackParamList, "DriverList">;
 const DriverListScreen = ({ navigation }: Props) => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useFocusEffect(useCallback(() => {
-    fetchDrivers().then(setDrivers).catch(() => {});
+    setLoading(true);
+    setError(false);
+    fetchDrivers()
+      .then(setDrivers)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
   }, []));
 
   const filtered = drivers.filter(d =>
@@ -122,10 +129,21 @@ const DriverListScreen = ({ navigation }: Props) => {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="people-outline" size={52} color="rgba(255,255,255,0.30)" />
-              <Text style={styles.emptyTxt}>No drivers found</Text>
-            </View>
+            loading ? (
+              <View style={styles.empty}>
+                <ActivityIndicator size="large" color="rgba(255,255,255,0.7)" />
+              </View>
+            ) : error ? (
+              <View style={styles.empty}>
+                <Ionicons name="cloud-offline-outline" size={52} color="rgba(255,255,255,0.30)" />
+                <Text style={styles.emptyTxt}>Failed to load drivers</Text>
+              </View>
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="people-outline" size={52} color="rgba(255,255,255,0.30)" />
+                <Text style={styles.emptyTxt}>No drivers found</Text>
+              </View>
+            )
           }
         />
       </SafeAreaView>

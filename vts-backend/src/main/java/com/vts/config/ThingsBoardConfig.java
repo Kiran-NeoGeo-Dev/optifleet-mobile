@@ -6,22 +6,22 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ThingsBoardConfig {
 
-    @Value("${tb.host.primary:183.82.114.29}")
+    @Value("${tb.host.primary}")
     private String primaryHost;
 
     @Value("${tb.port.primary:8282}")
     private int primaryPort;
 
-    @Value("${tb.host.fallback:192.168.1.146}")
+    @Value("${tb.host.fallback}")
     private String fallbackHost;
 
     @Value("${tb.port.fallback:8282}")
     private int fallbackPort;
 
-    @Value("${tb.username:kiran.m@neogeoinfo.com}")
+    @Value("${tb.username}")
     private String username;
 
-    @Value("${tb.password:NeoGeo@321}")
+    @Value("${tb.password}")
     private String password;
 
     @Value("${tb.primary.active:true}")

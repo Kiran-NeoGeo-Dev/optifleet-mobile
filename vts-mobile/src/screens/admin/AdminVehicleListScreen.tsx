@@ -28,12 +28,12 @@ const AdminVehicleListScreen = ({ navigation }: Props) => {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
-    fetchAllVehiclesAdmin().then(setVehicles).catch(() => {}).finally(() => setLoading(false));
-  };
+    fetchAllVehiclesAdmin().then(setVehicles).catch(() => setVehicles([])).finally(() => setLoading(false));
+  }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleDelete = async () => {
     if (!deleteTarget) return;

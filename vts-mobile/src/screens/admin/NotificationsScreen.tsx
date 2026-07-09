@@ -37,35 +37,28 @@ const NotificationsScreen = ({ navigation }: Props) => {
     try {
       const data = await fetchNotifications(readKeysRef.current);
       setItems(data);
-    } catch {}
-    finally { setLoading(false); }
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useFocusEffect(useCallback(() => {
-    setLoading(true);
+    if (items.length === 0) setLoading(true);
     load();
     const t = setInterval(load, 30000);
     return () => clearInterval(t);
   }, [load]));
 
   const markAllRead = async () => {
-    try {
-      await markAllNotificationsRead();
-      items.forEach(n => readKeysRef.current.add(n.id));
-      setItems(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (error) {
-      console.error("Failed to mark all as read:", error);
-    }
+    items.forEach(n => readKeysRef.current.add(n.id));
+    setItems(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   const clearAll = async () => {
-    try {
-      await clearAllNotifications();
-      items.forEach(n => readKeysRef.current.add(n.id));
-      setItems([]);
-    } catch (error) {
-      console.error("Failed to clear notifications:", error);
-    }
+    items.forEach(n => readKeysRef.current.add(n.id));
+    setItems([]);
   };
 
   const unread = items.filter(n => !n.read).length;

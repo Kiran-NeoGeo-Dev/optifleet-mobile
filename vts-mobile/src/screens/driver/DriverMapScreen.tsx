@@ -37,20 +37,23 @@ interface ActiveTrip {
 }
 
 interface PopupData {
-  vehicleId:      string;
-  status:         string;
-  driverName:     string;
-  speed:          string;
-  location:       string;
-  overspeed:      string;
-  smoking:        string;
-  mobileUsage:    string;
-  drowsiness:     string;
-  routeDeviation: string;
-  address?:        string;
-  coordinates?:    string;
-  lastUpdateTime?: string;
-  lastUpdateDate?: string;
+  vehicleId:         string;
+  status:            string;
+  driverName:        string;
+  speed:             string;
+  location:          string;
+  overspeed:         string;
+  smoking:           string;
+  mobileUsage:       string;
+  drowsiness:        string;
+  routeDeviation:    string;
+  harshBraking:      string;
+  harshAcceleration: string;
+  rashTurning:       string;
+  address?:          string;
+  coordinates?:      string;
+  lastUpdateTime?:   string;
+  lastUpdateDate?:   string;
 }
 
 interface TrackingUpdate {
@@ -119,13 +122,13 @@ const DriverMapScreen = ({ navigation }: Props) => {
           `${ENDPOINTS.LIVE_TRACKING_STATE}/${trip.vehicleId}`
         );
         const u = res.data;
-        if (!u) return;
+        if (!u || u.lat == null) return;
 
-        setRemainingKm(Number.parseFloat(u.remainingDistanceKm.toFixed(1)));
-        setEtaMin(Math.round(u.etaMinutes));
-        setProgress(Number.parseFloat(u.progressPercentage.toFixed(1)));
-        setLiveSpeed(u.speed);
-        setIsDeviating(u.isDeviating);
+        setRemainingKm(u.remainingDistanceKm != null ? Number.parseFloat(u.remainingDistanceKm.toFixed(1)) : null);
+        setEtaMin(u.etaMinutes != null ? Math.round(u.etaMinutes) : null);
+        setProgress(u.progressPercentage != null ? Number.parseFloat(u.progressPercentage.toFixed(1)) : 0);
+        setLiveSpeed(u.speed ?? 0);
+        setIsDeviating(u.isDeviating ?? false);
         if (u.popupData) { setPopup(u.popupData); processPopup(u.popupData); }
 
         // Inject live position + shrinking route into map
@@ -392,7 +395,7 @@ const DriverMapScreen = ({ navigation }: Props) => {
           source={{ html: mapHtml }}
           javaScriptEnabled
           originWhitelist={["*"]}
-          onLoad={injectRoute}
+          onLoadEnd={injectRoute}
           onMessage={onWebViewMessage}
         />
 

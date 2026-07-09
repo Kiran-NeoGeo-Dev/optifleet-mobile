@@ -245,12 +245,12 @@ const AdminNavigator = () => {
       <ManagementDrawer
         visible={managementOpen}
         onClose={() => setManagementOpen(false)}
-        navigation={navigationRef.current}
+        navigation={navigationRef.current ?? null}
       />
       <CreateDrawer
         visible={createOpen}
         onClose={() => setCreateOpen(false)}
-        navigation={navigationRef.current}
+        navigation={navigationRef.current ?? null}
         isAdmin
       />
     </View>

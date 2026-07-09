@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,7 +63,6 @@ public class DeviceService {
     }
 
     private boolean isEncrypted(String value) {
-        // Fernet tokens are Base64-URL encoded and always start with 'g' (0x80 version byte)
         return value != null && value.startsWith("g") && value.length() > 56;
     }
 
@@ -81,6 +79,7 @@ public class DeviceService {
         Device device = new Device();
         mapFields(device, req);
         Client client = authService.getCurrentClient();
+        if (client == null) throw new IllegalStateException("No authenticated client found");
         Long ownerId = authService.resolveResourceOwner(req.getClientId());
         device.setCreatedBy(client.getUsername());
         device.setClientId(ownerId);
@@ -143,7 +142,6 @@ public class DeviceService {
         validate(req);
         Device device = getDevice(id);
 
-        // Capture originals BEFORE any changes
         String originalDeviceId = device.getDeviceId();
         String originalImei     = device.getImeiNumber();
 
@@ -156,13 +154,11 @@ public class DeviceService {
                 throw new IllegalArgumentException("IMEI number already exists");
         });
 
-        // Step 1: find mapping BEFORE updating device (uses original keys)
         Optional<DeviceTbMapping> mappingOpt = mappingRepository.findByDeviceId(originalDeviceId);
         if (mappingOpt.isEmpty())
             mappingOpt = mappingRepository.findByImeiNumber(originalImei);
         String tbDeviceId = mappingOpt.map(DeviceTbMapping::getThingsboardDeviceId).orElse(null);
 
-        // Step 2: update device in DB
         mapFields(device, req);
         if (req.getClientId() != null) {
             Long ownerId = authService.resolveResourceOwner(req.getClientId());
@@ -172,7 +168,6 @@ public class DeviceService {
         Device updated = mappingTx.saveDevice(device);
         log.info("Device updated locally: deviceId={}", updated.getDeviceId());
 
-        // Step 3: update mapping table (now device is committed)
         if (tbDeviceId != null) {
             try {
                 int rows = mappingTx.updateMapping(
@@ -184,7 +179,6 @@ public class DeviceService {
             }
         }
 
-        // Step 4: update ThingsBoard device name (non-blocking)
         if (tbDeviceId != null) {
             try {
                 tbDeviceService.updateDevice(tbDeviceId, updated.getDeviceId());
@@ -208,21 +202,17 @@ public class DeviceService {
         String deviceIdToDelete = device.getDeviceId();
         String imeiToDelete     = device.getImeiNumber();
 
-        // Step 1: find mapping BEFORE deleting anything
         Optional<DeviceTbMapping> mappingOpt = mappingRepository.findByDeviceId(deviceIdToDelete);
         if (mappingOpt.isEmpty())
             mappingOpt = mappingRepository.findByImeiNumber(imeiToDelete);
         String tbDeviceId = mappingOpt.map(DeviceTbMapping::getThingsboardDeviceId).orElse(null);
 
-        // Step 2: delete mapping first (no FK constraint to devices table)
         mappingTx.deleteMapping(deviceIdToDelete, imeiToDelete);
         log.info("Mapping deleted for deviceId={}", deviceIdToDelete);
 
-        // Step 3: delete local device
         mappingTx.deleteDevice(id);
         log.info("Device deleted locally: deviceId={}", deviceIdToDelete);
 
-        // Step 4: delete from ThingsBoard (non-blocking)
         if (tbDeviceId != null) {
             try {
                 tbDeviceService.deleteDevice(tbDeviceId);
