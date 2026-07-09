@@ -362,7 +362,7 @@ const RightDrawer = ({ visible, onClose, onMyProfile }: Props) => {
         >
         <Text style={ip.body}>
           OptiFleet is a smart Fleet Management and Vehicle Tracking Platform developed by{" "}
-          <Text style={ip.bold}>Neogeoinfo Technologies Limited</Text>.{" "}
+          <Text style={ip.bold}>NeoGeoInfo Technologies Limited</Text>.{" "}
           The platform leverages IoT-enabled real-time tracking, route optimization, driver
           behavior monitoring, geofencing, and fleet analytics to help organizations improve
           operational efficiency, safety, and asset visibility.
@@ -384,7 +384,7 @@ const RightDrawer = ({ visible, onClose, onMyProfile }: Props) => {
           <View style={[ip.cIcon, { backgroundColor: "#E3F2FD" }]}>
             <Ionicons name="business-outline" size={18} color={C.blue} />
           </View>
-          <Text style={ip.devTxt}>Neogeoinfo Technologies Limited</Text>
+          <Text style={ip.devTxt}>NeoGeoInfo Technologies Limited</Text>
         </View>
         </InfoPage>
 
