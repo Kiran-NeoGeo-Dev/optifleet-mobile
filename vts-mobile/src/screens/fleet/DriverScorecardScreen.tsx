@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Image, TouchableOpacity,
   ActivityIndicator, Modal,
@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
 import Svg, { Path, Circle, Text as SvgText } from "react-native-svg";
-import { fetchDriverScorecard, FleetDriver, DriverScorecard, EventCounts } from "../../services/fleetService";
+import { fetchDriverScorecard, FleetDriver, DriverScorecard } from "../../services/fleetService";
 
 // ── Score helpers (new formula: higher = better, 0-100%) ────────────────────
 const scoreColor = (score: number) =>
@@ -177,14 +177,12 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
         ? driver.photoFront! : `data:image/jpeg;base64,${driver.photoFront}`)
     : null;
 
-  const rawScore     = data?.safetyScore ?? 100;
-  const remark       = data?.remark ?? "Excellent";
-  const events       = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, harshBraking: 0, harshAcceleration: 0, rashTurning: 0, kmDriven: 0 };
+  const rawScore     = data?.safetyScore ?? null;
+  const remark       = data?.remark ?? null;
+  const events       = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, harshBraking: 0, harshAcceleration: 0, rashTurning: 0, yawnAlert: 0, kmDriven: 0 };
   const vehicleModel = data?.vehicleModel ?? driver.vehicleModel ?? null;
-  const hasNoData    = data != null && events.kmDriven === 0 &&
-                       events.smoking === 0 && events.mobile === 0 && events.distraction === 0 &&
-                       events.overspeed === 0 && events.drowsiness === 0 && events.seatbelt === 0 &&
-                       events.harshBraking === 0 && events.harshAcceleration === 0 && events.rashTurning === 0;
+  // hasNoData: no score available (km = 0 means no completed trips this month)
+  const hasNoData    = rawScore === null;
 
   const accentColor = driver.active ? "#22C55E" : "#EF4444";
 
@@ -198,6 +196,7 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
     { icon: "warning-outline",     label: "Harsh Braking",       count: events.harshBraking,       color: "#DC2626", bg: "#FEE2E2" },
     { icon: "flash-outline",       label: "Harsh Acceleration",  count: events.harshAcceleration,  color: "#D97706", bg: "#FEF3C7" },
     { icon: "refresh-outline",     label: "Rash Turning",        count: events.rashTurning,        color: "#0891B2", bg: "#CFFAFE" },
+    { icon: "happy-outline",       label: "Yawn Alert",          count: events.yawnAlert,          color: "#7C3AED", bg: "#EDE9FE" },
   ] as const;
 
   return (
@@ -303,14 +302,14 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
           ) : (
             <>
               <View style={{ alignItems: "center", marginVertical: 8 }}>
-                <ScorePieChart rawScore={rawScore} remark={remark} />
+                <ScorePieChart rawScore={rawScore!} remark={remark!} />
               </View>
               {/* Remark banner */}
-              <View style={[sc.remarkBanner, { backgroundColor: remarkColor(remark) + "12", borderColor: remarkColor(remark) + "40" }]}>
-                <View style={[sc.remarkDot, { backgroundColor: remarkColor(remark) }]} />
+              <View style={[sc.remarkBanner, { backgroundColor: remarkColor(remark!) + "12", borderColor: remarkColor(remark!) + "40" }]}>
+                <View style={[sc.remarkDot, { backgroundColor: remarkColor(remark!) }]} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[sc.remarkLabel, { color: remarkColor(remark) }]}>{remark.toUpperCase()}</Text>
-                  <Text style={sc.remarkDesc}>{REMARK_DESC[remark] ?? ""}</Text>
+                  <Text style={[sc.remarkLabel, { color: remarkColor(remark!) }]}>{remark!.toUpperCase()}</Text>
+                  <Text style={sc.remarkDesc}>{REMARK_DESC[remark!] ?? ""}</Text>
                 </View>
               </View>
             </>

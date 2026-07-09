@@ -77,7 +77,8 @@ const FleetDriversScreen = ({ navigation }: Props) => {
           ? item.photoFront! : `data:image/jpeg;base64,${item.photoFront}`)
       : null;
 
-    const scoreNum = item.safetyScore != null ? item.safetyScore : 100;
+    const hasScore = item.safetyScore != null;
+    const scoreNum  = item.safetyScore ?? 0;
     return (
       <TouchableOpacity
         style={s.card}
@@ -110,8 +111,8 @@ const FleetDriversScreen = ({ navigation }: Props) => {
 
         {/* Score + Badge + Arrow */}
         <View style={s.cardRight}>
-          <Text style={[s.scoreNum, { color: scoreColor(scoreNum) }]}>
-            {scoreNum.toFixed(1)}%
+          <Text style={[s.scoreNum, { color: hasScore ? scoreColor(scoreNum) : "#9CA3AF" }]}>
+            {hasScore ? `${scoreNum.toFixed(1)}%` : "N/A"}
           </Text>
           <Text style={s.safetyLabel}>Safety Score</Text>
           <View style={s.badgeRow}>

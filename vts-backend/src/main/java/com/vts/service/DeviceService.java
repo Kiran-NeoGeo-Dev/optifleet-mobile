@@ -230,12 +230,16 @@ public class DeviceService {
     private void validate(DeviceRequest req) {
         if (req.getDeviceId() == null || req.getDeviceId().isBlank())
             throw new IllegalArgumentException("Device ID is required");
+        if (req.getDeviceId().length() > 50)
+            throw new IllegalArgumentException("Device ID must be 50 characters or fewer");
         if (req.getMobileNumber() == null || !req.getMobileNumber().matches("\\d{10}"))
             throw new IllegalArgumentException("Mobile number must be exactly 10 digits");
         if (req.getImeiNumber() == null || !req.getImeiNumber().matches("\\d{15}"))
             throw new IllegalArgumentException("IMEI number must be exactly 15 digits");
         if (req.getDeviceModel() == null || req.getDeviceModel().isBlank())
             throw new IllegalArgumentException("Device model is required");
+        if (req.getDeviceModel().length() > 50)
+            throw new IllegalArgumentException("Device model must be 50 characters or fewer");
     }
 
     private void mapFields(Device device, DeviceRequest req) {

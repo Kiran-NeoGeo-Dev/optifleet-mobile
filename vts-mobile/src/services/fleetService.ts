@@ -46,7 +46,7 @@ export interface FleetDriver {
   vehicleModel: string | null;
   tripStatus:   string;
   active:       boolean;
-  safetyScore:  number;
+  safetyScore:  number | null;
   clientId:     number;
 }
 
@@ -60,6 +60,7 @@ export interface EventCounts {
   harshBraking:       number;
   harshAcceleration:  number;
   rashTurning:        number;
+  yawnAlert:          number;
   kmDriven:           number;
 }
 
@@ -71,8 +72,8 @@ export interface DriverScorecard {
   vehicleRegNo: string | null;
   vehicleModel: string | null;
   period:       string;
-  safetyScore:  number;
-  remark:       string;
+  safetyScore:  number | null;
+  remark:       string | null;
   events:       EventCounts;
 }
 

@@ -2,7 +2,6 @@ package com.vts.controller;
 
 import com.vts.entity.Client;
 import com.vts.entity.Driver;
-import com.vts.repository.AssociationRepository;
 import com.vts.service.AuthService;
 import com.vts.service.DriverService;
 import com.vts.service.ThingsBoardDirectQueryService;
@@ -26,20 +25,18 @@ public class FleetDriverController {
     private static final int W_HARSH_BRAKE  = 5;
     private static final int W_HARSH_ACCEL  = 5;
     private static final int W_RASH_TURN    = 5;
+    private static final int W_YAWN_ALERT   = 5;
 
     private final DriverService                 driverService;
-    private final AssociationRepository         assocRepo;
     private final ThingsBoardDirectQueryService tbQuery;
     private final AuthService                   authService;
     private final JdbcTemplate                  jdbc;
 
     public FleetDriverController(DriverService driverService,
-                                 AssociationRepository assocRepo,
                                  ThingsBoardDirectQueryService tbQuery,
                                  AuthService authService,
                                  JdbcTemplate jdbc) {
         this.driverService = driverService;
-        this.assocRepo     = assocRepo;
         this.tbQuery       = tbQuery;
         this.authService   = authService;
         this.jdbc          = jdbc;
@@ -59,7 +56,7 @@ public class FleetDriverController {
         Map<Long, String>   driverIdToVehicle    = buildDriverIdToVehicleMap(isSuperAdmin, isOrgAdmin, cid, orgId);
         Map<Long, String>   driverIdToModel      = buildDriverIdToVehicleModelMap(isSuperAdmin, isOrgAdmin, cid, orgId);
         Map<String, String> liveStatus           = fetchLiveStatusMap(isSuperAdmin, isOrgAdmin, cid, orgId);
-        Map<String, Double> vehicleScores        = fetchLatestScoresByVehicle("month");
+        Map<String, Double> vehicleScores = fetchLatestScoresByVehicle();
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (Driver d : drivers) {
@@ -70,9 +67,9 @@ public class FleetDriverController {
                     : "Parked";
             boolean active = "Moving".equalsIgnoreCase(tripStatus) || "Idle".equalsIgnoreCase(tripStatus);
 
-            double rawScore = vehicleReg != null
-                    ? vehicleScores.getOrDefault(vehicleReg.toUpperCase(), 100.0)
-                    : 100.0;
+            Double rawScore = vehicleReg != null
+                    ? vehicleScores.getOrDefault(vehicleReg.toUpperCase(), null)
+                    : null;
 
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("id",           d.getId());
@@ -115,8 +112,8 @@ public class FleetDriverController {
         int resolvedMonth = (month != null) ? month : now.getMonthValue();
 
         Map<String, Object> events = fetchEventsByVehicleMonth(vehicleReg, resolvedYear, resolvedMonth);
-        double rawScore = calcRawScore(events);
-        String remark   = getRemark(rawScore);
+        Double rawScore = calcRawScore(events);
+        String remark   = rawScore != null ? getRemark(rawScore) : null;
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("driverId",     id);
@@ -218,7 +215,7 @@ public class FleetDriverController {
      * Fetch monthly rawScore per vehicle for the fleet list (current month).
      * Queries vtelemetry and trips separately to avoid dropping vehicles with no trip join.
      */
-    private Map<String, Double> fetchLatestScoresByVehicle(String period) {
+    private Map<String, Double> fetchLatestScoresByVehicle() {
         Map<String, Double> scores = new HashMap<>();
         try {
             java.time.LocalDate now = java.time.LocalDate.now();
@@ -235,7 +232,8 @@ public class FleetDriverController {
                 "  COALESCE(SUM(CASE WHEN distraction_status ILIKE 'Yes' THEN " + W_DISTRACTION + " ELSE 0 END),0) +" +
                 "  COALESCE(SUM(CASE WHEN harsh_braking      ILIKE 'Yes' THEN " + W_HARSH_BRAKE + " ELSE 0 END),0) +" +
                 "  COALESCE(SUM(CASE WHEN harsh_acceleration ILIKE 'Yes' THEN " + W_HARSH_ACCEL + " ELSE 0 END),0) +" +
-                "  COALESCE(SUM(CASE WHEN rash_turning       ILIKE 'Yes' THEN " + W_RASH_TURN   + " ELSE 0 END),0) AS total_weight " +
+                "  COALESCE(SUM(CASE WHEN rash_turning       ILIKE 'Yes' THEN " + W_RASH_TURN   + " ELSE 0 END),0) +" +
+                "  COALESCE(SUM(CASE WHEN yawn_alert         ILIKE 'Yes' THEN " + W_YAWN_ALERT  + " ELSE 0 END),0) AS total_weight " +
                 "FROM public.tb_device_telemetry " +
                 "WHERE vehicle_id IS NOT NULL " +
                 "  AND EXTRACT(YEAR  FROM telemetry_time) = ? " +
@@ -260,12 +258,21 @@ public class FleetDriverController {
                 if (vid != null) kmByVehicle.put(vid, km);
             }
 
-            // Step 3: combine
+            // Step 3: combine — only store a score when km > 0 (real trip data exists)
             for (Map<String, Object> row : eventRows) {
                 String vid    = row.get("vid")          != null ? row.get("vid").toString()                        : null;
                 double weight = row.get("total_weight") != null ? ((Number) row.get("total_weight")).doubleValue() : 0;
                 double km     = vid != null ? kmByVehicle.getOrDefault(vid, 0.0) : 0.0;
-                if (vid != null) scores.put(vid, calcSafetyScore(weight, km));
+                if (vid != null) {
+                    Double score = calcSafetyScore(weight, km);
+                    if (score != null) scores.put(vid, score);
+                }
+            }
+            // Also add vehicles that have km but no telemetry events (perfect score)
+            for (Map.Entry<String, Double> kmEntry : kmByVehicle.entrySet()) {
+                if (kmEntry.getValue() > 0 && !scores.containsKey(kmEntry.getKey())) {
+                    scores.put(kmEntry.getKey(), 100.0);
+                }
             }
         } catch (Exception ignored) {}
         return scores;
@@ -288,7 +295,8 @@ public class FleetDriverController {
                 "  COALESCE(SUM(CASE WHEN distraction_status ILIKE 'Yes'    THEN 1 ELSE 0 END),0) AS distraction, " +
                 "  COALESCE(SUM(CASE WHEN harsh_braking      ILIKE 'Yes'    THEN 1 ELSE 0 END),0) AS harsh_braking, " +
                 "  COALESCE(SUM(CASE WHEN harsh_acceleration ILIKE 'Yes'    THEN 1 ELSE 0 END),0) AS harsh_acceleration, " +
-                "  COALESCE(SUM(CASE WHEN rash_turning       ILIKE 'Yes'    THEN 1 ELSE 0 END),0) AS rash_turning " +
+                "  COALESCE(SUM(CASE WHEN rash_turning       ILIKE 'Yes'    THEN 1 ELSE 0 END),0) AS rash_turning, " +
+                "  COALESCE(SUM(CASE WHEN yawn_alert         ILIKE 'Yes'    THEN 1 ELSE 0 END),0) AS yawn_alert " +
                 "FROM public.tb_device_telemetry " +
                 "WHERE UPPER(vehicle_id) = UPPER(?) " +
                 "  AND EXTRACT(YEAR  FROM telemetry_time) = ? " +
@@ -313,6 +321,7 @@ public class FleetDriverController {
             ev.put("harshBraking",       toLong(row.get("harsh_braking")));
             ev.put("harshAcceleration",  toLong(row.get("harsh_acceleration")));
             ev.put("rashTurning",        toLong(row.get("rash_turning")));
+            ev.put("yawnAlert",          toLong(row.get("yawn_alert")));
             ev.put("kmDriven",           km != null ? km : 0.0);
             return ev;
         } catch (Exception e) {
@@ -325,11 +334,12 @@ public class FleetDriverController {
         e.put("smoking", 0L); e.put("mobile", 0L); e.put("overspeed", 0L);
         e.put("drowsiness", 0L); e.put("seatbelt", 0L); e.put("distraction", 0L);
         e.put("harshBraking", 0L); e.put("harshAcceleration", 0L); e.put("rashTurning", 0L);
+        e.put("yawnAlert", 0L);
         e.put("kmDriven", 0.0);
         return e;
     }
 
-    private double calcRawScore(Map<String, Object> events) {
+    private Double calcRawScore(Map<String, Object> events) {
         long   smoking     = toLong(events.get("smoking"));
         long   mobile      = toLong(events.get("mobile"));
         long   overspeed   = toLong(events.get("overspeed"));
@@ -339,23 +349,23 @@ public class FleetDriverController {
         long   harshBrake  = toLong(events.get("harshBraking"));
         long   harshAccel  = toLong(events.get("harshAcceleration"));
         long   rashTurn    = toLong(events.get("rashTurning"));
+        long   yawnAlert   = toLong(events.get("yawnAlert"));
         double km          = toDouble(events.get("kmDriven"));
 
         double weight = (smoking * W_SMOKING) + (mobile * W_MOBILE)
                       + (overspeed * W_OVERSPEED) + (drowsy * W_DROWSY)
                       + (seatbelt * W_SEATBELT) + (distraction * W_DISTRACTION)
                       + (harshBrake * W_HARSH_BRAKE) + (harshAccel * W_HARSH_ACCEL)
-                      + (rashTurn * W_RASH_TURN);
+                      + (rashTurn * W_RASH_TURN) + (yawnAlert * W_YAWN_ALERT);
         return calcSafetyScore(weight, km);
     }
 
     /**
      * Safety Score = 100 - (totalPenaltyWeight / kmDriven * 100), clamped 0–100.
-     * Higher score = safer driver.
-     * If km = 0 → return 100.0 (no distance, no violations possible).
+     * Returns null when km = 0 (no trip data — score is not applicable).
      */
-    private double calcSafetyScore(double weight, double km) {
-        if (km <= 0) return 100.0;
+    private Double calcSafetyScore(double weight, double km) {
+        if (km <= 0) return null;
         double penalty = (weight / km) * 100.0;
         return Math.max(0.0, Math.min(100.0, 100.0 - penalty));
     }
