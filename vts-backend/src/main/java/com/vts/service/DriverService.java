@@ -9,7 +9,6 @@ import com.vts.repository.DriverRepository;
 import com.vts.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -29,16 +28,13 @@ public class DriverService {
     private final AuthService       authService;
     private final JwtService        jwtService;
     private final ClientRepository  clientRepository;
-    private final PasswordEncoder   passwordEncoder;
 
     public DriverService(DriverRepository driverRepository, AuthService authService,
-                         JwtService jwtService, ClientRepository clientRepository,
-                         PasswordEncoder passwordEncoder) {
+                         JwtService jwtService, ClientRepository clientRepository) {
         this.driverRepository = driverRepository;
         this.authService      = authService;
         this.jwtService       = jwtService;
         this.clientRepository = clientRepository;
-        this.passwordEncoder  = passwordEncoder;
     }
 
     private LocalDate parseDate(String value) {
@@ -63,12 +59,12 @@ public class DriverService {
         Long ownerId = authService.resolveResourceOwner(request.getClientId());
         driver.setClientId(ownerId);
         driver.setOrgId(resolveOrgId(ownerId));
-        // username = mobile number, password = date of birth (DD/MM/YYYY)
+        // username = mobile number, password = date of birth (DD/MM/YYYY) stored as plain text
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             driver.setUsername(request.getPhoneNumber().trim());
         }
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            driver.setPassword(passwordEncoder.encode(request.getPassword().trim()));
+            driver.setPassword(request.getPassword().trim());
         }
         driver.setCreatedAt(LocalDateTime.now());
         driver.setUpdatedAt(LocalDateTime.now());
@@ -133,12 +129,12 @@ public class DriverService {
             driver.setClientId(ownerId);
             driver.setOrgId(resolveOrgId(ownerId));
         }
-        // Keep username in sync with phone number, password = date of birth (DD/MM/YYYY)
+        // Keep username in sync with phone number, password = date of birth (DD/MM/YYYY) stored as plain text
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             driver.setUsername(request.getPhoneNumber().trim());
         }
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            driver.setPassword(passwordEncoder.encode(request.getPassword().trim()));
+            driver.setPassword(request.getPassword().trim());
         }
         driver.setUpdatedAt(LocalDateTime.now());
         return driverRepository.save(driver);

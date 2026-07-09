@@ -8,6 +8,7 @@ export interface Driver {
   status: boolean;
   comments?: string;
   username?: string;
+  password?: string;
   clientId?: number;
   frontFaceImage?: string;
   leftFaceImage?: string;

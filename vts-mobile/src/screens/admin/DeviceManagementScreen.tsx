@@ -228,7 +228,7 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
       {showList && (
         <>
           <View style={styles.searchWrap}>
-            <Ionicons name="search-outline" size={16} color="#9C6B30" style={{ marginRight: 8 }} />
+            <Ionicons name="search-outline" size={18} color="#6B7280" />
             <TextInput
               style={styles.searchInput}
               placeholder="Search by ID, model or mobile..."
@@ -435,8 +435,8 @@ const styles = StyleSheet.create({
   title:         { flex: 1, fontSize: 18, fontWeight: "800", color: C.white },
   countBadge:    { backgroundColor: "rgba(245,158,11,0.18)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.orange + "44" },
   countTxt:      { fontSize: 12, fontWeight: "800", color: C.orange },
-  searchWrap:    { flexDirection: "row", alignItems: "center", alignSelf: "center", width: "90%", maxWidth: 420, marginBottom: 10, backgroundColor: "#E8CBA7", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", shadowColor: "#7A4010", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-  searchInput:   { flex: 1, color: "#2B1D0E", fontSize: 13, fontWeight: "500" },
+  searchWrap:    { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 10, paddingHorizontal: 10, height: 40, gap: 6, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)", marginHorizontal: 16, marginBottom: 10 },
+  searchInput:   { flex: 1, fontSize: 12, color: "#2B1D0E" },
   empty:         { textAlign: "center", color: "rgba(255,255,255,0.55)", marginTop: 40 },
   card:          { backgroundColor: C.cream, borderRadius: 12, padding: 11, marginBottom: 8, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   cardAccent:    { position: "absolute", top: 0, left: 0, right: 0, height: 2 },

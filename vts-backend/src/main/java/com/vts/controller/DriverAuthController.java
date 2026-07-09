@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -23,13 +22,10 @@ public class DriverAuthController {
 
     private final DriverRepository driverRepository;
     private final JwtService       jwtService;
-    private final PasswordEncoder  passwordEncoder;
 
-    public DriverAuthController(DriverRepository driverRepository, JwtService jwtService,
-                                 PasswordEncoder passwordEncoder) {
+    public DriverAuthController(DriverRepository driverRepository, JwtService jwtService) {
         this.driverRepository = driverRepository;
         this.jwtService       = jwtService;
-        this.passwordEncoder  = passwordEncoder;
     }
 
     /**
@@ -53,7 +49,7 @@ public class DriverAuthController {
         if (driver == null)
             return ResponseEntity.status(401).body(Map.of("error", "Invalid Mobile Number or Date of Birth"));
 
-        if (driver.getPassword() == null || !passwordEncoder.matches(cleanDob, driver.getPassword()))
+        if (driver.getPassword() == null || !cleanDob.equals(driver.getPassword()))
             return ResponseEntity.status(401).body(Map.of("error", "Invalid Mobile Number or Date of Birth"));
 
         if (driver.getStatus() == null || !driver.getStatus())
