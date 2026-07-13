@@ -814,7 +814,7 @@ const styles = StyleSheet.create({
   suggestBox:      { backgroundColor: "#F6F1E9", borderRadius: 8, borderWidth: 1, borderColor: "rgba(160,90,30,0.25)", marginBottom: 3, overflow: "hidden" },
   suggestItem:     { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 10, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(160,90,30,0.15)" },
   suggestText:     { fontSize: 12, color: "#3B1F0A", flex: 1 },
-  mapContainer:    { height: 240, borderRadius: 12, overflow: "hidden", marginTop: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.20)" },
+  mapContainer:    { height: 290, borderRadius: 12, overflow: "hidden", marginTop: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.20)" },
   expandBtn:       { position: "absolute", top: 8, right: 8, backgroundColor: "rgba(0,0,0,0.65)", padding: 6, borderRadius: 7 },
   mapControlsOverlay: { position: "absolute", top: 8, left: 8, zIndex: 10 },
   mapControlBtn:   { width: 36, height: 36, borderRadius: 9, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255,255,255,0.3)" },

@@ -498,7 +498,7 @@ const s = StyleSheet.create({
   liveDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
   liveTxt:    { fontSize: 10, fontWeight: "700", color: "#16A34A" },
   expandBtn:  { width: 26, height: 26, borderRadius: 7, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
-  mapBox:     { height: 185, borderRadius: 10, overflow: "hidden" },
+  mapBox:     { height: 240, borderRadius: 10, overflow: "hidden" },
   miniCardsRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
   miniCard:    { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, padding: 10, gap: 8, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   tripCard:    { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, padding: 10, marginBottom: 8, gap: 8, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
