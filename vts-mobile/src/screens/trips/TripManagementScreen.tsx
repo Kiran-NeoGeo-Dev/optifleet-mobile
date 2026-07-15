@@ -338,15 +338,15 @@ const styles = StyleSheet.create({
 
   // Search card
   searchCard:       { marginHorizontal: 14, marginTop: 10, marginBottom: 10, flexDirection: "row", gap: 8, alignItems: "center" },
-  searchBox:        { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 10, paddingHorizontal: 10, height: 40, gap: 6, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)" },
-  searchIconBox:    { width: 22, height: 22, borderRadius: 6, backgroundColor: "rgba(120,70,20,0.12)", alignItems: "center", justifyContent: "center" },
-  searchInput:      { flex: 1, fontSize: 12, color: "#2B1D0E", fontWeight: "500" },
-  filterBtn:        { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#059669", borderRadius: 10, paddingHorizontal: 10, height: 40, borderWidth: 1.5, borderColor: "#047857" },
+  searchBox:        { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 10, paddingHorizontal: 10, height: 44, gap: 6, borderWidth: 1.5, borderColor: "#BFDBFE" },
+  searchIconBox:    { width: 24, height: 24, borderRadius: 7, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  searchInput:      { flex: 1, fontSize: 13, color: "#10204A", fontWeight: "500" },
+  filterBtn:        { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#1565C0", borderRadius: 10, paddingHorizontal: 12, height: 44, borderWidth: 1.5, borderColor: "#0D3B8E" },
   filterBtnActive:  { backgroundColor: "#F59E0B", borderColor: "#D97706" },
-  filterBtnTxt:     { fontSize: 11, color: "#fff", fontWeight: "800" },
+  filterBtnTxt:     { fontSize: 12, color: "#fff", fontWeight: "800" },
 
   // List
-  list:             { paddingHorizontal: 14, paddingBottom: 80 },
+  list:             { paddingHorizontal: 14, paddingBottom: 24 },
 
   // Trip card
   card:             { backgroundColor: "#fff", borderRadius: 14, marginBottom: 10, overflow: "hidden", shadowColor: "#0A1F44", shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
@@ -375,17 +375,17 @@ const styles = StyleSheet.create({
 
   // Actions
   actions:          { flexDirection: "row", gap: 6 },
-  actionBtn:        { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 9, paddingVertical: 8 },
-  actionBtnTxt:     { fontSize: 11, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
-  trackBtn:         { backgroundColor: "#059669" },
-  editBtn:          { backgroundColor: "#F59E0B" },
-  deleteBtn:        { backgroundColor: "#EF4444" },
+  actionBtn:        { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 9, paddingVertical: 9, minHeight: 36 },
+  actionBtnTxt:     { fontSize: 12, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
+  trackBtn:         { backgroundColor: "#059669", flex: 1.2 },
+  editBtn:          { backgroundColor: "#F59E0B", flex: 1 },
+  deleteBtn:        { backgroundColor: "#EF4444", flex: 0.7, paddingHorizontal: 6 },
 
   // States
   center:           { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60 },
   loadingTxt:       { color: "#6B7280", marginTop: 12, fontSize: 14 },
   emptyBox:         { alignItems: "center", paddingTop: 48 },
-  emptyIconBox:     { width: 64, height: 64, borderRadius: 18, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginBottom: 12, elevation: 2 },
+  emptyIconBox:     { width: 64, height: 64, borderRadius: 18, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginBottom: 12, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   emptyTitle:       { fontSize: 16, fontWeight: "800", color: "#0D1B3E", marginBottom: 4 },
   emptySubtitle:    { fontSize: 12, color: "#6B7280" },
 

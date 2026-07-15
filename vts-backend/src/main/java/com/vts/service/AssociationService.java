@@ -22,10 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Service for managing Vehicle-Device-Driver associations.
- * Task 2: Automatically renames ThingsBoard devices when associations are created, updated, or deleted.
- */
 @Service
 public class AssociationService {
 
@@ -61,24 +57,28 @@ public class AssociationService {
         this.tbDeviceService        = tbDeviceService;
     }
 
-    // â”€â”€ Dropdowns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Dropdowns --
 
     public List<Map<String, Object>> getVehiclesWithDevice() {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();
-        if (authService.isSuperAdmin(client)) return adminAssociationRepository.findVehiclesWithAdminDevice(null);
-        if (authService.isAdmin(client)) return adminAssociationRepository.findVehiclesWithAdminDeviceByOrgId(client.getOrgId());
-        return adminAssociationRepository.findVehiclesWithAdminDevice(client.getId());
+        if (authService.isSuperAdmin(client)) return adminAssociationRepository.findVehiclesWithAdminDevice(null, null);
+        if (authService.isAdmin(client)) return adminAssociationRepository.findVehiclesWithAdminDeviceByOrgId(client.getOrgId(), null);
+        return adminAssociationRepository.findVehiclesWithAdminDevice(client.getId(), null);
     }
 
     public List<Map<String, Object>> getVehiclesWithDriverForTrip() {
+        return getVehiclesWithDriverForTrip(null);
+    }
+
+    public List<Map<String, Object>> getVehiclesWithDriverForTrip(Long excludeTripId) {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();
         if (authService.isSuperAdmin(client)) {
-            return associationRepository.findVehiclesWithDriverAllClients();
+            return associationRepository.findVehiclesWithDriverAllClients(excludeTripId);
         }
-        if (authService.isAdmin(client)) return associationRepository.findVehiclesWithDriverByOrgId(client.getOrgId());
-        return associationRepository.findVehiclesWithDriverByClientId(client.getId());
+        if (authService.isAdmin(client)) return associationRepository.findVehiclesWithDriverByOrgId(client.getOrgId(), excludeTripId);
+        return associationRepository.findVehiclesWithDriverByClientId(client.getId(), excludeTripId);
     }
 
     public List<Map<String, Object>> getDriversByDevice(Integer deviceId) {
@@ -90,7 +90,18 @@ public class AssociationService {
         return deviceDriverRepository.findAll();
     }
 
-    // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Returns drivers not yet associated for the current client (excludeAssocId lets current driver through on edit)
+    public List<Driver> getAvailableDrivers(Integer excludeAssocId) {
+        Client client = authService.getCurrentClient();
+        if (client == null) return List.of();
+        if (excludeAssocId != null) {
+            // On edit: return all client drivers so current driver remains selectable
+            return driverRepository.findByClientId(client.getId());
+        }
+        return driverRepository.findAvailableByClientId(client.getId());
+    }
+
+    // -- CRUD --
 
     public Association createAssociation(Integer vehicleId, Integer deviceId, Integer driverId,
                                          String country, Boolean status) {
@@ -99,18 +110,15 @@ public class AssociationService {
 
         Vehicle vehicle = validateResources(vehicleId, deviceId, driverId);
 
-        // Check if association already exists for this vehicle-device pair
         Optional<Association> existingAssoc = associationRepository.findByVehicleIdAndDeviceId(vehicleId, deviceId);
-        
+
         Association assoc;
         if (existingAssoc.isPresent()) {
-            // Update existing association with new driver
             assoc = existingAssoc.get();
             assoc.setDriverId(driverId);
             assoc.setCountry(country != null ? country : "India");
             assoc.setStatus(status != null ? status : true);
         } else {
-            // Create new association
             assoc = new Association();
             assoc.setVehicleId(vehicleId);
             assoc.setDeviceId(deviceId);
@@ -120,20 +128,16 @@ public class AssociationService {
             assoc.setCreatedAt(LocalDateTime.now());
             assoc.setClientId(vehicle.getClientId());
         }
-        
+
         Association saved = associationRepository.save(assoc);
-        
-        // Task 2: After successful association, rename ThingsBoard device to vehicle license plate
         try {
             renameThingsBoardDevice(vehicleId, deviceId);
         } catch (Exception e) {
             log.error("Failed to rename TB device after association create: vehicleId={} deviceId={} error={}", vehicleId, deviceId, e.getMessage(), e);
         }
-        
         return saved;
     }
 
-    // Legacy path (used by old mobile client)
     public Association createAssociation(Integer vehicleId, Integer deviceDriverId) {
         DeviceDriver dd = deviceDriverRepository.findById(deviceDriverId)
                 .orElseThrow(() -> new RuntimeException("Device-Driver mapping not found"));
@@ -143,12 +147,10 @@ public class AssociationService {
     public List<Map<String, Object>> getAllAssociationsWithDetails() {
         Client client = authService.getCurrentClient();
         if (client != null && !authService.isSuperAdmin(client) && !authService.isAdmin(client)) {
-            // Full associations (own + admin-created for this client's vehicles)
             List<Map<String, Object>> full = new java.util.ArrayList<>(
                 associationRepository.findAllWithDetailsByClientId(client.getId()));
-            // Pending: admin linked vehicle+device but no full association yet
             List<Map<String, Object>> pending = adminAssociationRepository
-                .findVehiclesWithAdminDevice(client.getId())
+                .findVehiclesWithAdminDevice(client.getId(), null)
                 .stream()
                 .map(v -> {
                     java.util.Map<String, Object> row = new java.util.LinkedHashMap<>(v);
@@ -188,19 +190,6 @@ public class AssociationService {
         return result;
     }
 
-    private void validateDriverForCurrentClient(Integer driverId) {
-        Client currentClient = authService.getCurrentClient();
-        if (currentClient == null || "Admin" .equalsIgnoreCase(currentClient.getRole())) {
-            return;
-        }
-
-        Driver driver = driverRepository.findById(driverId.longValue())
-                .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
-        if (!currentClient.getId().equals(driver.getClientId())) {
-            throw new IllegalArgumentException("Selected driver does not belong to the current client");
-        }
-    }
-
     private Vehicle validateResources(Integer vehicleId, Integer deviceId, Integer driverId) {
         Vehicle vehicle = vehicleRepository.findById(vehicleId.longValue())
                 .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
@@ -210,12 +199,10 @@ public class AssociationService {
                 .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
 
         Client current = authService.getCurrentClient();
-        // superadmin bypasses all org checks
         if (current != null && !authService.isSuperAdmin(current)) {
             authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
             authService.requireOrgAccess(device.getOrgId(), device.getClientId());
             authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
-            // Only enforce org equality when all three have an orgId set
             if (vehicle.getOrgId() != null && device.getOrgId() != null && driver.getOrgId() != null) {
                 if (!java.util.Objects.equals(vehicle.getOrgId(), device.getOrgId()) ||
                     !java.util.Objects.equals(vehicle.getOrgId(), driver.getOrgId())) {
@@ -242,16 +229,13 @@ public class AssociationService {
 
         Integer oldVehicleId = assoc.getVehicleId();
         Integer oldDeviceId = assoc.getDeviceId();
-        
         assoc.setVehicleId(vehicleId);
         assoc.setDeviceId(deviceId);
         assoc.setDriverId(driverId);
         assoc.setCountry(country != null ? country : "India");
         assoc.setStatus(status != null ? status : true);
-        
+
         Association updated = associationRepository.save(assoc);
-        
-        // Task 2: If vehicle or device changed, rename ThingsBoard device to new vehicle license plate
         if (!oldVehicleId.equals(vehicleId) || !oldDeviceId.equals(deviceId)) {
             try {
                 renameThingsBoardDevice(vehicleId, deviceId);
@@ -259,19 +243,14 @@ public class AssociationService {
                 log.error("Failed to rename TB device after association update: vehicleId={} deviceId={} error={}", vehicleId, deviceId, e.getMessage(), e);
             }
         }
-        
         return updated;
     }
 
     public void deleteAssociation(Integer id) {
         Association assoc = getById(id)
                 .orElseThrow(() -> new RuntimeException("Association not found"));
-        
         Integer deviceId = assoc.getDeviceId();
-        
         associationRepository.deleteById(id);
-        
-        // Task 2: After deletion, rename ThingsBoard device back to original Device ID
         try {
             renameThingsBoardDeviceToOriginal(deviceId);
         } catch (Exception e) {
@@ -286,9 +265,6 @@ public class AssociationService {
         if (authService.isAdmin(client)) return associationRepository.countByOrgId(client.getOrgId());
         return associationRepository.countByClientId(client.getId());
     }
-
-
-    // ── Task 2: Helper methods for Device Renaming (delegated to ThingsBoardDeviceService) ─
 
     private void renameThingsBoardDevice(Integer vehicleId, Integer deviceId) {
         tbDeviceService.renameForAssociation(vehicleId, deviceId, vehicleRepository, deviceRepository, deviceTbMappingRepository);

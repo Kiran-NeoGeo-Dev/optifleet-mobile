@@ -2,6 +2,7 @@ package com.vts.controller;
 
 import com.vts.entity.Association;
 import com.vts.entity.DeviceDriver;
+import com.vts.entity.Driver;
 import com.vts.service.AssociationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/associations")
@@ -20,7 +22,7 @@ public class AssociationController {
         this.service = service;
     }
 
-    // ── Dropdowns ──────────────────────────────────────────────────────────────
+    // -- Dropdowns --
 
     @GetMapping("/vehicles-with-device")
     public ResponseEntity<List<Map<String, Object>>> vehiclesWithDevice() {
@@ -28,8 +30,9 @@ public class AssociationController {
     }
 
     @GetMapping("/vehicles-for-trip")
-    public ResponseEntity<List<Map<String, Object>>> vehiclesForTrip() {
-        return ResponseEntity.ok(service.getVehiclesWithDriverForTrip());
+    public ResponseEntity<List<Map<String, Object>>> vehiclesForTrip(
+            @RequestParam(required = false) Long excludeTripId) {
+        return ResponseEntity.ok(service.getVehiclesWithDriverForTrip(excludeTripId));
     }
 
     @GetMapping("/drivers-by-device")
@@ -42,7 +45,22 @@ public class AssociationController {
         return ResponseEntity.ok(service.getAllDeviceDrivers());
     }
 
-    // ── CRUD ───────────────────────────────────────────────────────────────────
+    // Returns only unassociated drivers for the current client (excludeAssocId lets current driver through on edit)
+    @GetMapping("/available-drivers")
+    public ResponseEntity<List<Map<String, Object>>> availableDrivers(
+            @RequestParam(required = false) Integer excludeAssocId) {
+        List<Driver> drivers = service.getAvailableDrivers(excludeAssocId);
+        List<Map<String, Object>> result = drivers.stream().map(d -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("driver_id", d.getId());
+            m.put("driver_name", d.getDriverName());
+            m.put("license_no", d.getLicenseNumber() != null ? d.getLicenseNumber() : "");
+            return m;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    // -- CRUD --
 
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Map<String, Object> body) {

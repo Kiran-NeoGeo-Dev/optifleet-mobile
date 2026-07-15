@@ -35,7 +35,7 @@ const C = {
 const StatCard = ({ icon, label, count, accent, onPress }: {
   icon: any; label: string; count: number; accent: string; onPress?: () => void;
 }) => (
-  <TouchableOpacity style={[sc.card, { borderLeftColor: accent, borderLeftWidth: 3 }]} onPress={onPress} activeOpacity={onPress ? 0.75 : 1}>
+  <TouchableOpacity style={[sc.card, { borderLeftColor: accent, borderLeftWidth: 4 }]} onPress={onPress} activeOpacity={onPress ? 0.75 : 1}>
     <View style={[sc.iconBox, { backgroundColor: accent + "18" }]}>
       <Ionicons name={icon} size={20} color={accent} />
     </View>
@@ -232,7 +232,10 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   }, [loadAll]));
 
   useFocusEffect(useCallback(() => {
-    if (!notifEnabled.current) setEnablePrompt(true);
+    if (!notifEnabled.current) {
+      const t = setTimeout(() => setEnablePrompt(true), 500);
+      return () => clearTimeout(t);
+    }
   }, []));
 
   return (
@@ -329,7 +332,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
               <Text style={s.tripTitle}>Trip Management</Text>
               <Text style={s.tripSub}>Route logistics & geofence monitoring</Text>
             </View>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: C.blue }}>{">"}</Text>
+            <Ionicons name="chevron-forward" size={20} color={C.blue} />
           </TouchableOpacity>
 
           {/* ── Recent Fleet Alerts (live only) ── */}
@@ -343,7 +346,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
               />
               <Text style={s.sectionTitle}>Recent Fleet Alerts</Text>
               <TouchableOpacity onPress={() => navigation.navigate("Notifications" as any)}>
-                <Text style={{ fontSize: 12, fontWeight: "700", color: C.blue }}>View all {">"}</Text>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: C.blue }}>View all</Text>
               </TouchableOpacity>
             </View>
             {alerts.length === 0 ? (
@@ -357,7 +360,8 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
                 const sev  = SEVERITY[key] || SEVERITY["DROWSINESS"];
                 const emoji = ALERT_ICON[key] || "🔔";
                 return (
-                  <View key={alert.id || idx} style={s.alertRow}>
+                  <TouchableOpacity key={alert.id || idx} style={s.alertRow}
+                    onPress={() => navigation.navigate("Notifications" as any)} activeOpacity={0.75}>
                     <View style={[s.alertBar, { backgroundColor: sev.color }]} />
                     <View style={[s.alertIconBox, { backgroundColor: sev.bg }]}>
                       <Text style={{ fontSize: 18 }}>{emoji}</Text>
@@ -372,7 +376,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
                         <Text style={[s.sevTxt, { color: sev.color }]}>{sev.label}</Text>
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             )}
@@ -425,10 +429,10 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
 };
 
 const sc = StyleSheet.create({
-  card:    { width: "47.5%", backgroundColor: "#fff", borderRadius: 10, padding: 9, marginBottom: 9, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  iconBox: { width: 28, height: 28, borderRadius: 7, alignItems: "center", justifyContent: "center", marginBottom: 5 },
-  label:   { fontSize: 10, color: "#6B7280", fontWeight: "600", marginBottom: 1 },
-  count:   { fontSize: 20, fontWeight: "800" },
+  card:    { width: "47.5%", backgroundColor: "#fff", borderRadius: 12, padding: 11, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  iconBox: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  label:   { fontSize: 12, color: "#6B7280", fontWeight: "600", marginBottom: 2 },
+  count:   { fontSize: 22, fontWeight: "800" },
 });
 
 const s = StyleSheet.create({
@@ -455,7 +459,7 @@ const s = StyleSheet.create({
   liveDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" },
   liveTxt:    { fontSize: 10, fontWeight: "700", color: "#16A34A" },
   expandBtn:  { width: 26, height: 26, borderRadius: 7, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", marginLeft: 6 },
-  mapBox:     { height: 240, borderRadius: 10, overflow: "hidden" },
+  mapBox:     { height: Math.round(Dimensions.get("window").height * 0.28), borderRadius: 10, overflow: "hidden" },
   map:        { flex: 1 },
   miniCardsRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
   miniCard:   { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, padding: 10, gap: 8, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },

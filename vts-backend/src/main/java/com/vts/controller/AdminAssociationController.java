@@ -22,28 +22,32 @@ public class AdminAssociationController {
         this.service = service;
     }
 
-    // ── Dropdowns ──────────────────────────────────────────────────────────────
+    // -- Dropdowns --
     @GetMapping("/vehicles")
-    public ResponseEntity<List<Map<String, Object>>> vehiclesDropdown() {
-        return ResponseEntity.ok(service.getVehiclesDropdown());
+    public ResponseEntity<List<Map<String, Object>>> vehiclesDropdown(
+            @RequestParam(required = false) Integer excludeId) {
+        return ResponseEntity.ok(service.getVehiclesDropdown(excludeId));
     }
 
     @GetMapping("/available-devices")
-    public ResponseEntity<List<Map<String, Object>>> availableDevices() {
-        return ResponseEntity.ok(service.getAvailableDevices());
+    public ResponseEntity<List<Map<String, Object>>> availableDevices(
+            @RequestParam(required = false) Integer excludeId) {
+        return ResponseEntity.ok(service.getAvailableDevices(excludeId));
     }
 
     @GetMapping("/vehicles-with-device")
-    public ResponseEntity<List<Map<String, Object>>> vehiclesWithDevice() {
-        return ResponseEntity.ok(service.getVehiclesWithDevice());
+    public ResponseEntity<List<Map<String, Object>>> vehiclesWithDevice(
+            @RequestParam(required = false) Integer excludeAssocId) {
+        return ResponseEntity.ok(service.getVehiclesWithDevice(excludeAssocId));
     }
 
     @GetMapping("/all-drivers")
-    public ResponseEntity<List<Map<String, Object>>> allDrivers() {
-        return ResponseEntity.ok(service.getAllDrivers());
+    public ResponseEntity<List<Map<String, Object>>> allDrivers(
+            @RequestParam(required = false) Integer excludeAssocId) {
+        return ResponseEntity.ok(service.getUnassociatedDrivers(excludeAssocId));
     }
 
-    // ── Full (Vehicle-Device-Driver) Associations ──────────────────────────────
+    // -- Full (Vehicle-Device-Driver) Associations --
     @PostMapping("/full")
     public ResponseEntity<?> createFull(@RequestBody Map<String, Object> body) {
         try {
@@ -93,25 +97,21 @@ public class AdminAssociationController {
         }
     }
 
-    // ── CRUD ───────────────────────────────────────────────────────────────────
+    // -- CRUD --
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Map<String, Object> body) {
         try {
             Integer vehicleId = toInt(body.get("vehicle_id"));
             Integer deviceId = toInt(body.get("device_id"));
-            
             if (vehicleId == null || deviceId == null) {
-                return ResponseEntity.badRequest()
-                    .body(Map.of("message", "vehicle_id and device_id are required"));
+                return ResponseEntity.badRequest().body(Map.of("message", "vehicle_id and device_id are required"));
             }
-
             AdminAssociation result = service.create(vehicleId, deviceId);
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -134,7 +134,6 @@ public class AdminAssociationController {
         try {
             Integer vehicleId = toInt(body.get("vehicle_id"));
             Integer deviceId = toInt(body.get("device_id"));
-            
             AdminAssociation result = service.update(id, vehicleId, deviceId);
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException e) {
@@ -154,7 +153,6 @@ public class AdminAssociationController {
         }
     }
 
-    // ── Count ──────────────────────────────────────────────────────────────────
     @GetMapping("/count")
     public ResponseEntity<Integer> getCount() {
         return ResponseEntity.ok(service.getAllWithDetails().size());
@@ -167,4 +165,3 @@ public class AdminAssociationController {
         return Integer.parseInt(val.toString());
     }
 }
-

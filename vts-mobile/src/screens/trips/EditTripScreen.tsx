@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Toast, useToast } from "../../components/Toast";
+import { fetchVehiclesForTrip } from "../../services/tripService";
 import { api } from "../../services/api";
 import { ENDPOINTS } from "../../config/apiConfig";
 import type { TripItem } from "./TripManagementScreen";
@@ -49,21 +50,20 @@ const EditTripScreen = ({ navigation, route }: Props) => {
 
 
   useEffect(() => {
-    api.get(ENDPOINTS.ASSOCIATIONS_FOR_TRIP)
-      .then(res => {
-        const rows: any[] = res.data ?? [];
-        const options = rows
-          .filter((row: any) => Number.isFinite(Number(row.vehicle_id)) && row.registration_no && row.driver_id && row.driver_name)
-          .map((row: any) => ({
-            id: Number(row.id),
+    fetchVehiclesForTrip(trip.id)
+      .then(rows => {
+        const options: TripAssociationOption[] = rows
+          .filter(row => row.vehicle_id && row.registration_no && row.driver_id && row.driver_name)
+          .map(row => ({
+            id: Number(row.vehicle_id),
             vehicle_id: Number(row.vehicle_id),
             registration_no: String(row.registration_no),
             driver_id: Number(row.driver_id),
             driver_name: String(row.driver_name),
           }));
-        // Always include the current trip's vehicle+driver even if in active trip
+        // Always include the current trip's vehicle even if it has an active trip
         const currentInList = options.find(v => v.registration_no === trip.vehicleId);
-        const currentFallback = trip.vehicleId && trip.driverName ? {
+        const currentFallback: TripAssociationOption | null = trip.vehicleId && trip.driverName ? {
           id: Number(trip.id),
           vehicle_id: 0,
           registration_no: trip.vehicleId,

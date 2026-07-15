@@ -41,7 +41,7 @@ const StatCard = ({ icon, label, count, accent, onPress }: {
   <TouchableOpacity style={sc.card} onPress={onPress} activeOpacity={onPress ? 0.75 : 1}>
     <View style={[sc.accentBar, { backgroundColor: accent }]} />
     <View style={[sc.iconBox, { backgroundColor: accent + "18" }]}>
-      <Ionicons name={icon} size={18} color={accent} />
+      <Ionicons name={icon} size={20} color={accent} />
     </View>
     <View style={sc.cardBody}>
       <Text style={sc.label}>{label}</Text>
@@ -243,7 +243,10 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
   }, [loadAll]));
 
   useFocusEffect(useCallback(() => {
-    if (!notifEnabled.current) setEnablePrompt(true);
+    if (!notifEnabled.current) {
+      const t = setTimeout(() => setEnablePrompt(true), 500);
+      return () => clearTimeout(t);
+    }
   }, []));
 
   return (
@@ -348,7 +351,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
               <Text style={s.tripTitle}>Trip Management</Text>
               <Text style={s.tripSub}>Route logistics & geofence monitoring</Text>
             </View>
-            <Text style={s.viewLink}>{">"}</Text>
+            <Ionicons name="chevron-forward" size={20} color={C.blue} />
           </TouchableOpacity>
 
           {isSuperAdmin && (
@@ -364,7 +367,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
                 <Text style={s.tripTitle}>System Overview</Text>
                 <Text style={s.tripSub}>Enterprise health and org-level analytics</Text>
               </View>
-              <Text style={s.viewLink}>{">"}</Text>
+              <Ionicons name="chevron-forward" size={20} color={C.blue} />
             </TouchableOpacity>
           )}
 
@@ -379,7 +382,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
               />
               <Text style={s.cardTitle}>Recent Fleet Alerts</Text>
               <TouchableOpacity onPress={() => navigation.navigate("Notifications" as any)}>
-                <Text style={s.viewAllTxt}>View all {">"}</Text>
+                <Text style={s.viewAllTxt}>View all</Text>
               </TouchableOpacity>
             </View>
 
@@ -395,7 +398,8 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
                 const iconName = ALERT_ICON[key] || "alert-circle-outline";
                 const isLast   = idx === alerts.length - 1;
                 return (
-                  <View key={alert.id || idx} style={[s.alertRow, isLast && { borderBottomWidth: 0 }]}>
+                  <TouchableOpacity key={alert.id || idx} style={[s.alertRow, isLast && { borderBottomWidth: 0 }]}
+                    onPress={() => navigation.navigate("Notifications" as any)} activeOpacity={0.75}>
                     <View style={[s.alertBar, { backgroundColor: sev.barColor }]} />
                     <View style={[s.alertIconBox, { backgroundColor: sev.bg }]}>
                       <Ionicons name={iconName} size={20} color={sev.color} />
@@ -410,7 +414,7 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
                         <Text style={[s.sevTxt, { color: sev.color }]}>{sev.label}</Text>
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             )}
@@ -466,12 +470,12 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
 
 // ── Stat Card styles ──────────────────────────────────────────────────────────
 const sc = StyleSheet.create({
-  card:      { width: "47.5%", backgroundColor: C.card, borderRadius: 10, padding: 9, marginBottom: 9, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 3, overflow: "hidden" },
-  accentBar: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderTopLeftRadius: 10, borderBottomLeftRadius: 10 },
-  iconBox:   { width: 28, height: 28, borderRadius: 7, alignItems: "center", justifyContent: "center", marginBottom: 5 },
+  card:      { width: "47.5%", backgroundColor: C.card, borderRadius: 12, padding: 11, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3, overflow: "hidden" },
+  accentBar: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+  iconBox:   { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 6 },
   cardBody:  { flex: 1 },
-  label:     { fontSize: 10, color: C.muted, fontWeight: "600" },
-  count:     { fontSize: 20, fontWeight: "800", marginTop: 1 },
+  label:     { fontSize: 12, color: C.muted, fontWeight: "600", marginBottom: 2 },
+  count:     { fontSize: 22, fontWeight: "800", marginTop: 1 },
 });
 
 const s = StyleSheet.create({
@@ -498,7 +502,7 @@ const s = StyleSheet.create({
   liveDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
   liveTxt:    { fontSize: 10, fontWeight: "700", color: "#16A34A" },
   expandBtn:  { width: 26, height: 26, borderRadius: 7, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
-  mapBox:     { height: 240, borderRadius: 10, overflow: "hidden" },
+  mapBox:     { height: Math.round(Dimensions.get("window").height * 0.28), borderRadius: 10, overflow: "hidden" },
   miniCardsRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
   miniCard:    { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, padding: 10, gap: 8, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   tripCard:    { flexDirection: "row", alignItems: "center", backgroundColor: C.card, borderRadius: 12, padding: 10, marginBottom: 8, gap: 8, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
@@ -508,7 +512,7 @@ const s = StyleSheet.create({
   tripTitle:   { fontSize: 13, fontWeight: "800", color: C.text },
   tripSub:     { fontSize: 10, color: C.muted, marginTop: 1 },
   viewLink:    { fontSize: 20, fontWeight: "800", color: C.blue },
-  viewAllTxt:  { fontSize: 11, fontWeight: "700", color: C.blue },
+  viewAllTxt:  { fontSize: 12, fontWeight: "700", color: C.blue },
   alertRow:    { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#F0F0F0", gap: 8 },
   alertBar:    { width: 3, height: 32, borderRadius: 2 },
   alertIconBox:{ width: 36, height: 36, borderRadius: 9, alignItems: "center", justifyContent: "center" },

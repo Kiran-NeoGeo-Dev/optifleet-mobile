@@ -162,7 +162,7 @@ public class DashboardService {
             if (a.getVehicleId() != null && a.getDeviceId() != null)
                 uniquePairs.add(a.getVehicleId() + "-" + a.getDeviceId());
         });
-        List<Map<String, Object>> adminPairs = adminAssociationRepository.findVehiclesWithAdminDevice(clientId);
+        List<Map<String, Object>> adminPairs = adminAssociationRepository.findVehiclesWithAdminDevice(clientId, null);
         for (Map<String, Object> pair : adminPairs) {
             Object vehicleId = pair.get("vehicle_id");
             Object deviceId  = pair.get("device_id");

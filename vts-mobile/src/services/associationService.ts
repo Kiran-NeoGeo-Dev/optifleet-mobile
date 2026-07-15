@@ -16,6 +16,9 @@ export const fetchVehiclesWithDevice = async (): Promise<VehicleOption[]> =>
 export const fetchDriversByDevice   = async (deviceId: number): Promise<DriverOption[]> =>
   (await api.get(`/api/associations/drivers-by-device`, { params: { deviceId } })).data;
 
+export const fetchAvailableDrivers  = async (excludeAssocId?: number): Promise<DriverOption[]> =>
+  (await api.get("/api/associations/available-drivers", { params: excludeAssocId != null ? { excludeAssocId } : undefined })).data;
+
 export const createAssociation      = async (payload: AssociationPayload): Promise<AssociationRecord> =>
   (await api.post("/api/associations", payload)).data;
 

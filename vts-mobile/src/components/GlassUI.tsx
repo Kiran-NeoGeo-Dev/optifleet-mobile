@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,9 +7,9 @@ import { COLORS, SHADOWS } from "./ScreenBg";
 
 // Design tokens for warm + blue theme
 const W = {
-  inputBg:      "#E8CBA7",
-  inputBorder:  "rgba(120,70,20,0.22)",
-  inputText:    "#2B1D0E",
+  inputBg:      "#F0F4FF",
+  inputBorder:  "#BFDBFE",
+  inputText:    "#10204A",
   placeholder:  "#6B7280",
   label:        "rgba(255,255,255,0.80)",
   cardBg:       "#FFFFFF",
@@ -127,7 +127,7 @@ export const FuelSelector = ({ value, onChange }: { value: string; onChange: (v:
 
 const fuStyles = StyleSheet.create({
   row:    { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  btn:    { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: "#F3F4F6", borderWidth: 1, borderColor: "rgba(0,0,0,0.10)" },
+  btn:    { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: "#F3F4F6", borderWidth: 1.5, borderColor: "rgba(0,0,0,0.10)", minHeight: 44, alignItems: "center", justifyContent: "center" },
   active: { backgroundColor: "rgba(21,101,192,0.12)", borderColor: "rgba(21,101,192,0.40)" },
   txt:    { fontSize: 13, fontWeight: "600", color: "#6B7280" },
 });
@@ -135,13 +135,20 @@ const fuStyles = StyleSheet.create({
 // ─── Primary Button ───────────────────────────────────────────────────────────
 export const GlassButton = ({ label, onPress, loading, color, icon }: { label: string; onPress: () => void; loading?: boolean; color?: string; icon?: any }) => (
   <TouchableOpacity
-    style={[bStyles.btn, { backgroundColor: color ?? "#1565C0" }]}
+    style={[bStyles.btn, { backgroundColor: color ?? "#1565C0" }, loading && { opacity: 0.75 }]}
     onPress={onPress}
     disabled={loading}
     activeOpacity={0.82}
   >
-    {icon && !loading && <Ionicons name={icon} size={18} color="#fff" style={{ marginRight: 8 }} />}
-    <Text style={bStyles.txt}>{loading ? "Please wait…" : label}</Text>
+    {loading
+      ? <ActivityIndicator color="#fff" size="small" />
+      : (
+        <>
+          {icon && <Ionicons name={icon} size={18} color="#fff" style={{ marginRight: 8 }} />}
+          <Text style={bStyles.txt}>{label}</Text>
+        </>
+      )
+    }
   </TouchableOpacity>
 );
 
@@ -195,8 +202,8 @@ const cStyles = StyleSheet.create({
 const fStyles = StyleSheet.create({
   wrap:       { marginBottom: 12 },
   labelRow:   { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 5 },
-  label:      { fontSize: 10, fontWeight: "700", color: "#1A2F5C", textTransform: "uppercase", letterSpacing: 0.7 },
-  input:      { backgroundColor: W.inputBg, borderRadius: 9, borderWidth: 1, borderColor: W.inputBorder, paddingHorizontal: 11, paddingVertical: 9, fontSize: 13, color: W.inputText },
+  label:      { fontSize: 12, fontWeight: "700", color: "#1A2F5C", textTransform: "uppercase", letterSpacing: 0.7 },
+  input:      { backgroundColor: W.inputBg, borderRadius: 10, borderWidth: 1.5, borderColor: W.inputBorder, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: W.inputText, minHeight: 46 },
   inputError: { borderColor: "rgba(239,68,68,0.60)" },
   multiline:  { height: 100, textAlignVertical: "top" },
   error:      { fontSize: 12, color: "#EF4444", marginTop: 5, marginLeft: 2 },

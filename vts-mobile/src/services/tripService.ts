@@ -25,8 +25,10 @@ export interface TripPayload {
   customPolyline?: string;
 }
 
-export const fetchVehiclesForTrip = async (): Promise<TripVehicleOption[]> => {
-  const res = await api.get<TripVehicleOption[]>(ENDPOINTS.ASSOCIATIONS_FOR_TRIP);
+export const fetchVehiclesForTrip = async (excludeTripId?: number): Promise<TripVehicleOption[]> => {
+  const res = await api.get<TripVehicleOption[]>(ENDPOINTS.ASSOCIATIONS_FOR_TRIP, {
+    params: excludeTripId != null ? { excludeTripId } : undefined,
+  });
   return res.data;
 };
 

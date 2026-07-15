@@ -13,17 +13,17 @@ import type {
 export const fetchAdminAssociations = async (): Promise<AdminAssociationRecord[]> =>
   (await api.get("/api/admin-associations")).data;
 
-export const fetchVehiclesDropdown = async (): Promise<VehicleDropdown[]> =>
-  (await api.get("/api/admin-associations/vehicles")).data;
+export const fetchVehiclesDropdown = async (excludeId?: number): Promise<VehicleDropdown[]> =>
+  (await api.get("/api/admin-associations/vehicles", { params: excludeId != null ? { excludeId } : undefined })).data;
 
-export const fetchAvailableDevices = async (): Promise<DeviceDropdown[]> =>
-  (await api.get("/api/admin-associations/available-devices")).data;
+export const fetchAvailableDevices = async (excludeId?: number): Promise<DeviceDropdown[]> =>
+  (await api.get("/api/admin-associations/available-devices", { params: excludeId != null ? { excludeId } : undefined })).data;
 
-export const fetchVehiclesWithAdminDevice = async (): Promise<VehicleOption[]> =>
-  (await api.get("/api/admin-associations/vehicles-with-device")).data;
+export const fetchVehiclesWithAdminDevice = async (excludeAssocId?: number): Promise<VehicleOption[]> =>
+  (await api.get("/api/admin-associations/vehicles-with-device", { params: excludeAssocId != null ? { excludeAssocId } : undefined })).data;
 
-export const fetchAllDrivers = async (): Promise<DriverOption[]> =>
-  (await api.get("/api/admin-associations/all-drivers")).data;
+export const fetchAllDrivers = async (excludeAssocId?: number): Promise<DriverOption[]> =>
+  (await api.get("/api/admin-associations/all-drivers", { params: excludeAssocId != null ? { excludeAssocId } : undefined })).data;
 
 export const createAdminAssociation = async (payload: AdminAssociationPayload): Promise<any> =>
   (await api.post("/api/admin-associations", payload)).data;
@@ -34,7 +34,7 @@ export const updateAdminAssociation = async (id: number, payload: AdminAssociati
 export const deleteAdminAssociation = async (id: number): Promise<void> =>
   await api.delete(`/api/admin-associations/${id}`);
 
-// — Full (Vehicle-Device-Driver) associations for admin —
+// -- Full (Vehicle-Device-Driver) associations for admin --
 export const fetchAdminFullAssociations = async (): Promise<ClientAssociation[]> =>
   (await api.get("/api/admin-associations/full")).data;
 
@@ -46,4 +46,3 @@ export const updateAdminFullAssociation = async (id: number, payload: AdminAssoc
 
 export const deleteAdminFullAssociation = async (id: number): Promise<void> =>
   await api.delete(`/api/admin-associations/full/${id}`);
-

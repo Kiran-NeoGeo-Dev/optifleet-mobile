@@ -66,11 +66,11 @@ public class FleetController {
         // Build vehicleId -> driverName map from associations
         List<Map<String, Object>> assocRows;
         if (isSuperAdmin) {
-            assocRows = associationRepository.findVehiclesWithDriverAllClients();
+            assocRows = associationRepository.findVehiclesWithDriverAllClients(null);
         } else if (isOrgAdmin) {
-            assocRows = associationRepository.findVehiclesWithDriverByOrgId(orgId);
+            assocRows = associationRepository.findVehiclesWithDriverByOrgId(orgId, null);
         } else {
-            assocRows = cid != null ? associationRepository.findVehiclesWithDriverByClientId(cid) : List.of();
+            assocRows = cid != null ? associationRepository.findVehiclesWithDriverByClientId(cid, null) : List.of();
         }
 
         Map<String, String> vehicleDriverMap = new LinkedHashMap<>();

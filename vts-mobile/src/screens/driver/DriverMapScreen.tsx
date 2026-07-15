@@ -371,20 +371,25 @@ const DriverMapScreen = ({ navigation }: Props) => {
         </View>
       )}
 
+      {/* No trip — full screen empty state */}
+      {noTrip && (
+        <View style={styles.noTripFull}>
+          <View style={styles.noTripIconBox}>
+            <Ionicons name="map-outline" size={48} color="#38BDF8" />
+          </View>
+          <Text style={styles.noTripTitle}>No Active Trip</Text>
+          <Text style={styles.noTripText}>You have no trip assigned at the moment.{"\n"}Check back later or contact your dispatcher.</Text>
+        </View>
+      )}
+
       {/* Progress bar */}
       {trip && (
         <View style={styles.progressBg}>
           <View style={[styles.progressFill, { width: `${Math.min(progress, 100)}%` as any }]} />
-          <Text style={styles.progressLabel}>{progress.toFixed(0)}% completed</Text>
         </View>
       )}
-
-      {/* No trip */}
-      {noTrip && (
-        <View style={styles.noTripBox}>
-          <Ionicons name="map-outline" size={40} color={COLORS.whiteMuted} />
-          <Text style={styles.noTripText}>No active trip assigned</Text>
-        </View>
+      {trip && (
+        <Text style={styles.progressLabel}>{progress.toFixed(0)}% completed</Text>
       )}
 
       {/* Map */}
@@ -430,12 +435,12 @@ const DriverMapScreen = ({ navigation }: Props) => {
       {trip && (
         <View style={styles.routeBar}>
           <View style={styles.routeItem}>
-            <Text style={styles.routeLabel}>🚚 FROM</Text>
+            <Text style={styles.routeLabel}>FROM</Text>
             <Text style={styles.routePlace} numberOfLines={1}>{trip.startPlace?.split(",")[0] ?? ""}</Text>
           </View>
           <Ionicons name="arrow-forward" size={16} color={COLORS.whiteMuted} />
           <View style={styles.routeItem}>
-            <Text style={styles.routeLabel}>📍 TO</Text>
+            <Text style={styles.routeLabel}>TO</Text>
             <Text style={styles.routePlace} numberOfLines={1}>{trip.endPlace?.split(",")[0] ?? ""}</Text>
           </View>
         </View>
@@ -486,7 +491,7 @@ const DriverMapScreen = ({ navigation }: Props) => {
               </Text>
             )}
             <TouchableOpacity style={styles.popupClose} onPress={() => setShowPopup(false)}>
-              <Text style={{ color: COLORS.accent, fontWeight: "700" }}>Close</Text>
+              <Text style={{ color: "#38BDF8", fontWeight: "800", fontSize: 14 }}>Close</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -535,15 +540,17 @@ const styles = StyleSheet.create({
   deviationText:   { color: "#fff", fontSize: 10, fontWeight: "800" },
   infoBar:         { flexDirection: "row", backgroundColor: "rgba(8,16,32,0.80)", paddingVertical: 8, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.1)" },
   infoCol:         { flex: 1, alignItems: "center" },
-  infoLabel:       { fontSize: 9, fontWeight: "700", color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: 0.5 },
-  infoValue:       { fontSize: 12, fontWeight: "800", color: "#fff", marginTop: 2 },
+  infoLabel:       { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 0.5 },
+  infoValue:       { fontSize: 13, fontWeight: "800", color: "#fff", marginTop: 2 },
   infoDivider:     { width: 1, backgroundColor: "rgba(255,255,255,0.12)", marginHorizontal: 4 },
-  progressBg:      { height: 18, backgroundColor: "rgba(8,16,32,0.8)", justifyContent: "center" },
-  progressFill:    { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: "#0EA5E9", opacity: 0.5 },
-  progressLabel:   { fontSize: 10, color: "#fff", fontWeight: "700", textAlign: "center" },
+  progressBg:      { height: 6, backgroundColor: "rgba(8,16,32,0.6)" },
+  progressFill:    { position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: "#0EA5E9", borderRadius: 3 },
+  progressLabel:   { fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: "700", textAlign: "center", paddingVertical: 3, backgroundColor: "rgba(8,16,32,0.6)" },
   map:             { flex: 1 },
-  noTripBox:       { position: "absolute", top: "45%", alignSelf: "center", alignItems: "center", zIndex: 10 },
-  noTripText:      { color: "rgba(255,255,255,0.5)", marginTop: 8, fontSize: 14 },
+  noTripFull:      { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0A1428", gap: 12, paddingHorizontal: 32 },
+  noTripIconBox:   { width: 88, height: 88, borderRadius: 24, backgroundColor: "rgba(56,189,248,0.12)", borderWidth: 1.5, borderColor: "rgba(56,189,248,0.3)", alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  noTripTitle:     { fontSize: 18, fontWeight: "800", color: "#fff" },
+  noTripText:      { color: "rgba(255,255,255,0.5)", fontSize: 13, textAlign: "center", lineHeight: 20 },
   routeBar:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(8,16,32,0.82)", paddingHorizontal: 14, paddingVertical: 9, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)", gap: 8 },
   routeItem:       { flex: 1 },
   routeLabel:      { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.45)", textTransform: "uppercase" },
@@ -563,15 +570,15 @@ const styles = StyleSheet.create({
   overlayStatusTxt:{ fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.75)" },
   // Popup
   popupOverlay:    { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center" },
-  popupBox:        { backgroundColor: "#0D1A2C", borderRadius: 16, padding: 18, width: "85%", borderWidth: 1, borderColor: "rgba(255,255,255,0.14)" },
+  popupBox:        { backgroundColor: "#0D1A2C", borderRadius: 18, padding: 20, width: "88%", borderWidth: 1, borderColor: "rgba(255,255,255,0.14)" },
   popupTitle:      { fontSize: 18, fontWeight: "800", color: "#fff", marginBottom: 2 },
-  popupStatus:     { fontSize: 13, color: "#38BDF8", fontWeight: "600", marginBottom: 12 },
-  popupRow:        { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
+  popupStatus:     { fontSize: 13, color: "#38BDF8", fontWeight: "600", marginBottom: 14 },
+  popupRow:        { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
   popupLabel:      { fontSize: 13, color: "rgba(255,255,255,0.55)", fontWeight: "600" },
   popupValue:      { fontSize: 13, color: "#fff", fontWeight: "700" },
-  popupAddressRow: { flexDirection: "column", paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
+  popupAddressRow: { flexDirection: "column", paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
   popupAddressValue: { fontSize: 12, color: "#fff", fontWeight: "600", marginTop: 2, lineHeight: 17 },
-  popupClose:      { alignItems: "center", marginTop: 14 },
+  popupClose:      { alignItems: "center", marginTop: 16, backgroundColor: "rgba(56,189,248,0.15)", borderRadius: 12, paddingVertical: 12, borderWidth: 1, borderColor: "rgba(56,189,248,0.3)" },
 });
 
 export default DriverMapScreen;

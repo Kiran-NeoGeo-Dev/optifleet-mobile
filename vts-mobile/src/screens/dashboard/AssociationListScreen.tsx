@@ -15,8 +15,8 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   fetchAssociations, fetchVehiclesWithDevice,
   createAssociation, updateAssociation, deleteAssociation,
+  fetchAvailableDrivers,
 } from "../../services/associationService";
-import { fetchDrivers as fetchClientDrivers } from "../../services/driverService";
 import {
   fetchAdminAssociations, fetchVehiclesDropdown, fetchAvailableDevices,
   createAdminAssociation, updateAdminAssociation, deleteAdminAssociation,
@@ -126,7 +126,6 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
     setLoading(true);
     try {
       if (isAdminFullMode) {
-        // Vehicle-Device-Driver full associations (admin managing associations table)
         const [assocs, vehs, drvs] = await Promise.all([
           fetchAdminFullAssociations(),
           fetchVehiclesWithAdminDevice(),
@@ -179,19 +178,14 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
   }, [shouldOpenAddModal, modalVisible, isAdminMode, isAdminFullMode]);
 
 
-  const loadClientDrivers = async () => {
+  const loadClientDrivers = async (excludeAssocId?: number) => {
     try {
       if (isAdminFullMode) {
-        // Admin can see all drivers
-        const list = await fetchAllDrivers();
+        const list = await fetchAllDrivers(excludeAssocId);
         setDrivers(list);
       } else {
-        const list = await fetchClientDrivers();
-        setDrivers(list.map(d => ({
-          driver_id: d.id,
-          driver_name: d.driverName,
-          license_no: d.licenseNumber || ""
-        })));
+        const list = await fetchAvailableDrivers(excludeAssocId);
+        setDrivers(list);
       }
     } catch {
       setDrivers([]);
@@ -200,14 +194,13 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
 
   const openModal = async (mode: "add" | "edit" | "view", item?: any) => {
     setModalMode(mode);
+    const editId: number | undefined = item?.id && typeof item.id === "number" ? item.id : undefined;
     if (item) {
       setSelRegNo(item.registration_no);
-      if ('driver_name' in item) {
-        setSelDriverName(item.driver_name);
-      }
+      if ('driver_name' in item) setSelDriverName(item.driver_name);
       setSelDeviceCode(item.device_code || "");
       setForm({
-        id: item.id,
+        id: editId,
         vehicleId: item.vehicle_id,
         deviceId: item.device_id,
         ...( 'driver_id' in item && { driverId: item.driver_id }),
@@ -215,21 +208,29 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
         ...( 'status' in item && { status: item.status }),
       });
     } else {
-      if (isAdminFullMode) {
-        setForm(ADMIN_FULL_FORM);
-      } else if (isAdminMode) {
-        setForm(ADMIN_FORM);
-      } else {
-        setForm(CLIENT_FORM);
-      }
+      if (isAdminFullMode) setForm(ADMIN_FULL_FORM);
+      else if (isAdminMode) setForm(ADMIN_FORM);
+      else setForm(CLIENT_FORM);
       setSelRegNo("");
       setSelDriverName("");
       setSelDeviceCode("");
       setDrivers([]);
     }
 
-    if (!isAdminMode || isAdminFullMode) {
-      await loadClientDrivers();
+    // Reload dropdowns with excludeId so current record's vehicle/device/driver remain selectable
+    if (isAdminMode && !isAdminFullMode) {
+      const [vehs, devs] = await Promise.all([
+        fetchVehiclesDropdown(editId),
+        fetchAvailableDevices(editId),
+      ]);
+      setVehicles(vehs as VehicleDropdown[]);
+      setAvailableDevices(devs as DeviceDropdown[]);
+    } else if (isAdminFullMode) {
+      const drvs = await fetchAllDrivers(editId);
+      setDrivers(drvs as DriverOption[]);
+    } else {
+      // For pending items (no editId) or edit mode, load available drivers
+      await loadClientDrivers(editId);
     }
 
     setModalVisible(true);
@@ -413,7 +414,12 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
             {isPending && (
               <TouchableOpacity
                 style={[styles.actionBtn, { backgroundColor: "rgba(217,119,6,0.10)", borderColor: "rgba(217,119,6,0.35)" }]}
-                onPress={() => openModal("add")}
+                onPress={() => openModal("add", {
+                  vehicle_id: item.vehicle_id,
+                  device_id: item.device_id,
+                  registration_no: item.registration_no,
+                  device_code: item.device_code,
+                })}
               >
                 <Ionicons name="person-add-outline" size={14} color="#D97706" />
                 <Text style={[styles.actionTxt, { color: "#D97706" }]}>Assign Driver</Text>

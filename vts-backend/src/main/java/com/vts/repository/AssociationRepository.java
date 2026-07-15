@@ -68,7 +68,8 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
         "WHERE v.client_id = :clientId", nativeQuery = true)
     List<Integer> findAssociatedVehicleIdsByClientId(@Param("clientId") Long clientId);
 
-    // Issue 2 & 3 fix: removed active-trip exclusion so driver/vehicle always shows
+    // Returns vehicles with no active trip (status NOT IN Completed/Cancelled).
+    // excludeTripId allows the vehicle of the trip being edited to still appear.
     @Query(value =
         "SELECT a.id, a.vehicle_id, v.registration_no, " +
         "a.driver_id, dr.driver_name, dr.license_no, " +
@@ -78,8 +79,16 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
         "JOIN drivers dr ON dr.id = a.driver_id " +
         "WHERE a.client_id = :clientId " +
         "AND a.status = true " +
+        "AND NOT EXISTS ( " +
+        "  SELECT 1 FROM trips t " +
+        "  WHERE t.vehicle_id = v.registration_no " +
+        "  AND TRIM(t.status) NOT IN ('Completed', 'Cancelled') " +
+        "  AND (:excludeTripId IS NULL OR t.id <> :excludeTripId) " +
+        ") " +
         "ORDER BY v.registration_no", nativeQuery = true)
-    List<Map<String, Object>> findVehiclesWithDriverByClientId(@Param("clientId") Long clientId);
+    List<Map<String, Object>> findVehiclesWithDriverByClientId(
+        @Param("clientId") Long clientId,
+        @Param("excludeTripId") Long excludeTripId);
 
     @Query(value =
         "SELECT a.id, a.vehicle_id, v.registration_no, " +
@@ -89,14 +98,30 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
         "JOIN vehicles v ON v.id = a.vehicle_id " +
         "JOIN drivers dr ON dr.id = a.driver_id " +
         "WHERE a.status = true " +
+        "AND NOT EXISTS ( " +
+        "  SELECT 1 FROM trips t " +
+        "  WHERE t.vehicle_id = v.registration_no " +
+        "  AND TRIM(t.status) NOT IN ('Completed', 'Cancelled') " +
+        "  AND (:excludeTripId IS NULL OR t.id <> :excludeTripId) " +
+        ") " +
         "ORDER BY v.registration_no", nativeQuery = true)
-    List<Map<String, Object>> findVehiclesWithDriverAllClients();
+    List<Map<String, Object>> findVehiclesWithDriverAllClients(
+        @Param("excludeTripId") Long excludeTripId);
 
     @Query(value =
         "SELECT a.id, a.vehicle_id, v.registration_no, a.driver_id, dr.driver_name, dr.license_no, a.client_id " +
         "FROM associations a JOIN vehicles v ON v.id = a.vehicle_id JOIN drivers dr ON dr.id = a.driver_id " +
-        "WHERE v.org_id = :orgId AND a.status = true ORDER BY v.registration_no", nativeQuery = true)
-    List<Map<String, Object>> findVehiclesWithDriverByOrgId(@Param("orgId") Long orgId);
+        "WHERE v.org_id = :orgId AND a.status = true " +
+        "AND NOT EXISTS ( " +
+        "  SELECT 1 FROM trips t " +
+        "  WHERE t.vehicle_id = v.registration_no " +
+        "  AND TRIM(t.status) NOT IN ('Completed', 'Cancelled') " +
+        "  AND (:excludeTripId IS NULL OR t.id <> :excludeTripId) " +
+        ") " +
+        "ORDER BY v.registration_no", nativeQuery = true)
+    List<Map<String, Object>> findVehiclesWithDriverByOrgId(
+        @Param("orgId") Long orgId,
+        @Param("excludeTripId") Long excludeTripId);
 
     @Query(value =
         "SELECT COUNT(*) > 0 " +

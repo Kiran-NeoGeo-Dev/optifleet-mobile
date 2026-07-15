@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, Image, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, Dimensions, StatusBar,
-  Animated, Easing, ScrollView, LayoutChangeEvent,
+  Animated, Easing, ScrollView, LayoutChangeEvent, ActivityIndicator, Pressable, Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -175,6 +175,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
         >
+          <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
           <ScrollView
             contentContainerStyle={s.scroll}
             keyboardShouldPersistTaps="handled"
@@ -202,7 +203,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                       onPress={() => setActiveRole(tab.label)}
                       activeOpacity={0.75}
                     >
-                      <Ionicons name={tab.icon} size={16} color={active ? "#1A56DB" : "#5F6F8F"} style={{ marginRight: 5 }} />
+                      <Ionicons name={tab.icon} size={18} color={active ? "#1A56DB" : "#5F6F8F"} style={{ marginRight: 5 }} />
                       <Text style={[s.tabTxt, active && s.tabTxtActive]}>{tab.label}</Text>
                     </TouchableOpacity>
                   );
@@ -300,7 +301,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                   <Text style={s.remTxt}>Remember me</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => navigation.navigate("AdminRecovery")} activeOpacity={0.7}>
-                  <Text style={s.forgotTxt}>Admin/Forgot Password?</Text>
+                  <Text style={s.forgotTxt}>Forgot Password?</Text>
                 </TouchableOpacity>
               </View>
 
@@ -312,11 +313,15 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                   end={{ x: 1, y: 0 }}
                   style={s.btnGrad}
                 >
-                  <Text style={s.btnTxt}>
-                    {loading ? "Please wait…" : "Sign In"}
-                  </Text>
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" style={{ flex: 1 }} />
+                  ) : (
+                    <Text style={s.btnTxt}>Sign In</Text>
+                  )}
                   <View style={s.btnArrow}>
-                    <Ionicons name="arrow-forward" size={18} color="#2D6CFB" />
+                    {loading
+                      ? <ActivityIndicator color="#2D6CFB" size="small" />
+                      : <Ionicons name="arrow-forward" size={18} color="#2D6CFB" />}
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -325,6 +330,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
 
             <View style={{ height: 16 }} />
           </ScrollView>
+          </Pressable>
         </KeyboardAvoidingView>
       </SafeAreaView>
 
@@ -369,7 +375,7 @@ const s = StyleSheet.create({
   subtitle: { fontSize: 14, color: "#43516D", fontWeight: "600", textAlign: "center", marginBottom: 10 },
 
   tabWrap: { flexDirection: "row", backgroundColor: "#F0F4FF", borderRadius: 16, padding: 4, marginBottom: 10 },
-  tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 8, borderRadius: 12 },
+  tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 10, borderRadius: 12 },
   tabItemActive: { backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "#2D6CFB", shadowColor: "#2D6CFB", shadowOpacity: 0.10, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   tabTxt:       { fontSize: 13, fontWeight: "600", color: "#5F6F8F" },
   tabTxtActive: { fontSize: 13, fontWeight: "700", color: "#1A56DB" },
@@ -377,13 +383,13 @@ const s = StyleSheet.create({
   label: { fontSize: 14, fontWeight: "700", color: "#1A2F5C", marginBottom: 5 },
   field: {
     flexDirection: "row", alignItems: "center",
-    backgroundColor: "#E8D0A9", borderRadius: 14,
-    borderWidth: 1, borderColor: "#C8AC7A",
-    height: 46, marginBottom: 8, paddingRight: 14,
-    shadowColor: "#7A5522", shadowOpacity: 0.16, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3,
+    backgroundColor: "#F0F4FF", borderRadius: 14,
+    borderWidth: 1.5, borderColor: "#BFDBFE",
+    height: 50, marginBottom: 8, paddingRight: 14,
+    shadowColor: "#1A46B4", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
   fieldIconWrap: { width: 48, alignItems: "center", justifyContent: "center" },
-  fieldInput:    { flex: 1, fontSize: 15, color: "#10204A", paddingVertical: 0 },
+  fieldInput:    { flex: 1, fontSize: 15, color: "#10204A", paddingVertical: 0, height: 50 },
   eyeBtn:        { paddingLeft: 8 },
   calendarBtn:   { paddingLeft: 8 },
 
