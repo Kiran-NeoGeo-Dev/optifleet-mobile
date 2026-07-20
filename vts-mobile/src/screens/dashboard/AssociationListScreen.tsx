@@ -378,13 +378,15 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
               <Text style={styles.detailLabel}>Device</Text>
               <Text style={styles.detailVal}>{item.device_code || "—"}</Text>
             </View>
-            <View style={styles.detailCol}>
-              <Text style={styles.detailLabel}>Driver</Text>
-              <Text style={[styles.detailVal, isPending && { color: "#D97706", fontSize: 11 }]}>
-                {isPending ? "Driver Association Pending" : (item.driver_name || "—")}
-              </Text>
-            </View>
-            {!isPending && (
+            {(!isAdminMode || isAdminFullMode) && (
+              <View style={styles.detailCol}>
+                <Text style={styles.detailLabel}>Driver</Text>
+                <Text style={[styles.detailVal, isPending && { color: "#D97706", fontSize: 11 }]}>
+                  {isPending ? "Driver Association Pending" : (item.driver_name || "—")}
+                </Text>
+              </View>
+            )}
+            {(!isAdminMode || isAdminFullMode) && !isPending && (
               <View style={styles.detailCol}>
                 <Text style={styles.detailLabel}>Country</Text>
                 <Text style={styles.detailVal}>{item.country || "—"}</Text>

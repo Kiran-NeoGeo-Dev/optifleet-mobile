@@ -51,17 +51,18 @@ const NotificationsScreen = ({ navigation }: Props) => {
     return () => clearInterval(t);
   }, [load]));
 
-  const markAllRead = async () => {
+  const markAllRead = () => {
     items.forEach(n => readKeysRef.current.add(n.id));
     setItems(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const clearAll = async () => {
+  const clearAll = () => {
     items.forEach(n => readKeysRef.current.add(n.id));
     setItems([]);
   };
 
   const unread = items.filter(n => !n.read).length;
+  const total  = items.length;
 
   const renderItem = ({ item }: { item: AlertNotification }) => {
     const key   = item.label?.toUpperCase?.() || "";
@@ -86,7 +87,6 @@ const NotificationsScreen = ({ navigation }: Props) => {
           <Text style={s.cardVehicle}>{item.vehicle} · {item.driver}</Text>
           <Text style={s.cardDetail} numberOfLines={1}>{item.detail}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
       </TouchableOpacity>
     );
   };
@@ -115,10 +115,10 @@ const NotificationsScreen = ({ navigation }: Props) => {
             )}
           </View>
           <View style={s.headerActions}>
-            {items.length > 0 && (
+            {total > 0 && (
               <>
                 <TouchableOpacity style={s.markReadBtn} onPress={markAllRead}>
-                  <Text style={s.actionTxt}>Mark read</Text>
+                  <Text style={s.actionTxt}>Mark as read</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.clearBtn} onPress={clearAll}>
                   <Text style={s.clearTxt}>Clear</Text>
