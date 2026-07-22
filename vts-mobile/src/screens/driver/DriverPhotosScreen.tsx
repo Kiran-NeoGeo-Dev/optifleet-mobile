@@ -6,10 +6,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { MainStackParamList } from "../../navigation/MainNavigator";
+import { AdminStackParamList } from "../../navigation/AdminNavigator";
 import { createDriver } from "../../services/driverService";
 import { Toast, useToast } from "../../components/Toast";
 
-type Props = NativeStackScreenProps<MainStackParamList, "DriverPhotos">;
+type Props =
+  | NativeStackScreenProps<MainStackParamList, "DriverPhotos">
+  | NativeStackScreenProps<AdminStackParamList, "DriverPhotos">;
 
 const DriverPhotosScreen = ({ route, navigation }: Props) => {
   const { driverPayload } = route.params;
@@ -64,8 +67,18 @@ const DriverPhotosScreen = ({ route, navigation }: Props) => {
       await createDriver({ ...driverPayload, frontFaceImage: frontFace, leftFaceImage: leftFace, rightFaceImage: rightFace, status: driverPayload.status, clientId: driverPayload.clientId });
       showToast("Driver Details Saved Successfully.", "success");
       setTimeout(() => navigation.popToTop(), 1500);
-    } catch { showToast("Failed to create driver. Please try again.", "error"); }
-    finally { setLoading(false); }
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.errors
+          ? Object.values(err.response.data.errors).join(", ")
+          : err?.response?.data?.error ||
+            err?.response?.data?.message ||
+            err?.message ||
+            "Failed to create driver. Please try again.";
+      showToast(msg, "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const PhotoCard = ({ title, instruction, image, onUpload }: { title: string; instruction: string; image: string | null; onUpload: () => void }) => (

@@ -206,9 +206,10 @@ public class AuthService {
 
     public boolean canAccessClient(Integer targetClientId) {
         Client current = getCurrentClient();
-        if (current == null || targetClientId == null) return false;
+        if (current == null) return false;
+        if (targetClientId == null) return true; // null means "use own clientId" — always allowed
         if (isSuperAdmin(current)) return true;
-        if (current.getId().intValue() == targetClientId) return true;
+        if (current.getId() != null && current.getId().intValue() == targetClientId) return true;
         if (!isAdmin(current) || current.getOrgId() == null) return false;
         return userDetailRepository.findByClientIdAndOrgId(targetClientId, current.getOrgId()).isPresent();
     }

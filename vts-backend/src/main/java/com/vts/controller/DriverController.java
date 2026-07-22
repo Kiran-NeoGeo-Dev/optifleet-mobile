@@ -20,7 +20,6 @@ public class DriverController {
         this.driverService = driverService;
     }
 
-    @PreAuthorize("@authService.isAdminRole()")
     @PostMapping
     public ResponseEntity<Driver> createDriver(@Valid @RequestBody DriverRequest request) {
         return ResponseEntity.ok(driverService.createDriver(request));
