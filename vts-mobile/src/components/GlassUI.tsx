@@ -10,7 +10,7 @@ const W = {
   inputBg:      "#F0F4FF",
   inputBorder:  "#BFDBFE",
   inputText:    "#10204A",
-  placeholder:  "#6B7280",
+  placeholder:  "#5F6F8F",
   label:        "rgba(255,255,255,0.80)",
   cardBg:       "#FFFFFF",
   cardBorder:   "rgba(0,0,0,0.06)",

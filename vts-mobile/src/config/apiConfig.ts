@@ -1,5 +1,5 @@
 // Production — public IP, works on any network (mobile data, WiFi, etc.)
-//export const API_BASE_URL = "http://192.168.1.242:8083";
+export const API_BASE_URL = "http://192.168.1.242:8083";
 
 //export const API_BASE_URL = "http://192.168.1.227:8383";
 
@@ -8,7 +8,7 @@
 
 // Custom domain
 
-export const API_BASE_URL = "http://vtsweb.neogeoinfo.in:8787";
+//export const API_BASE_URL = "http://vtsweb.neogeoinfo.in:8787";
 
 
 export const ENDPOINTS = {

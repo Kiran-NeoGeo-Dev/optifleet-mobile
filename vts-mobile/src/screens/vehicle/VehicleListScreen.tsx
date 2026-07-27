@@ -116,17 +116,17 @@ const VehicleListScreen = ({ navigation }: Props) => {
 
         {/* Search */}
         <View style={styles.searchWrap}>
-          <Ionicons name="search" size={16} color="#9C6B30" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={16} color="#5F6F8F" style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by Reg. No., Owner, Make…"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor="#5F6F8F"
             value={query}
             onChangeText={setQuery}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery("")}>
-              <Ionicons name="close-circle" size={18} color="#9C6B30" />
+              <Ionicons name="close-circle" size={18} color="#5F6F8F" />
             </TouchableOpacity>
           )}
         </View>
@@ -172,8 +172,8 @@ const styles = StyleSheet.create({
   headerTitle:  { fontSize: 18, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
   headerSub:    { fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 1 },
 
-  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)", elevation: 2 },
-  searchInput: { flex: 1, fontSize: 13, color: "#2B1D0E", fontWeight: "500" },
+  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#F0F4FF", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "#BFDBFE", elevation: 2 },
+  searchInput: { flex: 1, fontSize: 13, color: "#10204A", fontWeight: "500" },
 
   list:        { paddingHorizontal: 14, paddingBottom: 80 },
 

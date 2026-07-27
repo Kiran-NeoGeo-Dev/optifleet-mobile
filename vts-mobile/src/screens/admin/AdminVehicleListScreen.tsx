@@ -121,9 +121,9 @@ const AdminVehicleListScreen = ({ navigation }: Props) => {
         </View>
 
         <View style={s.searchWrap}>
-          <Ionicons name="search" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-          <TextInput style={s.searchInput} placeholder="Search by Plate, Owner, Make…" placeholderTextColor="#6B7280" value={query} onChangeText={setQuery} />
-          {query.length > 0 && <TouchableOpacity onPress={() => setQuery("")}><Ionicons name="close-circle" size={18} color="#9C6B30" /></TouchableOpacity>}
+          <Ionicons name="search" size={16} color="#5F6F8F" style={{ marginRight: 8 }} />
+          <TextInput style={s.searchInput} placeholder="Search by Plate, Owner, Make…" placeholderTextColor="#5F6F8F" value={query} onChangeText={setQuery} />
+          {query.length > 0 && <TouchableOpacity onPress={() => setQuery("")}><Ionicons name="close-circle" size={18} color="#5F6F8F" /></TouchableOpacity>}
         </View>
 
         {loading
@@ -155,8 +155,8 @@ const s = StyleSheet.create({
   subtitle:    { fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 1 },
   countBadge:  { backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   countTxt:    { fontSize: 12, fontWeight: "800", color: "#fff" },
-  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)" },
-  searchInput: { flex: 1, fontSize: 13, color: "#2B1D0E", fontWeight: "500" },
+  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#F0F4FF", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "#BFDBFE" },
+  searchInput: { flex: 1, fontSize: 13, color: "#10204A", fontWeight: "500" },
   list:        { paddingHorizontal: 14, paddingBottom: 70 },
   card:        { backgroundColor: "#FFFFFF", borderRadius: 12, marginBottom: 8, flexDirection: "row", overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   accentBar:   { width: 3 },

@@ -9,10 +9,10 @@ import { Toast, useToast } from "../../components/Toast";
 import { CountryCodePicker } from "../../components/CountryCodePicker";
 
 const W = {
-  inputBg:     "#E8CBA7",
-  inputBorder: "rgba(120,70,20,0.22)",
-  inputText:   "#2B1D0E",
-  placeholder: "#6B7280",
+  inputBg:     "#F0F4FF",
+  inputBorder: "#BFDBFE",
+  inputText:   "#10204A",
+  placeholder: "#5F6F8F",
   accent:      "#1565C0",
 };
 
@@ -181,13 +181,13 @@ const EditUserScreen = ({ route, navigation }: Props) => {
 const s = StyleSheet.create({
   fieldWrap:       { marginBottom: 12 },
   phoneRow:        { flexDirection: "row", alignItems: "center", gap: 8 },
-  dropTrigger:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#E8CBA7", borderRadius: 9, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)", paddingHorizontal: 11, paddingVertical: 9, fontSize: 13 },
-  dropTxt:         { fontSize: 13, color: "#2B1D0E", fontWeight: "600" },
+  dropTrigger:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F0F4FF", borderRadius: 9, borderWidth: 1, borderColor: "#BFDBFE", paddingHorizontal: 11, paddingVertical: 9, fontSize: 13 },
+  dropTxt:         { fontSize: 13, color: "#10204A", fontWeight: "600" },
   backdrop:        { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", alignItems: "center" },
   menu:            { backgroundColor: "#fff", borderRadius: 12, width: 200, overflow: "hidden", elevation: 8, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
   menuItem:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 14, paddingHorizontal: 18 },
-  menuItemActive:  { backgroundColor: "#E8CBA7" },
-  menuTxt:         { fontSize: 14, color: "#2B1D0E", fontWeight: "600" },
+  menuItemActive:  { backgroundColor: "#E8F0FF" },
+  menuTxt:         { fontSize: 14, color: "#10204A", fontWeight: "600" },
   menuTxtActive:   { color: "#1565C0" },
 });
 

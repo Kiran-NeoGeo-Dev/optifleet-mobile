@@ -62,7 +62,7 @@ const ClientSelector = ({ selectedClientId, onSelect }: Props) => {
         ) : (
           <Text style={styles.placeholder}>Search & select user…</Text>
         )}
-        <Ionicons name="chevron-down" size={16} color="#A0785A" />
+        <Ionicons name="chevron-down" size={16} color="#5F6F8F" />
       </TouchableOpacity>
 
       <Modal visible={visible} transparent animationType="slide" onRequestClose={() => setVisible(false)}>
@@ -122,10 +122,10 @@ const styles = StyleSheet.create({
   dotRow:        { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 8, marginTop: 4 },
   dot:           { width: 7, height: 7, borderRadius: 4, backgroundColor: "#0D3B8E" },
   label:         { fontSize: 11, fontWeight: "800", color: "#0D1B3E", textTransform: "uppercase", letterSpacing: 1.0 },
-  selector:     { flexDirection: "row", alignItems: "center", backgroundColor: "#E8C9A0", borderRadius: 14, borderWidth: 1, borderColor: "rgba(160,90,30,0.35)", minHeight: 54, paddingHorizontal: 14, paddingVertical: 0 },
-  placeholder:  { flex: 1, fontSize: 14, color: "#A0785A" },
-  selectedName: { fontSize: 14, fontWeight: "700", color: "#3B1F0A" },
-  selectedSub:  { fontSize: 11, color: "#A0785A", marginTop: 2 },
+  selector:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F0F4FF", borderRadius: 14, borderWidth: 1, borderColor: "#BFDBFE", minHeight: 54, paddingHorizontal: 14, paddingVertical: 0 },
+  placeholder:  { flex: 1, fontSize: 14, color: "#5F6F8F" },
+  selectedName: { fontSize: 14, fontWeight: "700", color: "#10204A" },
+  selectedSub:  { fontSize: 11, color: "#5F6F8F", marginTop: 2 },
   overlay:      { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   sheet:        { backgroundColor: COLORS.cardBg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: "75%", borderWidth: 1, borderColor: COLORS.cardBorder },
   sheetTitle:   { fontSize: 17, fontWeight: "800", color: COLORS.white, marginBottom: 14, textAlign: "center" },

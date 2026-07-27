@@ -465,16 +465,16 @@ ${includeControls ? `
           <View style={{ flex: 1 }}>
             <Text style={styles.sectionLabel}>VEHICLE (VID)</Text>
             <TouchableOpacity style={styles.dropdown} onPress={() => setShowVehiclePicker(true)} activeOpacity={0.8}>
-              <Text style={[styles.inputText, !selectedVehicle && { color: "#7A5230" }]}>
+              <Text style={[styles.inputText, !selectedVehicle && { color: "#5F6F8F" }]}>
                 {selectedVehicle ? selectedVehicle.registration_no : "Select Vehicle"}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="#7A5230" />
+              <Ionicons name="chevron-down" size={16} color="#5F6F8F" />
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.sectionLabel}>DRIVER NAME</Text>
             <View style={styles.inputBox}>
-              <Text style={[styles.inputText, !selectedVehicle && { color: "#7A5230" }]}>
+              <Text style={[styles.inputText, !selectedVehicle && { color: "#5F6F8F" }]}>
                 {selectedVehicle ? selectedVehicle.driver_name : "—"}
               </Text>
             </View>
@@ -490,7 +490,7 @@ ${includeControls ? `
           <TextInput
             style={[styles.locationInput, { flex: 1 }]}
             placeholder="e.g. Mumbai, Maharashtra"
-            placeholderTextColor="#7A5230"
+            placeholderTextColor="#5F6F8F"
             value={startPlace}
             onChangeText={t => onChangeLocation(t, "start")}
             onFocus={() => { setActiveSuggestField("start"); setMapClickTarget(null); }}
@@ -515,7 +515,7 @@ ${includeControls ? `
           <TextInput
             style={[styles.locationInput, { flex: 1 }]}
             placeholder="e.g. Pune, Maharashtra"
-            placeholderTextColor="#7A5230"
+            placeholderTextColor="#5F6F8F"
             value={endPlace}
             onChangeText={t => onChangeLocation(t, "end")}
             onFocus={() => { setActiveSuggestField("end"); setMapClickTarget(null); }}
@@ -760,8 +760,7 @@ ${includeControls ? `
             <TextInput
               style={styles.searchInput}
               placeholder="Search registration no..."
-              placeholderTextColor="#7A5230"
-              value={vehicleSearch}
+              placeholderTextColor="#5F6F8F"
               onChangeText={setVehicleSearch}
             />
             <FlatList
@@ -803,12 +802,12 @@ const styles = StyleSheet.create({
   sectionLabel:    { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5, marginTop: 10 },
   fieldLabel:      { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.90)", marginBottom: 5, marginTop: 8 },
   hint:            { fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 3, marginTop: 1 },
-  inputBox:        { backgroundColor: "#E8C9A0", borderRadius: 10, borderWidth: 1.5, borderColor: "rgba(139,79,30,0.55)", paddingHorizontal: 10, paddingVertical: 10, justifyContent: "center" },
-  inputText:       { fontSize: 13, color: "#2C1200", fontWeight: "600" },
-  dropdown:        { backgroundColor: "#E8C9A0", borderRadius: 10, borderWidth: 1.5, borderColor: "rgba(139,79,30,0.55)", paddingHorizontal: 10, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  inputBox:        { backgroundColor: "#F0F4FF", borderRadius: 10, borderWidth: 1.5, borderColor: "#BFDBFE", paddingHorizontal: 10, paddingVertical: 10, justifyContent: "center" },
+  inputText:       { fontSize: 13, color: "#10204A", fontWeight: "600" },
+  dropdown:        { backgroundColor: "#F0F4FF", borderRadius: 10, borderWidth: 1.5, borderColor: "#BFDBFE", paddingHorizontal: 10, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   row:             { flexDirection: "row", gap: 8, marginTop: 3 },
   locationRow:     { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 3 },
-  locationInput:   { backgroundColor: "#E8C9A0", borderRadius: 10, borderWidth: 1.5, borderColor: "rgba(139,79,30,0.55)", paddingHorizontal: 10, paddingVertical: 10, fontSize: 13, color: "#2C1200", fontWeight: "600" },
+  locationInput:   { backgroundColor: "#F0F4FF", borderRadius: 10, borderWidth: 1.5, borderColor: "#BFDBFE", paddingHorizontal: 10, paddingVertical: 10, fontSize: 13, color: "#10204A", fontWeight: "600" },
   locateBtn:       { width: 38, height: 38, borderRadius: 10, backgroundColor: "#F6F1E9", borderWidth: 1, borderColor: "rgba(160,90,30,0.30)", alignItems: "center", justifyContent: "center" },
   locateBtnActive: { backgroundColor: "#22C55E", borderColor: "#22C55E" },
   suggestBox:      { backgroundColor: "#F6F1E9", borderRadius: 8, borderWidth: 1, borderColor: "rgba(160,90,30,0.25)", marginBottom: 3, overflow: "hidden" },
@@ -836,7 +835,7 @@ const styles = StyleSheet.create({
   modalOverlay:    { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   modalBox:        { backgroundColor: "#F6F1E9", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: "70%", borderWidth: 1, borderColor: "rgba(160,90,30,0.20)" },
   modalTitle:      { fontSize: 15, fontWeight: "800", color: "#0D1B3E", marginBottom: 10, textAlign: "center" },
-  searchInput:     { backgroundColor: "#E8C9A0", borderRadius: 10, borderWidth: 1.5, borderColor: "rgba(139,79,30,0.55)", paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, color: "#2C1200", fontWeight: "600", marginBottom: 8 },
+  searchInput:     { backgroundColor: "#F0F4FF", borderRadius: 10, borderWidth: 1.5, borderColor: "#BFDBFE", paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, color: "#10204A", fontWeight: "600", marginBottom: 8 },
   vehicleItem:     { paddingVertical: 11, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(160,90,30,0.15)" },
   vehicleReg:      { fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
   vehicleDriver:   { fontSize: 11, color: "#4A6A8E", marginTop: 1 },

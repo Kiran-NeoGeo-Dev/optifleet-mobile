@@ -120,9 +120,9 @@ const EditDriverScreen = ({ route, navigation }: Props) => {
             <Ionicons name="gift-outline" size={14} color="#1565C0" />
             <Text style={{ fontSize: 12, fontWeight: "700", color: "#1A2F5C", textTransform: "uppercase", letterSpacing: 0.7 }}>Date of Birth</Text>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 12, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)", paddingHorizontal: 14, height: 48 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#F0F4FF", borderRadius: 12, borderWidth: 1.5, borderColor: "#BFDBFE", paddingHorizontal: 14, height: 48 }}>
             <TextInput
-              style={{ flex: 1, fontSize: 14, color: "#2B1D0E" }}
+              style={{ flex: 1, fontSize: 14, color: "#10204A" }}
               value={dob}
               onChangeText={t => {
                 const digits = t.replace(/\D/g, "");
@@ -132,7 +132,7 @@ const EditDriverScreen = ({ route, navigation }: Props) => {
                 setDob(formatted);
               }}
               placeholder="DD/MM/YYYY"
-              placeholderTextColor="#6B7280"
+              placeholderTextColor="#5F6F8F"
               keyboardType="numeric"
               maxLength={10}
             />

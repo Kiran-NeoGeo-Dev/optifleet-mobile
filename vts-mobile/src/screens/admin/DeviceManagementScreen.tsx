@@ -32,10 +32,10 @@ const C = {
   orange:      "#F59E0B",
   label:       "#3A245C",
   muted:       "#4A6A8E",
-  inputBg:     "#E8C9A0",
-  inputBorder: "rgba(160,90,30,0.35)",
-  inputText:   "#3B1F0A",
-  placeholder: "#A0785A",
+  inputBg:     "#F0F4FF",
+  inputBorder: "#BFDBFE",
+  inputText:   "#10204A",
+  placeholder: "#5F6F8F",
 };
 
 type Props = NativeStackScreenProps<AdminStackParamList, "DeviceManagement">;
@@ -228,17 +228,16 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
       {showList && (
         <>
           <View style={styles.searchWrap}>
-            <Ionicons name="search" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+            <Ionicons name="search" size={16} color="#5F6F8F" style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search by ID, model or mobile..."
-              placeholderTextColor="#6B7280"
-              value={search}
+              placeholderTextColor="#5F6F8F"
               onChangeText={setSearch}
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch("")}>
-                <Ionicons name="close-circle" size={18} color="#9C6B30" />
+                <Ionicons name="close-circle" size={18} color="#5F6F8F" />
               </TouchableOpacity>
             )}
           </View>
@@ -440,8 +439,8 @@ const styles = StyleSheet.create({
   title:         { flex: 1, fontSize: 18, fontWeight: "800", color: C.white },
   countBadge:    { backgroundColor: "rgba(245,158,11,0.18)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.orange + "44" },
   countTxt:      { fontSize: 12, fontWeight: "800", color: C.orange },
-  searchWrap:    { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "rgba(120,70,20,0.22)" },
-  searchInput:   { flex: 1, fontSize: 13, color: "#2B1D0E", fontWeight: "500" },
+  searchWrap:    { flexDirection: "row", alignItems: "center", backgroundColor: "#F0F4FF", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "#BFDBFE" },
+  searchInput:   { flex: 1, fontSize: 13, color: "#10204A", fontWeight: "500" },
   empty:         { textAlign: "center", color: "rgba(255,255,255,0.55)", marginTop: 40 },
   card:          { backgroundColor: C.cream, borderRadius: 12, padding: 11, marginBottom: 8, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   cardAccent:    { position: "absolute", top: 0, left: 0, right: 0, height: 2 },

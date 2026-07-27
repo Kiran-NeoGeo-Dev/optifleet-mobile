@@ -35,10 +35,10 @@ const C = {
   heading:     "#0D1B3E",
   label:       "#3A245C",
   muted:       "#4A6A8E",
-  inputBg:     "#E8C9A0",       // warm peach / cream beige
-  inputBorder: "rgba(160,90,30,0.35)",
-  inputText:   "#3B1F0A",       // dark warm brown
-  placeholder: "#A0785A",       // warm tan
+  inputBg:     "#F0F4FF",
+  inputBorder: "#BFDBFE",
+  inputText:   "#10204A",
+  placeholder: "#5F6F8F",
   white:       "#FFFFFF",
   red:         "#EF4444",
   green:       "#22C55E",

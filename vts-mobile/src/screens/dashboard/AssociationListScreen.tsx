@@ -462,17 +462,16 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
 
         {/* Search */}
         <View style={styles.searchWrap}>
-          <Ionicons name="search" size={16} color="#9C6B30" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={16} color="#5F6F8F" style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search vehicle, device, driver…"
-            placeholderTextColor="#6B7280"
-            value={query}
+            placeholderTextColor="#5F6F8F"
             onChangeText={setQuery}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery("")}>
-              <Ionicons name="close-circle" size={18} color="#9C6B30" />
+              <Ionicons name="close-circle" size={18} color="#5F6F8F" />
             </TouchableOpacity>
           )}
         </View>
@@ -522,10 +521,10 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
               ) : (
                 <TouchableOpacity style={styles.selector} onPress={() => setVehicleSheet(true)}>
                   <Ionicons name="car-outline" size={16} color="#7B2CBF" />
-                  <Text style={[styles.selectorTxt, !selRegNo && { color: "#9C7A52" }]}>
+                  <Text style={[styles.selectorTxt, !selRegNo && { color: "#5F6F8F" }]}>
                     {selRegNo || "Select vehicle"}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="#9C7A52" />
+                  <Ionicons name="chevron-down" size={16} color="#5F6F8F" />
                 </TouchableOpacity>
               )}
 
@@ -538,10 +537,10 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
               ) : isAdminMode && !isAdminFullMode ? (
                 <TouchableOpacity style={styles.selector} onPress={() => setDeviceSheet(true)}>
                   <Ionicons name="phone-portrait-outline" size={16} color="#7B2CBF" />
-                  <Text style={[styles.selectorTxt, !selDeviceCode && { color: "#9C7A52" }]}>
+                  <Text style={[styles.selectorTxt, !selDeviceCode && { color: "#5F6F8F" }]}>
                     {selDeviceCode || "Select device"}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="#9C7A52" />
+                  <Ionicons name="chevron-down" size={16} color="#5F6F8F" />
                 </TouchableOpacity>
               ) : (
                 <View style={styles.readOnly}>
@@ -562,10 +561,10 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
                   ) : (
                     <TouchableOpacity style={[styles.selector, !form.deviceId && styles.selectorDisabled]} onPress={() => form.deviceId && setDriverSheet(true)} disabled={!form.deviceId}>
                       <Ionicons name="person-outline" size={16} color="#7B2CBF" />
-                      <Text style={[styles.selectorTxt, !selDriverName && { color: "#9C7A52" }]}>
+                      <Text style={[styles.selectorTxt, !selDriverName && { color: "#5F6F8F" }]}>
                         {selDriverName || (form.deviceId ? "Select driver" : "Select vehicle first")}
                       </Text>
-                      <Ionicons name="chevron-down" size={16} color="#9C7A52" />
+                      <Ionicons name="chevron-down" size={16} color="#5F6F8F" />
                     </TouchableOpacity>
                   )}
 
@@ -580,7 +579,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
                       value={form.country} 
                       onChangeText={(t) => setForm(prev => ({ ...prev, country: t }))}
                       placeholder="India" 
-                      placeholderTextColor={COLORS.whiteMuted}
+                      placeholderTextColor="#5F6F8F"
                     />
                   )}
 
@@ -779,8 +778,8 @@ const styles = StyleSheet.create({
   headerTitle:  { fontSize: 17, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
   headerSub:    { fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 1 },
 
-  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#E8CBA7", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", shadowColor: "#7A4010", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-  searchInput: { flex: 1, fontSize: 13, color: "#2B1D0E", fontWeight: "500" },
+  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#F0F4FF", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "#BFDBFE", shadowColor: "#7A4010", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  searchInput: { flex: 1, fontSize: 13, color: "#10204A", fontWeight: "500" },
 
   list: { paddingHorizontal: 14, paddingBottom: 70 },
 
@@ -816,18 +815,18 @@ const styles = StyleSheet.create({
   sheetSubtitle: { fontSize: 12, color: "#3A5A7A", marginBottom: 14, lineHeight: 16 },
   sheetDivider: { height: 1, backgroundColor: "rgba(21,101,192,0.12)", marginBottom: 12 },
   fieldLabel: { fontSize: 11, fontWeight: "700", color: "#1A2F5C", textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 6, marginTop: 12 },
-  selector: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#EDE0CC", borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", borderRadius: 10, paddingHorizontal: 12, height: 44, shadowColor: "#7A4010", shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  selector: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#F0F4FF", borderWidth: 1.5, borderColor: "#BFDBFE", borderRadius: 10, paddingHorizontal: 12, height: 44, shadowColor: "#7A4010", shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   selectorDisabled: { opacity: 0.5 },
-  selectorTxt: { flex: 1, color: "#2B1D0E", fontSize: 13, fontWeight: "500" },
-  readOnly: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#EDE0CC", borderWidth: 1, borderColor: "rgba(120,70,20,0.12)", borderRadius: 10, paddingHorizontal: 12, height: 44 },
+  selectorTxt: { flex: 1, color: "#10204A", fontSize: 13, fontWeight: "500" },
+  readOnly: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#F0F4FF", borderWidth: 1.5, borderColor: "#BFDBFE", borderRadius: 10, paddingHorizontal: 12, height: 44 },
   statusReadOnly: { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 10, marginTop: 8 },
-  readOnlyTxt: { color: "#2B1D0E", fontSize: 13, fontWeight: "500" },
-  statusReadOnlyTxt: { color: "#2B1D0E", fontWeight: "700", fontSize: 13 },
-  input: { backgroundColor: "#EDE0CC", borderWidth: 1, borderColor: "rgba(120,70,20,0.18)", borderRadius: 10, paddingHorizontal: 12, height: 44, color: "#2B1D0E", fontSize: 13, fontWeight: "500" },
+  readOnlyTxt: { color: "#10204A", fontSize: 13, fontWeight: "500" },
+  statusReadOnlyTxt: { color: "#10204A", fontWeight: "700", fontSize: 13 },
+  input: { backgroundColor: "#F0F4FF", borderWidth: 1.5, borderColor: "#BFDBFE", borderRadius: 10, paddingHorizontal: 12, height: 44, color: "#10204A", fontSize: 13, fontWeight: "500" },
   statusToggle: { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 10, marginTop: 8, marginBottom: 6 },
   statusActive: { backgroundColor: "rgba(34,197,94,0.12)", borderWidth: 1, borderColor: "#22C55E" },
   statusInactive: { backgroundColor: "rgba(248,113,113,0.12)", borderWidth: 1, borderColor: "#F87171" },
-  statusToggleTxt: { color: "#2B1D0E", fontWeight: "700", fontSize: 13 },
+  statusToggleTxt: { color: "#10204A", fontWeight: "700", fontSize: 13 },
   scrollContent: { maxHeight: 380 },
   sheetBtns: { flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 20 },
   cancelBtn: { paddingHorizontal: 18, paddingVertical: 11, borderRadius: 10, backgroundColor: "rgba(220,38,38,0.06)", borderWidth: 2, borderColor: "rgba(220,38,38,0.35)" },
