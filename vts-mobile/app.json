@@ -31,6 +31,9 @@
         "projectId": "d8e6bd09-986b-4dd6-975d-1e7308549c45"
       }
     },
-    "owner": "kiran_maradana"
+    "owner": "kiran_maradana",
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }

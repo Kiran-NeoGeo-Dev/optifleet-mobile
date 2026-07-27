@@ -22,10 +22,10 @@ const C = {
   cream:       "#F6F1E9",
   label:       "#1A2F5C",
   muted:       "#4A6A8E",
-  inputBg:     "#E8C9A0",
-  inputBorder: "rgba(160,90,30,0.40)",
-  inputText:   "#2C1A0E",
-  placeholder: "#8B6F47",
+  inputBg:     "#F0F4FF",
+  inputBorder: "#BFDBFE",
+  inputText:   "#10204A",
+  placeholder: "#5F6F8F",
   white:       "#FFFFFF",
 };
 
