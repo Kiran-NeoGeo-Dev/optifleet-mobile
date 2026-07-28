@@ -4,6 +4,7 @@ import {
   StatusBar, Modal, Animated, Dimensions,
 } from "react-native";
 import RightDrawer from "../../components/RightDrawer";
+import { setupNotificationChannel, requestNotificationPermissions, sendLocalNotification } from "../../services/pushNotificationService";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -158,12 +159,18 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   const [enablePrompt, setEnablePrompt] = useState(false);
   const notifEnabled = useRef(false);
   const readKeysRef  = useRef<Set<string>>(new Set());
+  const sentKeysRef  = useRef<Set<string>>(new Set());
   const lottieRef   = useRef<LottieView>(null);
   const webViewRef   = useRef<any>(null);
   const mapInitRef   = useRef(false);
   const { toast, showToast, hideToast } = useToast();
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const SH = Dimensions.get("window").height;
+
+  useEffect(() => {
+    setupNotificationChannel();
+    requestNotificationPermissions();
+  }, []);
 
   useEffect(() => {
     if (enablePrompt) {
@@ -193,8 +200,25 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
 
       const liveAlerts = notifs.filter((n: any) => n.status !== "Resolved");
 
+      // Fire Android tray notification for each new alert (deduplicate by stable vehicleId+alertType)
+      liveAlerts.forEach((n: any) => {
+        const stableKey = `${n.vehicle ?? n.vehicleId ?? ""}_${n.label ?? n.alertType ?? ""}`;
+        if (stableKey && !sentKeysRef.current.has(stableKey)) {
+          sentKeysRef.current.add(stableKey);
+          sendLocalNotification(
+            `Fleet Alert: ${n.label ?? n.alertType ?? "Alert"}`,
+            `Vehicle: ${n.vehicle ?? n.vehicleId ?? ""} · Driver: ${n.driver ?? n.driverName ?? ""}`,
+            { alertId: stableKey }
+          );
+        }
+      });
+
       // Preserve read state across polls
       liveAlerts.forEach((n: any) => { if (n.read) readKeysRef.current.add(n.id); });
+
+      // Clear resolved alerts from sentKeysRef so they can re-fire if they recur
+      const activeStableKeys = new Set(liveAlerts.map((n: any) => `${n.vehicle ?? n.vehicleId ?? ""}_${n.label ?? n.alertType ?? ""}`));
+      sentKeysRef.current.forEach(k => { if (!activeStableKeys.has(k)) sentKeysRef.current.delete(k); });
       const alertsWithReadState = liveAlerts.map((n: any) => ({
         ...n,
         read: readKeysRef.current.has(n.id),
@@ -450,7 +474,7 @@ const s = StyleSheet.create({
   title:        { fontSize: 17, fontWeight: "800", color: C.white, letterSpacing: 0.3, marginBottom: 2 },
   subtitle:     { fontSize: 11, color: "rgba(255,255,255,0.75)", fontWeight: "500", letterSpacing: 0.2 },
   logoutBtn:    { width: 32, height: 32, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center" },
-  scroll:     { paddingHorizontal: 12, paddingBottom: 60 },
+  scroll:     { paddingHorizontal: 12, paddingBottom: 80 },
   cardsGrid:  { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 4 },
   section:    { backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 8 },

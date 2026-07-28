@@ -143,9 +143,10 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
     vehicleMarker=L.marker([lat,lng],{icon:vIcon,zIndexOffset:1000}).addTo(map);
     vehicleMarker.on('click',function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'vehicleClick'}));});
     if(startMarker)startMarker.off('click').on('click',function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'vehicleClick'}));});
-    if(routeLayer)map.removeLayer(routeLayer);
-    if(remainingLatlngs&&remainingLatlngs.length>0)
+    if(remainingLatlngs&&remainingLatlngs.length>0){
+      if(routeLayer)map.removeLayer(routeLayer);
       routeLayer=L.polyline(remainingLatlngs,{color:'#38BDF8',weight:5,opacity:0.9}).addTo(map);
+    }
   };
   window.clearLiveTracking=function(){
     if(vehicleMarker){map.removeLayer(vehicleMarker);vehicleMarker=null;}

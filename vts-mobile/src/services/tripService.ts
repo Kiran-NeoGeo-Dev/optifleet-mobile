@@ -23,6 +23,7 @@ export interface TripPayload {
   distanceKm?:     number;
   duration?:       string;
   customPolyline?: string;
+  tripStops?:      { place: string; lat: number; lng: number }[];
 }
 
 export const fetchVehiclesForTrip = async (excludeTripId?: number): Promise<TripVehicleOption[]> => {

@@ -3,12 +3,16 @@ package com.vts.service;
 import com.vts.dto.TripRequest;
 import com.vts.entity.Client;
 import com.vts.entity.Trip;
+import com.vts.entity.TripStop;
 import com.vts.repository.AssociationRepository;
 import com.vts.repository.DriverRepository;
 import com.vts.repository.TripRepository;
+import com.vts.repository.TripStopRepository;
 import com.vts.repository.VehicleRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -16,21 +20,25 @@ import java.util.Optional;
 @Service
 public class TripService {
 
-    private final TripRepository   tripRepository;
-    private final DriverRepository driverRepository;
-    private final AuthService      authService;
-    private final VehicleRepository vehicleRepository;
+    private final TripRepository        tripRepository;
+    private final DriverRepository      driverRepository;
+    private final AuthService           authService;
+    private final VehicleRepository     vehicleRepository;
     private final AssociationRepository associationRepository;
+    private final TripStopRepository    tripStopRepository;
 
     public TripService(TripRepository tripRepository, DriverRepository driverRepository, AuthService authService,
-                       VehicleRepository vehicleRepository, AssociationRepository associationRepository) {
-        this.tripRepository   = tripRepository;
-        this.driverRepository = driverRepository;
-        this.authService      = authService;
-        this.vehicleRepository = vehicleRepository;
+                       VehicleRepository vehicleRepository, AssociationRepository associationRepository,
+                       TripStopRepository tripStopRepository) {
+        this.tripRepository        = tripRepository;
+        this.driverRepository      = driverRepository;
+        this.authService           = authService;
+        this.vehicleRepository     = vehicleRepository;
         this.associationRepository = associationRepository;
+        this.tripStopRepository    = tripStopRepository;
     }
 
+    @Transactional
     public Trip createTrip(TripRequest req) {
         // Block duplicate: one active trip per vehicle + driver
         if (req.getVehicleId() != null && req.getDriverId() != null
@@ -74,7 +82,26 @@ public class TripService {
             trip.setClientId(vehicle.getClientId());
             trip.setCreatedBy(client.getUsername());
         }
-        return tripRepository.save(trip);
+        Trip saved = tripRepository.save(trip);
+        saveTripStops(saved.getTripId(), req.getTripStops());
+        return saved;
+    }
+
+    private void saveTripStops(String tripId, List<TripRequest.TripStopRequest> stops) {
+        if (stops == null || stops.isEmpty()) return;
+        OffsetDateTime now = OffsetDateTime.now();
+        for (int i = 0; i < stops.size(); i++) {
+            TripRequest.TripStopRequest s = stops.get(i);
+            if (s.getPlace() == null || s.getLat() == null || s.getLng() == null) continue;
+            TripStop ts = new TripStop();
+            ts.setTripId(tripId);
+            ts.setStopOrder(i + 1);
+            ts.setStopName(s.getPlace());
+            ts.setLat(BigDecimal.valueOf(s.getLat()));
+            ts.setLng(BigDecimal.valueOf(s.getLng()));
+            ts.setCreatedAt(now);
+            tripStopRepository.save(ts);
+        }
     }
 
     public List<Trip> getTripsForCurrentClient() {
@@ -108,6 +135,7 @@ public class TripService {
         return tripRepository.findActiveByDriverId(driverId);
     }
 
+    @Transactional
     public Trip updateTrip(Long id, TripRequest req) {
         Trip trip = tripRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Trip not found: " + id));
@@ -124,12 +152,16 @@ public class TripService {
         if (req.getDistanceKm()     != null) trip.setDistanceKm(req.getDistanceKm());
         if (req.getDuration()       != null) {
             trip.setDuration(req.getDuration());
-            // Recalculate planned end time when duration changes
             trip.setPlannedEndTime(parsePlannedEndTime(req.getDuration(), trip.getCreatedAt()));
         }
         if (req.getCustomPolyline() != null) trip.setCustomPolyline(req.getCustomPolyline());
-        trip.setUpdatedAt(java.time.OffsetDateTime.now());
-        return tripRepository.save(trip);
+        trip.setUpdatedAt(OffsetDateTime.now());
+        Trip saved = tripRepository.save(trip);
+        if (req.getTripStops() != null) {
+            tripStopRepository.deleteByTripId(saved.getTripId());
+            saveTripStops(saved.getTripId(), req.getTripStops());
+        }
+        return saved;
     }
 
     private void updateTripVehicleAndDriver(Trip trip, TripRequest req) {
@@ -156,10 +188,12 @@ public class TripService {
         trip.setClientId(vehicle.getClientId());
     }
 
+    @Transactional
     public void deleteTrip(Long id) {
         Trip trip = tripRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Trip not found: " + id));
         requireTripAccess(trip);
+        tripStopRepository.deleteByTripId(trip.getTripId());
         tripRepository.delete(trip);
     }
 

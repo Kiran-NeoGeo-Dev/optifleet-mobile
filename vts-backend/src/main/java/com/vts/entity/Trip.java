@@ -98,9 +98,9 @@ public class Trip {
     public void setDistanceKm(Double v)           { this.distanceKm = v; }
     public String getDuration()                   { return duration; }
     public void setDuration(String v)             { this.duration = v; }
-    public String getCustomPolyline()             { return customPolyline; }
-    public void setCustomPolyline(String v)       { this.customPolyline = v; }
-    public Integer getDriverId()                  { return driverId; }
+    public String getCustomPolyline()        { return customPolyline; }
+    public void setCustomPolyline(String v)   { this.customPolyline = v; }
+    public Integer getDriverId()              { return driverId; }
     public void setDriverId(Integer v)            { this.driverId = v; }
     public String getStatus()                     { return status; }
     public void setStatus(String v)               { this.status = v; }

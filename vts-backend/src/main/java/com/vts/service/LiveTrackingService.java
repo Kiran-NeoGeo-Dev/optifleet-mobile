@@ -327,9 +327,10 @@ public class LiveTrackingService {
 
     /**
      * Auto-transition trip status based on vehicle movement:
-     *   Not Started / Delayed → In Progress  (vehicle is moving, speed > 2 km/h)
-     *   In Progress / Delayed → Completed    (progress >= 98%)
-     *   Not Started / In Progress → Delayed  (time-based, set by TripDelayScheduler)
+     *   Not Started → In Progress  (vehicle moving >= 5 km/h AND within 500m of start point)
+     *   Delayed → In Progress      (vehicle moving >= 5 km/h)
+     *   In Progress / Delayed → Completed  (progress >= 98%)
+     *   Not Started / In Progress → Delayed (time-based, set by TripDelayScheduler)
      */
     private void autoUpdateTripStatus(String tripId, double speedKmh, double progressPct, double totalDistanceM) {
         try {
@@ -343,7 +344,13 @@ public class LiveTrackingService {
             if (("In Progress".equals(current) || "Delayed".equals(current))
                     && progressPct >= 98.0 && totalDistanceM > 0) {
                 next = "Completed";
-            } else if (("Not Started".equals(current) || "Delayed".equals(current)) && speedKmh > 2) {
+            } else if ("Not Started".equals(current) && speedKmh >= 5) {
+                // Only transition Not Started → In Progress when vehicle is genuinely moving
+                // AND has progressed at least 0.5% along the route (left the start area)
+                if (progressPct >= 0.5 || totalDistanceM <= 0) {
+                    next = "In Progress";
+                }
+            } else if ("Delayed".equals(current) && speedKmh >= 5) {
                 next = "In Progress";
             }
 

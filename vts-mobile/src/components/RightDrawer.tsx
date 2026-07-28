@@ -10,7 +10,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { useAuth } from "../hooks/useAuth";
 
 const { width: SW } = Dimensions.get("window");
-const DRAWER_W = Math.min(SW * 0.68, 280);
+const DRAWER_W = Math.min(SW * 0.72, 260);
 const HEADER_H = 156;
 
 const C = {
@@ -532,9 +532,9 @@ const d = StyleSheet.create({
   progressDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.5)", marginLeft: 8 },
 
   menuContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 },
-  item:        { flexDirection: "row", alignItems: "center", paddingVertical: 15, paddingHorizontal: 4, gap: 14 },
-  itemIcon:    { width: 42, height: 42, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  itemLabel:   { flex: 1, fontSize: 14, fontWeight: "700", color: "#0D1B3E" },
+  item:        { flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 4, gap: 10 },
+  itemIcon:    { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  itemLabel:   { flex: 1, fontSize: 13, fontWeight: "700", color: "#0D1B3E" },
   sep:         { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(13,27,62,0.08)", marginHorizontal: 4 },
   footer:      { alignItems: "center", justifyContent: "center", minHeight: 60, paddingHorizontal: 16, paddingBottom: 16, paddingTop: 14, backgroundColor: "#F8FAFF", borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(13,27,62,0.08)" },
   footerTxt:   { width: "100%", fontSize: 12, color: "#475569", fontWeight: "700", textAlign: "center", lineHeight: 17 },

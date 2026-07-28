@@ -24,7 +24,12 @@
         "backgroundColor": "#1A3A5C"
       },
       "package": "com.neogeo.vtsmobile",
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "extra": {
       "eas": {
@@ -33,7 +38,15 @@
     },
     "owner": "kiran_maradana",
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/OptiFleet.png",
+          "color": "#1565C0",
+          "defaultChannel": "fleet-alerts"
+        }
+      ]
     ]
   }
 }

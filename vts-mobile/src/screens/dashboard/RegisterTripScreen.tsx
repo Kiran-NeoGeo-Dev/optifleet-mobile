@@ -16,7 +16,7 @@ import { api } from "../../services/api";
 import { ENDPOINTS } from "../../config/apiConfig";
 import { useAlertNotifications } from "../../hooks/useAlertNotifications";
 import AlertNotifications from "../../components/AlertNotifications";
-import { calculateOsrmRoute } from "../../utils/osrmRoute";
+import { calculateOsrmRoute, calculateOsrmRouteMulti } from "../../utils/osrmRoute";
 
 const genTripId = () => {
   const now = new Date();
@@ -44,14 +44,19 @@ const RegisterTripScreen = ({ navigation }: Props) => {
   const [durationStr, setDurationStr]         = useState<string | null>(null);
   const [polylineCoords, setPolylineCoords]   = useState<string | null>(null);
 
+  // Trip Stops
+  type TripStop = { id: string; place: string; coords: Coords | null };
+  const [tripStops, setTripStops]               = useState<TripStop[]>([]);
+  const [stopSuggestions, setStopSuggestions]   = useState<{ [id: string]: Suggestion[] }>({});
+  const [activeStopId, setActiveStopId]         = useState<string | null>(null);
+
   // Autocomplete
   const [startSuggestions, setStartSuggestions] = useState<Suggestion[]>([]);
   const [endSuggestions, setEndSuggestions]     = useState<Suggestion[]>([]);
   const [activeSuggestField, setActiveSuggestField] = useState<"start" | "end" | null>(null);
 
   // Map click target: which field gets the map-click result
-  // null = map clicks disabled; set by tapping the blue icon button
-  const [mapClickTarget, setMapClickTarget]   = useState<"start" | "end" | null>(null);
+  const [mapClickTarget, setMapClickTarget]   = useState<"start" | "end" | string | null>(null);
 
   // Full screen map
   const [fullScreen, setFullScreen]           = useState(false);
@@ -150,6 +155,54 @@ const RegisterTripScreen = ({ navigation }: Props) => {
     debounceRef.current = setTimeout(() => fetchSuggestions(text, field), 400);
   };
 
+  const onChangeStopLocation = (text: string, stopId: string) => {
+    setTripStops(prev => prev.map(s => s.id === stopId ? { ...s, place: text, coords: null } : s));
+    setActiveStopId(stopId);
+    routeAnnouncedRef.current = false;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      if (text.length < 3) { setStopSuggestions(prev => ({ ...prev, [stopId]: [] })); return; }
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&addressdetails=1&limit=8&countrycodes=in`,
+          { headers: { "User-Agent": "OptiFleet-VTS/1.0 (contact@optifleet.in)", "Accept-Language": "en" } }
+        );
+        const data: Suggestion[] = await res.json();
+        setStopSuggestions(prev => ({ ...prev, [stopId]: data }));
+      } catch { /* silent */ }
+    }, 400);
+  };
+
+  const selectStopSuggestion = (item: Suggestion, stopId: string) => {
+    setTripStops(prev => prev.map(s => s.id === stopId
+      ? { ...s, place: item.display_name, coords: { lat: Number.parseFloat(item.lat), lng: Number.parseFloat(item.lon) } }
+      : s
+    ));
+    setStopSuggestions(prev => ({ ...prev, [stopId]: [] }));
+    setActiveStopId(null);
+  };
+
+  const addStop = () => {
+    setTripStops(prev => [...prev, { id: `stop-${Date.now()}`, place: "", coords: null }]);
+  };
+
+  const removeStop = (stopId: string) => {
+    setTripStops(prev => prev.filter(s => s.id !== stopId));
+    setStopSuggestions(prev => { const n = { ...prev }; delete n[stopId]; return n; });
+    routeAnnouncedRef.current = false;
+  };
+
+  const moveStop = (index: number, dir: -1 | 1) => {
+    setTripStops(prev => {
+      const arr = [...prev];
+      const target = index + dir;
+      if (target < 0 || target >= arr.length) return arr;
+      [arr[index], arr[target]] = [arr[target], arr[index]];
+      return arr;
+    });
+    routeAnnouncedRef.current = false;
+  };
+
   const selectSuggestion = (item: Suggestion, field: "start" | "end") => {
     const coords = { lat: Number.parseFloat(item.lat), lng: Number.parseFloat(item.lon) };
     if (field === "start") {
@@ -165,10 +218,14 @@ const RegisterTripScreen = ({ navigation }: Props) => {
   };
 
   // ── Reverse geocode (map click) ─────────────────────────────────────────────
-  const reverseGeocode = async (lat: number, lng: number, field: "start" | "end") => {
+  const reverseGeocode = async (lat: number, lng: number, target: string) => {
     const name = await reverseGeocodeCoords(lat, lng);
-    if (field === "start") { setStartPlace(name); setStartCoords({ lat, lng }); }
-    else                   { setEndPlace(name);   setEndCoords({ lat, lng });   }
+    if (target === "start")      { setStartPlace(name); setStartCoords({ lat, lng }); }
+    else if (target === "end")   { setEndPlace(name);   setEndCoords({ lat, lng });   }
+    else {
+      // stop id
+      setTripStops(prev => prev.map(s => s.id === target ? { ...s, place: name, coords: { lat, lng } } : s));
+    }
   };
 
   const onWebViewMessage = (e: any) => {
@@ -192,18 +249,30 @@ const RegisterTripScreen = ({ navigation }: Props) => {
     if (!startCoords || !endCoords) return;
     routeAnnouncedRef.current = false;
     (async () => {
-      const result = await calculateOsrmRoute(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
+      const validStops = tripStops.filter(s => s.coords);
+      const waypoints = [
+        startCoords,
+        ...validStops.map(s => s.coords!),
+        endCoords,
+      ];
+      const result = waypoints.length > 2
+        ? await calculateOsrmRouteMulti(waypoints)
+        : await calculateOsrmRoute(startCoords.lat, startCoords.lng, endCoords.lat, endCoords.lng);
       if (result) {
         setDistanceKm(result.distanceKm);
         setDurationStr(result.durationStr);
         setPolylineCoords(result.polylineCoords);
-        const js = `drawRoute(${JSON.stringify(result.latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng}); true;`;
+        const stopMarkers = validStops.map((s, i) =>
+          `addStopMarker(${s.coords!.lat},${s.coords!.lng},${i + 1});`
+        ).join("");
+        const js = `clearStopMarkers();drawRoute(${JSON.stringify(result.latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng});${stopMarkers} true;`;
         webViewRef.current?.injectJavaScript(js);
         fullScreenWebViewRef.current?.injectJavaScript(js);
         if (!routeAnnouncedRef.current) {
           routeAnnouncedRef.current = true;
+          const stopsText = validStops.length > 0 ? ` via ${validStops.length} stop${validStops.length > 1 ? "s" : ""},` : "";
           Speech.speak(
-            `Route selected from ${startPlace.split(",")[0]} to ${endPlace.split(",")[0]}. Total distance is ${result.distanceKm} kilometers and estimated duration is ${result.durationStr}.`,
+            `Route selected from ${startPlace.split(",")[0]}${stopsText} to ${endPlace.split(",")[0]}. Total distance is ${result.distanceKm} kilometers and estimated duration is ${result.durationStr}.`,
             { language: "en-IN" }
           );
         }
@@ -211,7 +280,7 @@ const RegisterTripScreen = ({ navigation }: Props) => {
         showToast("Failed to calculate route.", "error");
       }
     })();
-  }, [startCoords, endCoords]);
+  }, [startCoords, endCoords, tripStops]);
 
   // Trip confirmed — open fullscreen map with route
   const [tripConfirmed, setTripConfirmed]     = useState(false);
@@ -260,6 +329,7 @@ const RegisterTripScreen = ({ navigation }: Props) => {
     if (!startCoords || !endCoords)             { showToast("Please select both points on the map.", "warning"); return; }
     setLoading(true);
     try {
+      const validStops = tripStops.filter(s => s.coords && s.place.trim());
       await createTrip({
         tripId,
         tripName:        tripId,
@@ -275,6 +345,9 @@ const RegisterTripScreen = ({ navigation }: Props) => {
         distanceKm:      distanceKm ?? undefined,
         duration:        durationStr ?? undefined,
         customPolyline:  polylineCoords ?? undefined,
+        tripStops:       validStops.length > 0
+          ? validStops.map((s, i) => ({ place: s.place, lat: s.coords!.lat, lng: s.coords!.lng }))
+          : undefined,
       });
       showToast("Trip registered successfully!", "success");
       setTimeout(() => {
@@ -359,6 +432,16 @@ ${includeControls ? `
   var gIcon=L.divIcon({html:'<div style="font-size:40px">🚚</div>',className:'',iconSize:[44,44],iconAnchor:[22,44]});
   var rIcon=L.divIcon({html:'<svg xmlns="http://www.w3.org/2000/svg" width="36" height="46" viewBox="0 0 28 36"><path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="#FF3B30"/><circle cx="14" cy="14" r="6" fill="#fff"/></svg>',className:'',iconSize:[36,46],iconAnchor:[18,46]});
 
+  var stopMarkers=[];
+  window.clearStopMarkers=function(){
+    stopMarkers.forEach(function(m){map.removeLayer(m);});
+    stopMarkers=[];
+  };
+  window.addStopMarker=function(lat,lng,num){
+    var sIcon=L.divIcon({html:'<div style="width:24px;height:24px;border-radius:50%;background:#F59E0B;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">'+num+'</div>',className:'',iconSize:[24,24],iconAnchor:[12,12]});
+    stopMarkers.push(L.marker([lat,lng],{icon:sIcon}).addTo(map));
+  };
+
   /* Show/hide tap hint banner from RN */
   window.setPickMode=function(active){
     document.getElementById('tapHint').style.display=active?'block':'none';
@@ -382,8 +465,8 @@ ${includeControls ? `
     vehicleLabel=L.marker([lat,lng],{icon:vIcon,zIndexOffset:1000}).addTo(map);
     vehicleLabel.on('click',function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'vehicleClick'}));});
     startMarker.off('click').on('click',function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'vehicleClick'}));});
-    if(routeLayer)map.removeLayer(routeLayer);
     if(remainingLatlngs&&remainingLatlngs.length>0){
+      if(routeLayer)map.removeLayer(routeLayer);
       routeLayer=L.polyline(remainingLatlngs,{color:'#38BDF8',weight:5,opacity:0.85}).addTo(map);
     }
   };
@@ -509,6 +592,65 @@ ${includeControls ? `
         </View>
         {activeSuggestField === "start" && <SuggestionList items={startSuggestions} field="start" />}
 
+        {/* Trip Stops */}
+        <View style={styles.stopsHeader}>
+          <Text style={styles.fieldLabel}>Trip Stops</Text>
+          <TouchableOpacity style={styles.addStopBtn} onPress={addStop} activeOpacity={0.8}>
+            <Ionicons name="add-circle-outline" size={16} color="#38BDF8" />
+            <Text style={styles.addStopTxt}>Add Stop</Text>
+          </TouchableOpacity>
+        </View>
+        {tripStops.map((stop, index) => (
+          <View key={stop.id}>
+            <View style={styles.stopRow}>
+              <View style={styles.stopReorder}>
+                <TouchableOpacity onPress={() => moveStop(index, -1)} disabled={index === 0}>
+                  <Ionicons name="chevron-up" size={16} color={index === 0 ? "#3A4A6A" : "#94A3B8"} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => moveStop(index, 1)} disabled={index === tripStops.length - 1}>
+                  <Ionicons name="chevron-down" size={16} color={index === tripStops.length - 1 ? "#3A4A6A" : "#94A3B8"} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.stopNumBadge}>
+                <Text style={styles.stopNumTxt}>{index + 1}</Text>
+              </View>
+              <TextInput
+                style={[styles.locationInput, { flex: 1 }]}
+                placeholder={`Stop ${index + 1}`}
+                placeholderTextColor="#5F6F8F"
+                value={stop.place}
+                onChangeText={t => onChangeStopLocation(t, stop.id)}
+                onFocus={() => { setActiveStopId(stop.id); setActiveSuggestField(null); setMapClickTarget(null); }}
+              />
+              <TouchableOpacity
+                style={[styles.locateBtn, mapClickTarget === stop.id && styles.locateBtnActive]}
+                onPress={() => {
+                  const next = mapClickTarget === stop.id ? null : stop.id;
+                  setMapClickTarget(next);
+                  setActiveSuggestField(null);
+                  setActiveStopId(null);
+                  webViewRef.current?.injectJavaScript(`window.setPickMode(${next !== null}); true;`);
+                }}
+              >
+                <Ionicons name="locate-outline" size={20} color={mapClickTarget === stop.id ? "#fff" : "#1A2F5C"} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.removeStopBtn} onPress={() => removeStop(stop.id)}>
+                <Ionicons name="close-circle" size={20} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+            {activeStopId === stop.id && (stopSuggestions[stop.id] ?? []).length > 0 && (
+              <View style={styles.suggestBox}>
+                {(stopSuggestions[stop.id] ?? []).map((item, i) => (
+                  <TouchableOpacity key={i} style={styles.suggestItem} onPress={() => selectStopSuggestion(item, stop.id)}>
+                    <Ionicons name="location-outline" size={14} color="#1565C0" style={{ marginRight: 6, marginTop: 1 }} />
+                    <Text style={styles.suggestText} numberOfLines={2}>{item.display_name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
+
         {/* To */}
         <Text style={styles.fieldLabel}>To (Destination)</Text>
         <View style={styles.locationRow}>
@@ -609,7 +751,11 @@ ${includeControls ? `
                 fsMapReadyRef.current = true;
                 if (startCoords && endCoords && polylineCoords) {
                   const latlngs = JSON.parse(polylineCoords).map((p: any) => [p.lat, p.lng]);
-                  const js = `drawRoute(${JSON.stringify(latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng}); true;`;
+                  const validStops = tripStops.filter(s => s.coords);
+                  const stopJs = validStops.map((s, i) =>
+                    `addStopMarker(${s.coords!.lat},${s.coords!.lng},${i + 1});`
+                  ).join("");
+                  const js = `clearStopMarkers();drawRoute(${JSON.stringify(latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng});${stopJs} true;`;
                   setTimeout(() => fullScreenWebViewRef.current?.injectJavaScript(js), 300);
                   setTimeout(() => fullScreenWebViewRef.current?.injectJavaScript(js), 1200);
                 }
@@ -850,6 +996,14 @@ const styles = StyleSheet.create({
   popupAddressRow: { flexDirection: "column", paddingVertical: 5, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(160,90,30,0.12)" },
   popupAddressValue: { fontSize: 12, color: "#0D1B3E", fontWeight: "600", marginTop: 2 },
   popupClose:      { alignItems: "center", marginTop: 14 },
+  stopsHeader:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8, marginBottom: 4 },
+  addStopBtn:      { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: "rgba(56,189,248,0.12)", borderWidth: 1, borderColor: "rgba(56,189,248,0.30)" },
+  addStopTxt:      { fontSize: 12, fontWeight: "700", color: "#38BDF8" },
+  stopRow:         { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 4 },
+  stopReorder:     { flexDirection: "column", alignItems: "center", gap: 0 },
+  stopNumBadge:    { width: 20, height: 20, borderRadius: 10, backgroundColor: "#F59E0B", alignItems: "center", justifyContent: "center" },
+  stopNumTxt:      { fontSize: 10, fontWeight: "800", color: "#fff" },
+  removeStopBtn:   { padding: 2 },
 });
 
 export default RegisterTripScreen;

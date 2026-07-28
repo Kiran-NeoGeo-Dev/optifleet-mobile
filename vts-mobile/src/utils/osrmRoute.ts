@@ -16,6 +16,32 @@ export interface OsrmRouteResult {
 
 const OSRM_BASE = "https://router.project-osrm.org/route/v1/driving";
 
+/** Calculate route through multiple waypoints: start → ...stops → end */
+export async function calculateOsrmRouteMulti(
+  waypoints: { lat: number; lng: number }[]
+): Promise<OsrmRouteResult | null> {
+  if (waypoints.length < 2) return null;
+  const coords = waypoints.map(w => `${w.lng},${w.lat}`).join(";");
+  try {
+    const url = `${OSRM_BASE}/${coords}?overview=full&geometries=geojson&steps=true&annotations=false`;
+    const res  = await fetch(url, { headers: { "User-Agent": "OptiFleet-VTS/1.0" } });
+    const data = await res.json();
+    if (!data.routes?.length || data.code !== "Ok") return null;
+    const route      = data.routes[0];
+    const km         = Math.round(route.distance / 100) / 10;
+    const totalMin   = Math.round(route.duration / 60);
+    const hrs        = Math.floor(totalMin / 60);
+    const mins       = totalMin % 60;
+    const durationStr = hrs > 0 ? `${hrs}h ${mins}min` : `${mins}min`;
+    const coords2: [number, number][] = route.geometry.coordinates;
+    const latlngs: [number, number][] = coords2.map((c: [number, number]) => [c[1], c[0]]);
+    const polylineCoords = JSON.stringify(latlngs.map(([lat, lng]) => ({ lat, lng })));
+    return { distanceKm: km, durationStr, durationMin: totalMin, polylineCoords, latlngs };
+  } catch {
+    return null;
+  }
+}
+
 export async function calculateOsrmRoute(
   startLat: number,
   startLng: number,

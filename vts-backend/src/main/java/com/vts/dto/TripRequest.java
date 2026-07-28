@@ -1,5 +1,7 @@
 package com.vts.dto;
 
+import java.util.List;
+
 public class TripRequest {
     private String tripId;        // auto-generated e.g. TRIP-20260422-210751
     private String tripName;      // same value as tripId by default
@@ -15,6 +17,20 @@ public class TripRequest {
     private String duration;      // e.g. "2.5 hrs"
     private String customPolyline;
     private Integer driverId;
+    private List<TripStopRequest> tripStops;
+
+    public static class TripStopRequest {
+        private String place;
+        private Double lat;
+        private Double lng;
+
+        public String getPlace()        { return place; }
+        public void   setPlace(String v){ this.place = v; }
+        public Double getLat()          { return lat; }
+        public void   setLat(Double v)  { this.lat = v; }
+        public Double getLng()          { return lng; }
+        public void   setLng(Double v)  { this.lng = v; }
+    }
 
     public String getTripId()                { return tripId; }
     public void   setTripId(String v)        { this.tripId = v; }
@@ -44,4 +60,6 @@ public class TripRequest {
     public void   setCustomPolyline(String v){ this.customPolyline = v; }
     public Integer getDriverId()             { return driverId; }
     public void   setDriverId(Integer v)     { this.driverId = v; }
+    public List<TripStopRequest> getTripStops()             { return tripStops; }
+    public void   setTripStops(List<TripStopRequest> v)     { this.tripStops = v; }
 }
