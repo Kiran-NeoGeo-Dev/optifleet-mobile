@@ -19,6 +19,8 @@ import { calculateOsrmRoute } from "../../utils/osrmRoute";
 
 type Props = NativeStackScreenProps<DriverStackParamList, "DriverMap">;
 
+interface TripStop { stopOrder: number; stopName: string; lat: number; lng: number; }
+
 interface ActiveTrip {
   id:             number;
   tripId:         string;
@@ -34,6 +36,7 @@ interface ActiveTrip {
   duration:       string;
   status:         string;
   customPolyline: string | null;
+  tripStops?:     TripStop[];
 }
 
 interface PopupData {
@@ -185,7 +188,7 @@ const DriverMapScreen = ({ navigation }: Props) => {
     }
 
     if (latlngs.length === 0)
-      return; // no route — don't draw anything, wait for telemetry
+      return;
 
     const js = `drawRoute(
       ${JSON.stringify(latlngs)},
@@ -195,6 +198,12 @@ const DriverMapScreen = ({ navigation }: Props) => {
     ); true;`;
     webViewRef.current?.injectJavaScript(js);
     setTimeout(() => webViewRef.current?.injectJavaScript(js), 800);
+
+    const stops = trip.tripStops ?? [];
+    if (stops.length > 0) {
+      const stopJs = `clearStopMarkers();${stops.map((s: TripStop) => `addStopMarker(${s.lat},${s.lng},${s.stopOrder},${JSON.stringify(s.stopName)});`).join('')} true;`;
+      setTimeout(() => webViewRef.current?.injectJavaScript(stopJs), 900);
+    }
   }, [trip]);
 
   // ── Handle popup click from map ────────────────────────────────────────────
@@ -227,6 +236,18 @@ const DriverMapScreen = ({ navigation }: Props) => {
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM'}).addTo(map);
 
   var routeLayer=null, startMarker=null, endMarker=null, vehicleMarker=null;
+  var stopMarkers=[];
+  window.clearStopMarkers=function(){
+    stopMarkers.forEach(function(m){map.removeLayer(m);});
+    stopMarkers=[];
+  };
+  window.addStopMarker=function(lat,lng,num,name){
+    var icon=L.divIcon({html:'<div style="width:28px;height:28px;border-radius:50%;background:#F59E0B;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.45);cursor:pointer">'+num+'</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
+    var m=L.marker([lat,lng],{icon:icon,zIndexOffset:200}).addTo(map);
+    m.bindPopup('<div style="font-family:sans-serif;min-width:140px"><b style="font-size:13px">Stop '+num+'</b><br><span style="font-size:11px;color:#444">'+name+'</span></div>',{maxWidth:220});
+    m.on('click',function(){m.openPopup();});
+    stopMarkers.push(m);
+  };
 
   var truckIcon = L.divIcon({
     html:'<div style="font-size:40px">🚚</div>',

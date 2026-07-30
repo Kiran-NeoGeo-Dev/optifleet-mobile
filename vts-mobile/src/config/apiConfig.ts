@@ -24,6 +24,7 @@ export const ENDPOINTS = {
   VEHICLES: "/api/vehicles",
   DRIVER_PHOTOS: "/api/driver-photos",
   TRIPS: "/api/trips",
+  TRIP_STOPS: "/api/trips",  // GET /{id}/stops
   DRIVER_ACTIVE_TRIP: "/api/trips/driver/active",
   DRIVER_ME: "/api/drivers/me",
   ASSOCIATIONS_FOR_TRIP: "/api/associations/vehicles-for-trip",

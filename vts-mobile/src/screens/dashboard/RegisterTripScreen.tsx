@@ -263,7 +263,7 @@ const RegisterTripScreen = ({ navigation }: Props) => {
         setDurationStr(result.durationStr);
         setPolylineCoords(result.polylineCoords);
         const stopMarkers = validStops.map((s, i) =>
-          `addStopMarker(${s.coords!.lat},${s.coords!.lng},${i + 1});`
+          `addStopMarker(${s.coords!.lat},${s.coords!.lng},${i + 1},${JSON.stringify(s.place)});`
         ).join("");
         const js = `clearStopMarkers();drawRoute(${JSON.stringify(result.latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng});${stopMarkers} true;`;
         webViewRef.current?.injectJavaScript(js);
@@ -437,9 +437,11 @@ ${includeControls ? `
     stopMarkers.forEach(function(m){map.removeLayer(m);});
     stopMarkers=[];
   };
-  window.addStopMarker=function(lat,lng,num){
+  window.addStopMarker=function(lat,lng,num,name){
     var sIcon=L.divIcon({html:'<div style="width:24px;height:24px;border-radius:50%;background:#F59E0B;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">'+num+'</div>',className:'',iconSize:[24,24],iconAnchor:[12,12]});
-    stopMarkers.push(L.marker([lat,lng],{icon:sIcon}).addTo(map));
+    var m=L.marker([lat,lng],{icon:sIcon}).addTo(map);
+    if(name){m.bindPopup('<div style="font-family:sans-serif;min-width:140px"><b style="font-size:13px">Stop '+num+'</b><br><span style="font-size:11px;color:#444">'+name+'</span></div>',{maxWidth:220});m.on('click',function(){m.openPopup();});}
+    stopMarkers.push(m);
   };
 
   /* Show/hide tap hint banner from RN */
@@ -753,7 +755,7 @@ ${includeControls ? `
                   const latlngs = JSON.parse(polylineCoords).map((p: any) => [p.lat, p.lng]);
                   const validStops = tripStops.filter(s => s.coords);
                   const stopJs = validStops.map((s, i) =>
-                    `addStopMarker(${s.coords!.lat},${s.coords!.lng},${i + 1});`
+                    `addStopMarker(${s.coords!.lat},${s.coords!.lng},${i + 1},${JSON.stringify(s.place)});`
                   ).join("");
                   const js = `clearStopMarkers();drawRoute(${JSON.stringify(latlngs)},${startCoords.lat},${startCoords.lng},${endCoords.lat},${endCoords.lng});${stopJs} true;`;
                   setTimeout(() => fullScreenWebViewRef.current?.injectJavaScript(js), 300);

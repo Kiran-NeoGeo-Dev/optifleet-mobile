@@ -11,6 +11,8 @@ import { useAlertNotifications } from "../../hooks/useAlertNotifications";
 import AlertNotifications from "../../components/AlertNotifications";
 import { calculateOsrmRoute } from "../../utils/osrmRoute";
 
+interface TripStop { stopOrder: number; stopName: string; lat: number; lng: number; }
+
 interface PopupData {
   vehicleId: string; status: string; driverName: string; speed: string;
   location: string; overspeed: string; smoking: string; mobileUsage: string;
@@ -35,12 +37,19 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
   const [isDeviating, setIsDeviating] = useState(false);
   const [popup, setPopup]             = useState<PopupData | null>(null);
   const [showPopup, setShowPopup]     = useState(false);
+  const [tripStops, setTripStops]     = useState<TripStop[]>([]);
 
   const { toasts, bellHistory, unreadCount, processPopup, dismissToast, markAllRead, clearAll } = useAlertNotifications();
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const webViewRef   = useRef<any>(null);
   const pollRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const mapReadyRef  = useRef(false);
+
+  useEffect(() => {
+    api.get<TripStop[]>(`${ENDPOINTS.TRIP_STOPS}/${trip.id}/stops`)
+      .then(r => setTripStops(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {});
+  }, [trip.id]);
 
   // Poll live tracking state
   useEffect(() => {
@@ -75,23 +84,27 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
     mapReadyRef.current = true;
     let latlngs: [number, number][] = [];
 
-    // ALWAYS prefer stored custom_polyline (road-following route)
     if (trip.customPolyline) {
       try { latlngs = JSON.parse(trip.customPolyline).map((p: any) => [p.lat, p.lng]); } catch { /* fall through */ }
     }
-
-    // Fallback: fetch road route from OSRM — NEVER draw straight line
     if (latlngs.length === 0) {
       const result = await calculateOsrmRoute(trip.startLat, trip.startLng, trip.endLat, trip.endLng);
       if (result) latlngs = result.latlngs;
     }
-
-    if (latlngs.length === 0) return; // no route at all — don't draw anything
+    if (latlngs.length === 0) return;
 
     const js = `drawRoute(${JSON.stringify(latlngs)},${trip.startLat},${trip.startLng},${trip.endLat},${trip.endLng},"${trip.vehicleId}"); true;`;
     webViewRef.current?.injectJavaScript(js);
     setTimeout(() => webViewRef.current?.injectJavaScript(js), 800);
-  }, [trip]);
+
+    const stops = tripStops.length > 0
+      ? tripStops
+      : await api.get<TripStop[]>(`${ENDPOINTS.TRIP_STOPS}/${trip.id}/stops`).then(r => r.data).catch(() => []);
+    if (stops.length > 0) {
+      const stopJs = `clearStopMarkers();${stops.map((s: TripStop) => `addStopMarker(${s.lat},${s.lng},${s.stopOrder},${JSON.stringify(s.stopName)});`).join('')} true;`;
+      setTimeout(() => webViewRef.current?.injectJavaScript(stopJs), 900);
+    }
+  }, [trip, tripStops]);
 
   const onWebViewMessage = (e: any) => {
     try {
@@ -121,6 +134,18 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
   var routeLayer=null,startMarker=null,endMarker=null,vehicleMarker=null;
   var truckIcon=L.divIcon({html:'<div style="font-size:40px">🚚</div>',className:'',iconSize:[44,44],iconAnchor:[22,44]});
   var destIcon=L.divIcon({html:'<svg xmlns="http://www.w3.org/2000/svg" width="36" height="46" viewBox="0 0 28 36"><path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="#FF3B30"/><circle cx="14" cy="14" r="6" fill="#fff"/></svg>',className:'',iconSize:[36,46],iconAnchor:[18,46]});
+  var stopMarkers=[];
+  window.clearStopMarkers=function(){
+    stopMarkers.forEach(function(m){map.removeLayer(m);});
+    stopMarkers=[];
+  };
+  window.addStopMarker=function(lat,lng,num,name){
+    var icon=L.divIcon({html:'<div style="width:28px;height:28px;border-radius:50%;background:#F59E0B;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.45);cursor:pointer">'+num+'</div>',className:'',iconSize:[28,28],iconAnchor:[14,14]});
+    var m=L.marker([lat,lng],{icon:icon,zIndexOffset:200}).addTo(map);
+    m.bindPopup('<div style="font-family:sans-serif;min-width:140px"><b style="font-size:13px">Stop '+num+'</b><br><span style="font-size:11px;color:#444">'+name+'</span></div>',{maxWidth:220});
+    m.on('click',function(){m.openPopup();});
+    stopMarkers.push(m);
+  };
   window.drawRoute=function(latlngs,sLat,sLng,eLat,eLng,vehicleId){
     if(routeLayer)map.removeLayer(routeLayer);
     if(startMarker)map.removeLayer(startMarker);

@@ -72,7 +72,7 @@ const TripManagementScreen = ({ navigation }: Props) => {
     if (!silent) setLoading(true);
     try {
       const res = await api.get<TripItem[]>(ENDPOINTS.TRIPS);
-      setTrips(res.data ?? []);
+      setTrips(Array.isArray(res.data) ? res.data : []);
     } catch {
       if (!silent) showToast("Failed to load trips.", "error");
     } finally {

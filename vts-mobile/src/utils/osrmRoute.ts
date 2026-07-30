@@ -35,7 +35,7 @@ export async function calculateOsrmRouteMulti(
     const durationStr = hrs > 0 ? `${hrs}h ${mins}min` : `${mins}min`;
     const coords2: [number, number][] = route.geometry.coordinates;
     const latlngs: [number, number][] = coords2.map((c: [number, number]) => [c[1], c[0]]);
-    const polylineCoords = JSON.stringify(latlngs.map(([lat, lng]) => ({ lat, lng })));
+    const polylineCoords = JSON.stringify(latlngs.map(([lat, lng]) => ({ lat: +lat.toFixed(5), lng: +lng.toFixed(5) })));
     return { distanceKm: km, durationStr, durationMin: totalMin, polylineCoords, latlngs };
   } catch {
     return null;
@@ -71,7 +71,7 @@ export async function calculateOsrmRoute(
     // Coordinates array from GeoJSON: each item is [lng, lat]
     const coords: [number, number][] = route.geometry.coordinates;
     const latlngs: [number, number][] = coords.map(c => [c[1], c[0]]);
-    const polylineCoords = JSON.stringify(latlngs.map(([lat, lng]) => ({ lat, lng })));
+    const polylineCoords = JSON.stringify(latlngs.map(([lat, lng]) => ({ lat: +lat.toFixed(5), lng: +lng.toFixed(5) })));
 
     return { distanceKm: km, durationStr, durationMin: totalMin, polylineCoords, latlngs };
   } catch {

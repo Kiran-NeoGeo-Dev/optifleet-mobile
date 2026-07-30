@@ -104,6 +104,13 @@ public class TripService {
         }
     }
 
+    public List<TripStop> getStopsForTrip(Long tripId) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new RuntimeException("Trip not found: " + tripId));
+        requireTripAccess(trip);
+        return tripStopRepository.findByTripIdOrderByStopOrderAsc(trip.getTripId());
+    }
+
     public List<Trip> getTripsForCurrentClient() {
         Client client = authService.getCurrentClient();
         if (client == null) return List.of();

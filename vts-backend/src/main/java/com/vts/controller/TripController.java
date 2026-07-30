@@ -26,6 +26,11 @@ public class TripController {
         this.authService = authService;
     }
 
+    @GetMapping("/{id}/stops")
+    public ResponseEntity<List<com.vts.entity.TripStop>> getStops(@PathVariable Long id) {
+        return ResponseEntity.ok(tripService.getStopsForTrip(id));
+    }
+
     @PostMapping
     public ResponseEntity<Trip> create(@RequestBody TripRequest req) {
         return ResponseEntity.ok(tripService.createTrip(req));
@@ -67,7 +72,7 @@ public class TripController {
         if (driverId == null) return ResponseEntity.status(403).build();
 
         return tripService.findActiveTrip(driverId)
-            .map(t -> ResponseEntity.ok((Object) new DriverTripResponse(t)))
+            .map(t -> ResponseEntity.ok((Object) new DriverTripResponse(t, tripService.getStopsForTrip((long) t.getId()))))
             .orElse(ResponseEntity.ok(Map.of("message", "No active trip")));
     }
 }
