@@ -20,7 +20,6 @@ public class VehicleController {
         this.vehicleService = vehicleService;
     }
 
-    @PreAuthorize("@authService.isAdminRole()")
     @PostMapping
     public ResponseEntity<?> createVehicle(@Valid @RequestBody VehicleRequest request) {
         try {
