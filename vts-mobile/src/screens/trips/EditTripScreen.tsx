@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   headerBrand:   { fontSize: 17, fontWeight: "800", color: "#fff" },
   headerSub:     { fontSize: 9, color: "rgba(255,255,255,0.90)", letterSpacing: 2, marginTop: 1 },
 
-  scroll:        { paddingHorizontal: 14, paddingBottom: 32, paddingTop: 6 },
+  scroll:        { paddingHorizontal: 14, paddingBottom: 100, paddingTop: 6 },
 
   card:          { backgroundColor: "#F6F1E9", borderRadius: 20, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16, overflow: "hidden", shadowColor: "#1A0040", shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 10 },
   cardEdge:      { position: "absolute", top: 0, left: 0, right: 0, height: 4, borderTopLeftRadius: 20, borderTopRightRadius: 20 },

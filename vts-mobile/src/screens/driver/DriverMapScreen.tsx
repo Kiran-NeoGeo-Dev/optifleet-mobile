@@ -16,6 +16,8 @@ import { Driver } from "../../types/Driver";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { DriverStackParamList } from "../../navigation/DriverNavigator";
 import { calculateOsrmRoute } from "../../utils/osrmRoute";
+import { fetchLiveVehicles } from "../../services/dashboardService";
+import { LiveVehicle } from "../../types/Dashboard";
 
 type Props = NativeStackScreenProps<DriverStackParamList, "DriverMap">;
 
@@ -81,6 +83,7 @@ const DriverMapScreen = ({ navigation }: Props) => {
   const [noTrip, setNoTrip]             = useState(false);
   const webViewRef                      = useRef<any>(null);
   const [driverProfile, setDriverProfile] = useState<Driver | null>(null);
+  const [liveVehicle, setLiveVehicle]   = useState<LiveVehicle | null>(null);
 
   // Live tracking state
   const [remainingKm, setRemainingKm]   = useState<number | null>(null);
@@ -169,10 +172,83 @@ const DriverMapScreen = ({ navigation }: Props) => {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [trip]);
 
+  // ── Poll live vehicle data when no trip (Live Fleet Map behavior) ──────────
+  useEffect(() => {
+    if (!noTrip || !driverProfile?.driverName) return;
+    
+    const pollLiveVehicle = async () => {
+      try {
+        const vehicles = await fetchLiveVehicles();
+        // Find driver's own vehicle by matching driverName
+        const myVehicle = vehicles.find(v => 
+          v.driverName?.toLowerCase() === driverProfile.driverName?.toLowerCase()
+        );
+        
+        if (myVehicle && myVehicle.lat != null && myVehicle.lng != null) {
+          setLiveVehicle(myVehicle);
+          setLiveSpeed(myVehicle.speed ?? 0);
+          
+          // Update popup data from live vehicle
+          const popupData: PopupData = {
+            vehicleId: myVehicle.vehicleId,
+            status: myVehicle.tripStatus || "Idle",
+            driverName: myVehicle.driverName || "—",
+            speed: myVehicle.speed ? `${myVehicle.speed}` : "0",
+            location: myVehicle.address || "",
+            overspeed: myVehicle.overspeed || "No",
+            smoking: myVehicle.smoking || "No",
+            mobileUsage: myVehicle.mobileUsage || "No",
+            drowsiness: myVehicle.drowsiness || "Normal",
+            routeDeviation: myVehicle.routeDeviation || "No",
+            harshBraking: myVehicle.harshBraking || "No",
+            harshAcceleration: myVehicle.harshAcceleration || "No",
+            rashTurning: myVehicle.rashTurning || "No",
+            address: myVehicle.address || "",
+            coordinates: myVehicle.coordinates || "",
+            lastUpdateTime: myVehicle.lastUpdateTime || "",
+            lastUpdateDate: myVehicle.lastUpdateDate || "",
+          };
+          setPopup(popupData);
+          processPopup(popupData);
+          
+          // Inject live vehicle marker into map
+          if (mapReadyRef.current && webViewRef.current) {
+            const js = `updateLiveVehiclePosition(
+              ${myVehicle.lat}, 
+              ${myVehicle.lng}, 
+              "${myVehicle.vehicleId}"
+            ); true;`;
+            webViewRef.current.injectJavaScript(js);
+          }
+        }
+      } catch (error) {
+        console.error('[DriverMap] Error fetching live vehicle:', error);
+        setLiveSpeed(0);
+      }
+    };
+
+    pollRef.current = setInterval(pollLiveVehicle, 5000);
+    pollLiveVehicle(); // immediate first call
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [noTrip, driverProfile?.driverName]);
+
   // ── Inject initial route once WebView loads ────────────────────────────────
   const injectRoute = useCallback(async () => {
-    if (!trip) return;
     mapReadyRef.current = true;
+    
+    // If no trip, just center map and wait for live vehicle updates
+    if (!trip) {
+      if (liveVehicle && liveVehicle.lat && liveVehicle.lng) {
+        const js = `
+          map.setView([${liveVehicle.lat}, ${liveVehicle.lng}], 14);
+          updateLiveVehiclePosition(${liveVehicle.lat}, ${liveVehicle.lng}, "${liveVehicle.vehicleId}");
+          true;
+        `;
+        webViewRef.current?.injectJavaScript(js);
+      }
+      return;
+    }
+    
     let latlngs: [number, number][] = [];
 
     if (trip.customPolyline) {
@@ -204,7 +280,7 @@ const DriverMapScreen = ({ navigation }: Props) => {
       const stopJs = `clearStopMarkers();${stops.map((s: TripStop) => `addStopMarker(${s.lat},${s.lng},${s.stopOrder},${JSON.stringify(s.stopName)});`).join('')} true;`;
       setTimeout(() => webViewRef.current?.injectJavaScript(stopJs), 900);
     }
-  }, [trip]);
+  }, [trip, liveVehicle]);
 
   // ── Handle popup click from map ────────────────────────────────────────────
   const onWebViewMessage = (e: any) => {
@@ -215,8 +291,8 @@ const DriverMapScreen = ({ navigation }: Props) => {
   };
 
   // ── Leaflet HTML ───────────────────────────────────────────────────────────
-  const initLat = trip?.startLat ?? 17.4065;
-  const initLng = trip?.startLng ?? 78.4772;
+  const initLat = liveVehicle?.lat ?? trip?.startLat ?? 17.4065;
+  const initLng = liveVehicle?.lng ?? trip?.startLng ?? 78.4772;
 
   const mapHtml = `
 <!DOCTYPE html><html>
@@ -235,7 +311,7 @@ const DriverMapScreen = ({ navigation }: Props) => {
   var map = L.map('map',{zoomControl:true}).setView([${initLat},${initLng}],13);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM'}).addTo(map);
 
-  var routeLayer=null, startMarker=null, endMarker=null, vehicleMarker=null;
+  var routeLayer=null, startMarker=null, endMarker=null, vehicleMarker=null, liveVehicleIcon=null;
   var stopMarkers=[];
   window.clearStopMarkers=function(){
     stopMarkers.forEach(function(m){map.removeLayer(m);});
@@ -304,6 +380,35 @@ const DriverMapScreen = ({ navigation }: Props) => {
   };
   window.clearLiveTracking = function() {
     if(vehicleMarker) { map.removeLayer(vehicleMarker); vehicleMarker = null; }
+  };
+  
+  var liveVehicleIcon = null;
+  
+  window.updateLiveVehiclePosition = function(lat, lng, vehicleId) {
+    if(vehicleMarker) { map.removeLayer(vehicleMarker); }
+    if(liveVehicleIcon) { map.removeLayer(liveVehicleIcon); }
+    
+    // Add truck icon at the position
+    var truckLiveIcon = L.divIcon({
+      html:'<div style="font-size:36px;cursor:pointer">🚚</div>',
+      className:'', iconSize:[40,40], iconAnchor:[20,40]
+    });
+    liveVehicleIcon = L.marker([lat, lng], {icon: truckLiveIcon, zIndexOffset:999}).addTo(map);
+    liveVehicleIcon.on('click', function(){
+      window.ReactNativeWebView.postMessage(JSON.stringify({type:'vehicleClick'}));
+    });
+    
+    // Add vehicle ID label above the truck icon
+    var vIcon = L.divIcon({
+      html:'<div style="background:#0EA5E9;color:#fff;font-size:13px;font-weight:700;padding:5px 10px;border-radius:8px;border:2px solid #fff;white-space:nowrap;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5)">' + vehicleId + '</div>',
+      className:'', iconSize:[null,null], iconAnchor:[0,48]
+    });
+    vehicleMarker = L.marker([lat, lng], {icon: vIcon, zIndexOffset:1000}).addTo(map);
+    vehicleMarker.on('click', function(){
+      window.ReactNativeWebView.postMessage(JSON.stringify({type:'vehicleClick'}));
+    });
+    
+    map.setView([lat, lng], map.getZoom() < 13 ? 13 : map.getZoom());
   };
 </script>
 </body></html>`;
@@ -391,15 +496,34 @@ const DriverMapScreen = ({ navigation }: Props) => {
           </View>
         </View>
       )}
-
-      {/* No trip — full screen empty state */}
-      {noTrip && (
-        <View style={styles.noTripFull}>
-          <View style={styles.noTripIconBox}>
-            <Ionicons name="map-outline" size={48} color="#38BDF8" />
+      
+      {/* No trip info bar - simplified with just vehicle and speed */}
+      {noTrip && liveVehicle && (
+        <View style={styles.infoBar}>
+          <View style={styles.infoCol}>
+            <Text style={styles.infoLabel}>VEHICLE</Text>
+            <Text style={styles.infoValue}>{liveVehicle.vehicleId ?? "—"}</Text>
           </View>
-          <Text style={styles.noTripTitle}>No Active Trip</Text>
-          <Text style={styles.noTripText}>You have no trip assigned at the moment.{"\n"}Check back later or contact your dispatcher.</Text>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoCol}>
+            <Text style={styles.infoLabel}>STATUS</Text>
+            <Text style={styles.infoValue}>{liveVehicle.tripStatus ?? "Idle"}</Text>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoCol}>
+            <Text style={styles.infoLabel}>SPEED</Text>
+            <Text style={[styles.infoValue, { color: "#38BDF8" }]}>{liveSpeed ?? 0} km/h</Text>
+          </View>
+        </View>
+      )}
+
+      {/* No trip & no vehicle yet - show message banner */}
+      {noTrip && !liveVehicle && (
+        <View style={styles.noVehicleBanner}>
+          <Ionicons name="information-circle-outline" size={20} color="#38BDF8" />
+          <Text style={styles.noVehicleText}>
+            No active trip. Searching for your vehicle location...
+          </Text>
         </View>
       )}
 
@@ -413,7 +537,7 @@ const DriverMapScreen = ({ navigation }: Props) => {
         <Text style={styles.progressLabel}>{progress.toFixed(0)}% completed</Text>
       )}
 
-      {/* Map */}
+      {/* Map - always visible */}
       <View style={{ flex: 1 }}>
         <WebView
           ref={webViewRef}
@@ -600,6 +724,8 @@ const styles = StyleSheet.create({
   popupAddressRow: { flexDirection: "column", paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.08)" },
   popupAddressValue: { fontSize: 12, color: "#fff", fontWeight: "600", marginTop: 2, lineHeight: 17 },
   popupClose:      { alignItems: "center", marginTop: 16, backgroundColor: "rgba(56,189,248,0.15)", borderRadius: 12, paddingVertical: 12, borderWidth: 1, borderColor: "rgba(56,189,248,0.3)" },
+  noVehicleBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(56,189,248,0.15)", paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: "rgba(56,189,248,0.3)" },
+  noVehicleText:   { flex: 1, fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: "600" },
 });
 
 export default DriverMapScreen;

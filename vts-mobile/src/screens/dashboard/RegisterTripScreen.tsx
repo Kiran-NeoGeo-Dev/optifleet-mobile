@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
   pageBackBtn:     { width: 36, height: 36, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.12)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
   pageTitle:       { fontSize: 17, fontWeight: "800", color: "#fff", letterSpacing: -0.3 },
   pageSub:         { fontSize: 11, color: "rgba(255,255,255,0.60)", marginTop: 1 },
-  scroll:          { paddingHorizontal: 14, paddingBottom: 32 },
+  scroll:          { paddingHorizontal: 14, paddingBottom: 100 },
   sectionLabel:    { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5, marginTop: 10 },
   fieldLabel:      { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.90)", marginBottom: 5, marginTop: 8 },
   hint:            { fontSize: 10, color: "rgba(255,255,255,0.45)", marginBottom: 3, marginTop: 1 },
