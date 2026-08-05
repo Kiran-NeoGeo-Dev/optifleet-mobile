@@ -17,9 +17,11 @@ import { createDriver } from "../../services/driverService";
 import { pickAndParseFile } from "../../utils/importParser";
 import ImportResultModal, { ImportResult } from "../../components/ImportResultModal";
 
-type Props =
-  | NativeStackScreenProps<AdminStackParamList, "AddDriver">
-  | NativeStackScreenProps<MainStackParamList, "AddDriver">;
+type Props = {
+  navigation:
+    NativeStackScreenProps<AdminStackParamList, "AddDriver">["navigation"] &
+    NativeStackScreenProps<MainStackParamList, "AddDriver">["navigation"];
+};
 
 const { width: SW } = Dimensions.get("window");
 

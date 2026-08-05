@@ -80,11 +80,17 @@ public class VehicleService {
     public Vehicle updateVehicle(Long vehicleId, VehicleRequest request) {
         Vehicle vehicle = getVehicle(vehicleId);
         mapRequestToEntity(request, vehicle);
-        // Fix: update clientId when admin reassigns vehicle to different user
+        // Fix: update clientId when admin reassigns vehicle to different user (FIX BUG-003)
         if (request.getClientId() != null) {
-            Long ownerId = authService.resolveResourceOwner(request.getClientId());
-            vehicle.setClientId(ownerId);
-            vehicle.setOrgId(authService.resolveResourceOrgId(ownerId));
+            try {
+                Long ownerId = authService.resolveResourceOwner(request.getClientId());
+                vehicle.setClientId(ownerId);
+                vehicle.setOrgId(authService.resolveResourceOrgId(ownerId));
+            } catch (Exception e) {
+                // Log error and keep existing clientId if resolution fails
+                org.slf4j.LoggerFactory.getLogger(VehicleService.class)
+                    .warn("Failed to resolve clientId {}: {}", request.getClientId(), e.getMessage());
+            }
         }
         return vehicleRepository.save(vehicle);
     }

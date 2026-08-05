@@ -68,6 +68,7 @@ export type MainStackParamList = {
       selectedDriverId?: number;
       username?: string;
       password?: string;
+      clientId?: number;
     };
   };
   ViewDriverPhotos: { driverId: number };

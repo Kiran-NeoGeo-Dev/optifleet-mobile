@@ -63,7 +63,8 @@ export type AdminStackParamList = {
     driverPayload: {
       driverName: string; phoneNumber?: string; comments?: string;
       licenseNumber?: string; licenseExpiry?: string; aadharNumber?: string;
-      status?: string; selectedDriverId?: number; username?: string; password?: string;
+      status?: string; selectedDriverId?: number; username?: string;
+      password?: string; clientId?: number;
     };
   };
   AddVehicle:       undefined;

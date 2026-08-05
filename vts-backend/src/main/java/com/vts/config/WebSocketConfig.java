@@ -18,8 +18,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // FIX BUG-005: Restrict WebSocket origins for security
+        // Allow localhost for development and specific production domains
         registry.addEndpoint("/ws/live-tracking")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(
+                    "http://localhost:*",
+                    "http://127.0.0.1:*",
+                    "http://192.168.*.*:*",
+                    "http://10.*.*.*:*",
+                    "https://*.neogeoinfo.in"
+                )
                 .withSockJS();
     }
 }

@@ -255,9 +255,16 @@ const AdminDashboardScreen = ({ navigation }: { navigation: any }) => {
           address: v.address || "", coordinates: v.coordinates || "",
           lastUpdateTime: v.lastUpdateTime || "", lastUpdateDate: v.lastUpdateDate || "",
         })));
-        webViewRef.current.injectJavaScript(`window.updateVehicles(${vJson}); true;`);
+        try {
+          webViewRef.current.injectJavaScript(`window.updateVehicles(${vJson}); true;`);
+        } catch (err) {
+          // FIX BUG-010: Add error handling for map update failures
+          console.warn('[Dashboard] Failed to update map vehicles:', err);
+        }
       }
-    } catch {}
+    } catch (err) {
+      console.error('[Dashboard] Error loading dashboard data:', err);
+    }
   }, []);
 
   useFocusEffect(useCallback(() => {

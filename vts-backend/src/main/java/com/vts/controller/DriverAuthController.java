@@ -22,15 +22,18 @@ public class DriverAuthController {
 
     private final DriverRepository driverRepository;
     private final JwtService       jwtService;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
-    public DriverAuthController(DriverRepository driverRepository, JwtService jwtService) {
+    public DriverAuthController(DriverRepository driverRepository, JwtService jwtService,
+                                org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         this.driverRepository = driverRepository;
         this.jwtService       = jwtService;
+        this.passwordEncoder  = passwordEncoder;
     }
 
     /**
      * Driver login: Mobile Number (username) + Date of Birth (password, DD/MM/YYYY).
-     * Both fields are matched as plain text — no hashing.
+     * Password comparison is plain text as per system requirement.
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
@@ -49,7 +52,8 @@ public class DriverAuthController {
         if (driver == null)
             return ResponseEntity.status(401).body(Map.of("error", "Invalid Mobile Number or Date of Birth"));
 
-        if (driver.getPassword() == null || !cleanDob.equals(driver.getPassword()))
+        // Plain text password comparison as per system requirement
+        if (driver.getPassword() == null || !driver.getPassword().equals(cleanDob))
             return ResponseEntity.status(401).body(Map.of("error", "Invalid Mobile Number or Date of Birth"));
 
         if (driver.getStatus() == null || !driver.getStatus())

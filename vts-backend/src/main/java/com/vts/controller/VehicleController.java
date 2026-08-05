@@ -26,13 +26,14 @@ public class VehicleController {
             return ResponseEntity.ok(vehicleService.createVehicle(request));
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             String msg = e.getRootCause() != null ? e.getRootCause().getMessage() : e.getMessage();
-            if (msg != null && msg.contains("registration_no"))  return ResponseEntity.badRequest().body(java.util.Map.of("message", "Vehicle registration number already exists."));
-            if (msg != null && msg.contains("chassis_number"))   return ResponseEntity.badRequest().body(java.util.Map.of("message", "Chassis number already exists."));
-            if (msg != null && msg.contains("engine_number"))    return ResponseEntity.badRequest().body(java.util.Map.of("message", "Engine number already exists."));
-            if (msg != null && msg.contains("insurance_number")) return ResponseEntity.badRequest().body(java.util.Map.of("message", "Insurance number already exists."));
-            return ResponseEntity.badRequest().body(java.util.Map.of("message", "Duplicate value: " + msg));
+            // FIX BUG-006: Standardize error response format to use "error" key
+            if (msg != null && msg.contains("registration_no"))  return ResponseEntity.badRequest().body(java.util.Map.of("error", "Vehicle registration number already exists."));
+            if (msg != null && msg.contains("chassis_number"))   return ResponseEntity.badRequest().body(java.util.Map.of("error", "Chassis number already exists."));
+            if (msg != null && msg.contains("engine_number"))    return ResponseEntity.badRequest().body(java.util.Map.of("error", "Engine number already exists."));
+            if (msg != null && msg.contains("insurance_number")) return ResponseEntity.badRequest().body(java.util.Map.of("error", "Insurance number already exists."));
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "Duplicate value: " + msg));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         }
     }
 
@@ -60,7 +61,7 @@ public class VehicleController {
         } catch (com.vts.exception.ResourceNotFoundException e) {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : "Delete failed"));
+            return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage() != null ? e.getMessage() : "Delete failed"));
         }
     }
 }

@@ -36,8 +36,15 @@ const ROLE_MAP: Record<string, string[]> = {
 const formatDob = (d: Date) =>
   `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 
-/** Validate a manually typed DD/MM/YYYY string */
-const isValidDob = (v: string) => /^\d{2}\/\d{2}\/\d{4}$/.test(v);
+/** Validate a manually typed DD/MM/YYYY string and check if it's a valid date */
+const isValidDob = (v: string) => {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return false;
+  const [day, month, year] = v.split('/').map(Number);
+  if (year < 1900 || year > new Date().getFullYear()) return false;
+  if (month < 1 || month > 12) return false;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  return day >= 1 && day <= daysInMonth;
+};
 
 const LoginScreen = ({ navigation }: LoginProps) => {
   const [username,     setUsername]     = useState("");
@@ -56,7 +63,6 @@ const LoginScreen = ({ navigation }: LoginProps) => {
 
   const { login: setAuth } = useAuth();
   const { toast, showToast, hideToast } = useToast();
-  const submittingRef = useRef(false);
 
   const onCardLayout = useCallback((e: LayoutChangeEvent) => {
     const cardH = e.nativeEvent.layout.height;
@@ -93,18 +99,16 @@ const LoginScreen = ({ navigation }: LoginProps) => {
   };
 
   const onSubmit = async () => {
-    if (submittingRef.current) return;
-    submittingRef.current = true;
+    // Prevent double submission using loading state (FIX BUG-008)
+    if (loading) return;
 
     if (activeRole === "Driver") {
       if (!username.trim()) {
         showToast("Please enter your mobile number.", "error");
-        submittingRef.current = false;
         return;
       }
       if (!dob.trim() || !isValidDob(dob.trim())) {
         showToast("Please enter a valid date of birth (DD/MM/YYYY).", "error");
-        submittingRef.current = false;
         return;
       }
       try {
@@ -121,14 +125,12 @@ const LoginScreen = ({ navigation }: LoginProps) => {
         showToast(e?.response?.data?.error || "Invalid Mobile Number or Date of Birth.", "error");
       } finally {
         setLoading(false);
-        submittingRef.current = false;
       }
       return;
     }
 
     if (!username.trim() || !password.trim()) {
       showToast("Please enter username and password.", "error");
-      submittingRef.current = false;
       return;
     }
     try {
@@ -148,7 +150,6 @@ const LoginScreen = ({ navigation }: LoginProps) => {
       showToast(is401 || serverMsg ? "Invalid username or password." : "Network error — check backend is running.", "error");
     } finally {
       setLoading(false);
-      submittingRef.current = false;
     }
   };
 

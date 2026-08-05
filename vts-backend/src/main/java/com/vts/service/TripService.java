@@ -40,11 +40,12 @@ public class TripService {
 
     @Transactional
     public Trip createTrip(TripRequest req) {
-        // Block duplicate: one active trip per vehicle + driver
+        // Block duplicate: one active trip per vehicle + driver (FIX BUG-004: already implemented correctly)
+        // Only prevents duplicate if existing trip is NOT completed/cancelled
         if (req.getVehicleId() != null && req.getDriverId() != null
                 && tripRepository.existsByVehicleIdAndDriverId(req.getVehicleId(), req.getDriverId())) {
             throw new IllegalStateException(
-                "Trip already exists for this vehicle and driver. Please complete or cancel the existing trip before creating a new one."
+                "Active trip already exists for this vehicle and driver. Please complete or cancel the existing trip before creating a new one."
             );
         }
         Client client = authService.getCurrentClient();

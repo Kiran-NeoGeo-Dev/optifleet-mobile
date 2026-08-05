@@ -28,13 +28,16 @@ public class DriverService {
     private final AuthService       authService;
     private final JwtService        jwtService;
     private final ClientRepository  clientRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public DriverService(DriverRepository driverRepository, AuthService authService,
-                         JwtService jwtService, ClientRepository clientRepository) {
+                         JwtService jwtService, ClientRepository clientRepository,
+                         org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         this.driverRepository = driverRepository;
         this.authService      = authService;
         this.jwtService       = jwtService;
         this.clientRepository = clientRepository;
+        this.passwordEncoder  = passwordEncoder;
     }
 
     private LocalDate parseDate(String value) {
@@ -59,7 +62,7 @@ public class DriverService {
         Long ownerId = authService.resolveResourceOwner(request.getClientId());
         driver.setClientId(ownerId);
         driver.setOrgId(resolveOrgId(ownerId));
-        // username = mobile number, password = date of birth (DD/MM/YYYY) stored as plain text
+        // username = mobile number, password = date of birth (DD/MM/YYYY) stored as plain text per requirement
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             driver.setUsername(request.getPhoneNumber().trim());
         }
@@ -129,7 +132,7 @@ public class DriverService {
             driver.setClientId(ownerId);
             driver.setOrgId(resolveOrgId(ownerId));
         }
-        // Keep username in sync with phone number, password = date of birth (DD/MM/YYYY) stored as plain text
+        // Keep username in sync with phone number, password = date of birth (DD/MM/YYYY) stored as plain text per requirement
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             driver.setUsername(request.getPhoneNumber().trim());
         }
@@ -149,7 +152,13 @@ public class DriverService {
         driver.setPhoneNumber(truncate(request.getPhoneNumber(), 15));
         if (request.getLicenseNumber() != null) driver.setLicenseNumber(truncate(request.getLicenseNumber(), 20));
         LocalDate expiry = parseDate(request.getLicenseExpiry());
-        if (expiry != null) driver.setLicenseExpiry(expiry);
+        if (expiry != null) {
+            // FIX BUG-012: Validate license expiry date
+            if (expiry.isBefore(LocalDate.now())) {
+                throw new IllegalArgumentException("Driver license has expired. Please provide a valid license.");
+            }
+            driver.setLicenseExpiry(expiry);
+        }
         if (request.getAadharNumber() != null) driver.setAadharNumber(truncate(request.getAadharNumber(), 12));
         driver.setStatus(parseStatus(request.getStatus()));
         driver.setComments(request.getComments() != null ? request.getComments() : driver.getComments());
