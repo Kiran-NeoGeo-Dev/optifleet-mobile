@@ -31,6 +31,8 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password-message",
                                 "/api/auth/admin-recovery",
                                 "/api/driver-auth/login",
+                                "/api/driver-auth/send-otp",
+                                "/api/driver-auth/verify-otp",
                                 "/api/thingsboard/telemetry",
                                 "/api/diagnostic/**",
                                 "/ws/live-tracking/**",

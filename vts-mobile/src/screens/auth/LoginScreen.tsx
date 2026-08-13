@@ -7,7 +7,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { login } from "../../services/authService";
 import { api, setAuthToken } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
@@ -32,20 +31,6 @@ const ROLE_MAP: Record<string, string[]> = {
   Driver: ["driver"],
 };
 
-/** Format a Date → DD/MM/YYYY */
-const formatDob = (d: Date) =>
-  `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-
-/** Validate a manually typed DD/MM/YYYY string and check if it's a valid date */
-const isValidDob = (v: string) => {
-  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return false;
-  const [day, month, year] = v.split('/').map(Number);
-  if (year < 1900 || year > new Date().getFullYear()) return false;
-  if (month < 1 || month > 12) return false;
-  const daysInMonth = new Date(year, month, 0).getDate();
-  return day >= 1 && day <= daysInMonth;
-};
-
 const LoginScreen = ({ navigation }: LoginProps) => {
   const [username,     setUsername]     = useState("");
   const [password,     setPassword]     = useState("");
@@ -54,10 +39,11 @@ const LoginScreen = ({ navigation }: LoginProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [activeRole,   setActiveRole]   = useState("Admin");
 
-  // Driver DOB state
-  const [dob,          setDob]          = useState("");          // typed string DD/MM/YYYY
-  const [dobDate,      setDobDate]      = useState<Date>(new Date(1990, 0, 1));
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  // Driver OTP state
+  const [otp,          setOtp]          = useState("");
+  const [otpSent,      setOtpSent]      = useState(false);
+  const [otpSending,   setOtpSending]   = useState(false);
+  const [countdown,    setCountdown]    = useState(0);
 
   const [spacerH, setSpacerH] = useState(SH * 0.42);
 
@@ -81,20 +67,53 @@ const LoginScreen = ({ navigation }: LoginProps) => {
     ]).start();
   }, []);
 
-  // Auto-format DOB input: insert "/" after DD and MM
-  const onDobChange = (text: string) => {
+  // OTP countdown timer
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  // Reset OTP state when switching roles
+  useEffect(() => {
+    setOtpSent(false);
+    setOtp("");
+    setCountdown(0);
+  }, [activeRole]);
+
+  // Auto-format OTP input: only digits, max 6
+  const onOtpChange = (text: string) => {
     const digits = text.replace(/\D/g, "");
-    let formatted = digits;
-    if (digits.length > 2)  formatted = digits.slice(0, 2) + "/" + digits.slice(2);
-    if (digits.length > 4)  formatted = digits.slice(0, 2) + "/" + digits.slice(2, 4) + "/" + digits.slice(4, 8);
-    setDob(formatted);
+    setOtp(digits.slice(0, 6));
   };
 
-  const onDatePickerChange = (_: any, selected?: Date) => {
-    setShowDatePicker(false);
-    if (selected) {
-      setDobDate(selected);
-      setDob(formatDob(selected));
+  const onSendOtp = async () => {
+    if (!username.trim()) {
+      showToast("Please enter your mobile number.", "error");
+      return;
+    }
+
+    // Validate 10-digit mobile number
+    const cleanMobile = username.trim();
+    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      showToast("Please enter a valid 10-digit mobile number.", "error");
+      return;
+    }
+
+    try {
+      setOtpSending(true);
+      const res = await api.post(ENDPOINTS.DRIVER_SEND_OTP, {
+        mobileNumber: cleanMobile,
+      });
+      showToast("OTP sent successfully to your mobile number.", "success");
+      setOtpSent(true);
+      setCountdown(60); // 60 seconds countdown for resend
+    } catch (e: any) {
+      const errorMsg = e?.response?.data?.error || "Failed to send OTP. Please try again.";
+      showToast(errorMsg, "error");
+    } finally {
+      setOtpSending(false);
     }
   };
 
@@ -107,22 +126,26 @@ const LoginScreen = ({ navigation }: LoginProps) => {
         showToast("Please enter your mobile number.", "error");
         return;
       }
-      if (!dob.trim() || !isValidDob(dob.trim())) {
-        showToast("Please enter a valid date of birth (DD/MM/YYYY).", "error");
+      if (!otpSent) {
+        showToast("Please send OTP first.", "error");
+        return;
+      }
+      if (!otp.trim() || otp.length !== 6) {
+        showToast("Please enter the 6-digit OTP.", "error");
         return;
       }
       try {
         setLoading(true);
-        const res = await api.post(ENDPOINTS.DRIVER_LOGIN, {
+        const res = await api.post(ENDPOINTS.DRIVER_VERIFY_OTP, {
           mobileNumber: username.trim(),
-          dateOfBirth:  dob.trim(),
+          otp:          otp.trim(),
         });
         const { token, clientId, username: uname, role } = res.data;
         showToast("Login successful! Welcome to OptiFleet.", "success");
         setAuthToken(token);
         setTimeout(() => setAuth(token, uname, clientId, role), 1500);
       } catch (e: any) {
-        showToast(e?.response?.data?.error || "Invalid Mobile Number or Date of Birth.", "error");
+        showToast(e?.response?.data?.error || "Invalid OTP. Please try again.", "error");
       } finally {
         setLoading(false);
       }
@@ -236,32 +259,59 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                 />
               </View>
 
-              {/* Driver: Date of Birth field */}
+              {/* Driver: OTP fields */}
               {activeRole === "Driver" && (
                 <>
-                  <Text style={s.label}>Date of Birth</Text>
-                  <View style={s.field}>
-                    <View style={s.fieldIconWrap}>
-                      <Ionicons name="calendar-outline" size={19} color="#8B652F" />
-                    </View>
-                    <TextInput
-                      style={[s.fieldInput, { flex: 1 }]}
-                      placeholder="DD/MM/YYYY"
-                      placeholderTextColor="#5F6F8F"
-                      value={dob}
-                      onChangeText={onDobChange}
-                      keyboardType="numeric"
-                      maxLength={10}
-                    />
+                  {/* Send OTP button */}
+                  {!otpSent && (
                     <TouchableOpacity
-                      onPress={() => setShowDatePicker(true)}
-                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                      style={s.calendarBtn}
+                      style={s.sendOtpBtn}
+                      onPress={onSendOtp}
+                      disabled={otpSending}
+                      activeOpacity={0.75}
                     >
-                      <Ionicons name="calendar" size={21} color="#8B652F" />
+                      {otpSending ? (
+                        <ActivityIndicator color="#1A56DB" size="small" />
+                      ) : (
+                        <Text style={s.sendOtpTxt}>Send OTP</Text>
+                      )}
                     </TouchableOpacity>
-                  </View>
+                  )}
 
+                  {/* OTP input field */}
+                  {otpSent && (
+                    <>
+                      <Text style={s.label}>Enter OTP</Text>
+                      <View style={s.field}>
+                        <View style={s.fieldIconWrap}>
+                          <Ionicons name="key-outline" size={19} color="#8B652F" />
+                        </View>
+                        <TextInput
+                          style={s.fieldInput}
+                          placeholder="Enter 6-digit OTP"
+                          placeholderTextColor="#5F6F8F"
+                          value={otp}
+                          onChangeText={onOtpChange}
+                          keyboardType="number-pad"
+                          maxLength={6}
+                          autoFocus
+                        />
+                      </View>
+
+                      {/* Resend OTP */}
+                      <View style={s.resendRow}>
+                        {countdown > 0 ? (
+                          <Text style={s.resendDisabled}>
+                            Resend OTP in {countdown}s
+                          </Text>
+                        ) : (
+                          <TouchableOpacity onPress={onSendOtp} activeOpacity={0.7}>
+                            <Text style={s.resendTxt}>Resend OTP</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </>
+                  )}
                 </>
               )}
 
@@ -293,7 +343,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                 </>
               )}
 
-              {/* Remember me + Forgot */}
+              {/* Remember me + Forgot (hide Forgot for Driver) */}
               <View style={s.optRow}>
                 <TouchableOpacity style={s.remRow} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7}>
                   <View style={[s.cb, rememberMe && s.cbOn]}>
@@ -301,13 +351,15 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                   </View>
                   <Text style={s.remTxt}>Remember me</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate("AdminRecovery")} activeOpacity={0.7}>
-                  <Text style={s.forgotTxt}>Forgot Password?</Text>
-                </TouchableOpacity>
+                {activeRole !== "Driver" && (
+                  <TouchableOpacity onPress={() => navigation.navigate("AdminRecovery")} activeOpacity={0.7}>
+                    <Text style={s.forgotTxt}>Forgot Password?</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
-              {/* Sign In button */}
-              <TouchableOpacity style={s.btnOuter} onPress={onSubmit} disabled={loading} activeOpacity={0.85}>
+              {/* Sign In / Verify OTP button */}
+              <TouchableOpacity style={s.btnOuter} onPress={onSubmit} disabled={loading || (activeRole === "Driver" && !otpSent)} activeOpacity={0.85}>
                 <LinearGradient
                   colors={["#2D6CFB", "#1040CC"]}
                   start={{ x: 0, y: 0 }}
@@ -317,7 +369,9 @@ const LoginScreen = ({ navigation }: LoginProps) => {
                   {loading ? (
                     <ActivityIndicator color="#fff" size="small" style={{ flex: 1 }} />
                   ) : (
-                    <Text style={s.btnTxt}>Sign In</Text>
+                    <Text style={s.btnTxt}>
+                      {activeRole === "Driver" && otpSent ? "Verify OTP" : "Sign In"}
+                    </Text>
                   )}
                   <View style={s.btnArrow}>
                     {loading
@@ -334,17 +388,6 @@ const LoginScreen = ({ navigation }: LoginProps) => {
           </Pressable>
         </KeyboardAvoidingView>
       </SafeAreaView>
-
-      {/* Native Date Picker (Android inline / iOS modal) */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={dobDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          maximumDate={new Date()}
-          onChange={onDatePickerChange}
-        />
-      )}
 
       <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </View>
@@ -400,6 +443,13 @@ const s = StyleSheet.create({
   cbOn:      { backgroundColor: "#2D6CFB", borderColor: "#2D6CFB" },
   remTxt:    { fontSize: 14, color: "#4A6080" },
   forgotTxt: { fontSize: 14, fontWeight: "700", color: "#2D6CFB" },
+
+  sendOtpBtn: { backgroundColor: "#2D6CFB", borderRadius: 12, paddingVertical: 12, alignItems: "center", justifyContent: "center", marginBottom: 8, shadowColor: "#2D6CFB", shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5 },
+  sendOtpTxt: { fontSize: 15, fontWeight: "700", color: "#FFFFFF", letterSpacing: 0.3 },
+  
+  resendRow:      { flexDirection: "row", justifyContent: "flex-end", marginBottom: 8 },
+  resendTxt:      { fontSize: 14, fontWeight: "700", color: "#2D6CFB" },
+  resendDisabled: { fontSize: 14, fontWeight: "600", color: "#8B9DC3" },
 
   btnOuter: { borderRadius: 16, overflow: "hidden", shadowColor: "#2D6CFB", shadowOpacity: 0.32, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 10 },
   btnGrad:  { height: 50, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 20, borderRadius: 16 },
