@@ -29,15 +29,18 @@ public class DriverService {
     private final JwtService        jwtService;
     private final ClientRepository  clientRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final PhoneNumberNormalizer phoneNormalizer;
 
     public DriverService(DriverRepository driverRepository, AuthService authService,
                          JwtService jwtService, ClientRepository clientRepository,
-                         org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+                         org.springframework.security.crypto.password.PasswordEncoder passwordEncoder,
+                         PhoneNumberNormalizer phoneNormalizer) {
         this.driverRepository = driverRepository;
         this.authService      = authService;
         this.jwtService       = jwtService;
         this.clientRepository = clientRepository;
         this.passwordEncoder  = passwordEncoder;
+        this.phoneNormalizer  = phoneNormalizer;
     }
 
     private LocalDate parseDate(String value) {
@@ -56,43 +59,24 @@ public class DriverService {
         return value.length() > maxLen ? value.substring(0, maxLen) : value;
     }
 
-    /**
-     * Normalize Indian phone number to 10-digit format.
-     * Handles:
-     * - "+919876543210" → "9876543210"
-     * - "919876543210" → "9876543210"
-     * - "9876543210" → "9876543210"
-     * 
-     * This ensures the username field is always in a consistent format for OTP lookup.
-     */
-    private String normalizePhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.isBlank()) {
-            return null;
-        }
-        String cleaned = phoneNumber.trim();
-        // Remove +91 prefix if present
-        cleaned = cleaned.replaceAll("^\\+91", "");
-        // Remove 91 prefix if present (and number length would be correct after removal)
-        if (cleaned.startsWith("91") && cleaned.length() == 12) {
-            cleaned = cleaned.substring(2);
-        }
-        // Return the 10-digit number
-        return cleaned;
-    }
-
     public Driver createDriver(DriverRequest request) {
         Driver driver = new Driver();
         mapRequestToDriver(request, driver);
         Long ownerId = authService.resolveResourceOwner(request.getClientId());
         driver.setClientId(ownerId);
         driver.setOrgId(resolveOrgId(ownerId));
-        // FIX BUG-019: Normalize phone number to 10-digit format before setting username
-        // username = mobile number (10-digit), password = date of birth (DD/MM/YYYY) stored as plain text per requirement
+        
+        // FIX BUG-019: Normalize phone number to 10-digit format
+        // Store normalized phone as username for OTP lookup
+        // Also store normalized phone in phone_number field (satisfies constraint)
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
-            String normalizedPhone = normalizePhoneNumber(request.getPhoneNumber());
+            String normalizedPhone = phoneNormalizer.normalize(request.getPhoneNumber());
+            driver.setPhoneNumber(normalizedPhone);
             driver.setUsername(normalizedPhone);
-            log.info("[DriverService] Created driver with normalized username: {} (original: {})", normalizedPhone, request.getPhoneNumber());
+            log.info("[DriverService] Created driver with normalized phone/username: {} (original: {})", 
+                     normalizedPhone, request.getPhoneNumber());
         }
+        
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             driver.setPassword(request.getPassword().trim());
         }
@@ -159,13 +143,16 @@ public class DriverService {
             driver.setClientId(ownerId);
             driver.setOrgId(resolveOrgId(ownerId));
         }
-        // FIX BUG-019: Keep username in sync with phone number using normalized format
-        // password = date of birth (DD/MM/YYYY) stored as plain text per requirement
+        
+        // FIX BUG-019: Keep phone_number and username in sync using normalized format
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
-            String normalizedPhone = normalizePhoneNumber(request.getPhoneNumber());
+            String normalizedPhone = phoneNormalizer.normalize(request.getPhoneNumber());
+            driver.setPhoneNumber(normalizedPhone);
             driver.setUsername(normalizedPhone);
-            log.info("[DriverService] Updated driver username to normalized format: {} (original: {})", normalizedPhone, request.getPhoneNumber());
+            log.info("[DriverService] Updated driver phone/username to normalized format: {} (original: {})", 
+                     normalizedPhone, request.getPhoneNumber());
         }
+        
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             driver.setPassword(request.getPassword().trim());
         }
@@ -179,7 +166,7 @@ public class DriverService {
 
     private void mapRequestToDriver(DriverRequest request, Driver driver) {
         driver.setDriverName(truncate(request.getDriverName(), 50));
-        driver.setPhoneNumber(truncate(request.getPhoneNumber(), 15));
+        // Don't set phone_number here - it's set in createDriver/updateDriver with normalization
         if (request.getLicenseNumber() != null) driver.setLicenseNumber(truncate(request.getLicenseNumber(), 20));
         LocalDate expiry = parseDate(request.getLicenseExpiry());
         if (expiry != null) {

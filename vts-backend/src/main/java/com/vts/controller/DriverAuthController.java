@@ -61,10 +61,20 @@ public class DriverAuthController {
         }
 
         // Check if driver exists with this mobile number
-        log.info("[DriverAuth] Looking up driver by username: {}", cleanMobile);
-        Driver driver = driverRepository.findByUsername(cleanMobile).orElse(null);
+        // Try by phone_number first (primary field), then by username
+        log.info("[DriverAuth] Looking up driver by phone number: {}", cleanMobile);
+        Driver driver = driverRepository.findByPhoneNumber(cleanMobile).orElse(null);
+        
+        if (driver == null) {
+            // Try by username (in case username is different than phone_number)
+            log.info("[DriverAuth] Not found by phone_number, trying username lookup");
+            driver = driverRepository.findByUsername(cleanMobile).orElse(null);
+        }
+        
         if (driver == null) {
             log.warn("[DriverAuth] Driver not found with mobile: {}", cleanMobile);
+            // Debug: log all existing drivers to help diagnose the issue
+            logAllDriversForDebugging();
             return ResponseEntity.status(404).body(Map.of("error", "Driver not found with this mobile number"));
         }
         log.info("[DriverAuth] Driver found - ID: {}, Name: {}, Status: {}", driver.getId(), driver.getDriverName(), driver.getStatus());
@@ -115,8 +125,11 @@ public class DriverAuthController {
         if (!verified)
             return ResponseEntity.status(401).body(Map.of("error", "Invalid or expired OTP"));
 
-        // Get driver details
-        Driver driver = driverRepository.findByUsername(cleanMobile).orElse(null);
+        // Get driver details - try by phone_number first, then by username
+        Driver driver = driverRepository.findByPhoneNumber(cleanMobile).orElse(null);
+        if (driver == null) {
+            driver = driverRepository.findByUsername(cleanMobile).orElse(null);
+        }
         if (driver == null)
             return ResponseEntity.status(404).body(Map.of("error", "Driver not found"));
 
@@ -191,5 +204,28 @@ public class DriverAuthController {
             List.of(new SimpleGrantedAuthority("ROLE_DRIVER"))
         );
         return jwtService.generateToken(driverUser, claims);
+    }
+
+    /**
+     * DEBUG: Log all drivers in the database to help diagnose lookup issues.
+     */
+    private void logAllDriversForDebugging() {
+        try {
+            log.warn("[DriverAuth-DEBUG] ===== ALL DRIVERS IN DATABASE =====");
+            List<Driver> allDrivers = driverRepository.findAll();
+            log.warn("[DriverAuth-DEBUG] Total drivers in database: {}", allDrivers.size());
+            
+            for (Driver d : allDrivers) {
+                log.warn("[DriverAuth-DEBUG] Driver ID={}, Name={}, Username={}, PhoneNumber={}, Status={}",
+                    d.getId(), 
+                    d.getDriverName(), 
+                    d.getUsername(), 
+                    d.getPhoneNumber(),
+                    d.getStatus());
+            }
+            log.warn("[DriverAuth-DEBUG] ===== END DEBUG LOG =====");
+        } catch (Exception e) {
+            log.error("[DriverAuth-DEBUG] Error logging drivers: {}", e.getMessage(), e);
+        }
     }
 }
