@@ -47,6 +47,9 @@ public class LiveTrackingService {
     public LiveTrackingUpdate processTelemetry(TelemetryPayload p) {
         if (p.getVehicleId() == null || p.getLat() == null || p.getLng() == null) return null;
         String vid = p.getVehicleId();
+        
+        log.warn("🚨 TELEMETRY RECEIVED FOR: vehicle={} lat={} lng={} speed={}", 
+            vid, p.getLat(), p.getLng(), p.getSpeed());
 
         // ── CONDITION 1: vehicle exists ──────────────────────────────────────
         Map<String, Object> vData = queryVehicle(vid);
@@ -89,10 +92,14 @@ public class LiveTrackingService {
         }
 
         double speed = p.getSpeed() != null ? p.getSpeed() : 0;
+        double movementSincePreviousTelemetry = state.hasLastPosition
+            ? haversine.calculateDistance(state.lastLat, state.lastLng, p.getLat(), p.getLng())
+            : 0;
         state.lastSpeedKmh   = speed;
         state.lastLat        = p.getLat();
         state.lastLng        = p.getLng();
         state.lastUpdateTime = Instant.now();
+        state.hasLastPosition = true;
 
         // ── Find nearest route point → shrink polyline ────────────────────────
         HaversineDistance.NearestPointResult nearest =
@@ -117,7 +124,8 @@ public class LiveTrackingService {
 
         // ── Auto-update trip status based on actual progress ──────────────────
         if (tripData != null && state.tripId != null) {
-            autoUpdateTripStatus(state.tripId, speed, state.progressPct(), state.totalDistanceM);
+            autoUpdateTripStatus(state.tripId, speed, state.progressPct(), state.totalDistanceM,
+                movementSincePreviousTelemetry);
         }
 
         // ── Persist telemetry ─────────────────────────────────────────────────
@@ -202,7 +210,7 @@ public class LiveTrackingService {
 
                 try {
                     Map<String, Object> tripRow = jdbc.queryForMap("""
-                        SELECT custom_polyline::text AS custom_polyline
+                        SELECT trip_id, status, custom_polyline::text AS custom_polyline
                         FROM   public.trips
                         WHERE  vehicle_id = ?
                           AND  TRIM(status) NOT IN ('Completed', 'Cancelled')
@@ -226,6 +234,26 @@ public class LiveTrackingService {
                         remaining  = full;
                         remainingM = totalM;
                         deviated   = false; // no route = no deviation
+                    }
+
+                    String dbTripStatus = String.valueOf(tripRow.get("status")).trim();
+                    // Reconcile status when REST polling sees the vehicle at the destination.
+                    // The webhook is not guaranteed to be called for every ThingsBoard update.
+                    if ((progressPct >= 98.0 || remainingM <= 1.0)
+                            && totalM > 0 && !"Completed".equals(dbTripStatus)) {
+                        jdbc.update("""
+                            UPDATE public.trips
+                            SET status = 'Completed', end_date = COALESCE(end_date, NOW()), updated_at = NOW()
+                            WHERE trip_id = ? AND TRIM(status) IN ('Not Started', 'In Progress', 'Delayed')
+                            """, tripRow.get("trip_id"));
+                        tripStatus = "Completed";
+                    } else {
+                        tripStatus = dbTripStatus;
+                    }
+                    if (remainingM <= 1.0) {
+                        remainingM = 0;
+                        progressPct = 100.0;
+                        etaMins = 0;
                     }
                 } catch (Exception ex) {
                     log.debug("getCurrentState trip query failed for {}: {}", vehicleId, ex.getMessage());
@@ -272,7 +300,7 @@ public class LiveTrackingService {
                 u.setTripStatus(tripStatus);
                 u.setRemainingRoute(remaining);
                 u.setRemainingDistanceKm(remainingM / 1000.0);
-                u.setEtaMinutes(etaMins);
+                u.setEtaMinutes(remainingM <= 0 || progressPct >= 98.0 ? 0 : etaMins);
                 u.setProgressPercentage(progressPct);
                 u.setPopupData(popup);
                 u.setDeviating(deviated);
@@ -326,13 +354,16 @@ public class LiveTrackingService {
     }
 
     /**
-     * Auto-transition trip status based on vehicle movement:
-     *   Not Started → In Progress  (vehicle moving >= 5 km/h AND within 500m of start point)
+     * Auto-transition trip status based on vehicle movement and progress:
+     *   Not Started → In Progress  (vehicle moving >= 5 km/h AND progress >= 0.5%)
      *   Delayed → In Progress      (vehicle moving >= 5 km/h)
      *   In Progress / Delayed → Completed  (progress >= 98%)
      *   Not Started / In Progress → Delayed (time-based, set by TripDelayScheduler)
+     *
+     * CRITICAL: Completion takes highest priority - even Delayed trips auto-complete at 98% progress.
      */
-    private void autoUpdateTripStatus(String tripId, double speedKmh, double progressPct, double totalDistanceM) {
+    private void autoUpdateTripStatus(String tripId, double speedKmh, double progressPct,
+                                      double totalDistanceM, double movementSincePreviousTelemetry) {
         try {
             String current = jdbc.queryForObject(
                 "SELECT status FROM public.trips WHERE trip_id=?", String.class, tripId);
@@ -340,25 +371,59 @@ public class LiveTrackingService {
             current = current.trim();
 
             String next = current;
-            // Destination reached — highest priority, overrides Delayed too
-            if (("In Progress".equals(current) || "Delayed".equals(current))
+            
+            // PRIORITY 1: Destination reached — completion threshold at 98%
+            // This takes HIGHEST priority and overrides all other states (including Delayed)
+            // Rationale: GPS accuracy limitations mean vehicles rarely reach exact 100%
+                    if (("In Progress".equals(current) || "Delayed".equals(current))
+                    && movementSincePreviousTelemetry >= 20.0
                     && progressPct >= 98.0 && totalDistanceM > 0) {
                 next = "Completed";
-            } else if ("Not Started".equals(current) && speedKmh >= 5) {
+                log.info("Trip {} reached completion threshold: {:.2f}% progress", tripId, progressPct);
+            }
+            // PRIORITY 2: Trip started — vehicle has left start area and is moving
+                    else if ("Not Started".equals(current) && speedKmh >= 5
+                    && movementSincePreviousTelemetry >= 20.0) {
                 // Only transition Not Started → In Progress when vehicle is genuinely moving
                 // AND has progressed at least 0.5% along the route (left the start area)
-                if (progressPct >= 0.5 || totalDistanceM <= 0) {
+                // FIX: Removed "totalDistanceM <= 0" condition that was causing immediate status change
+                // Trips with no route should stay "Not Started" until vehicle moves significantly
+                if (totalDistanceM > 0 && progressPct >= 0.5) {
                     next = "In Progress";
                 }
-            } else if ("Delayed".equals(current) && speedKmh >= 5) {
-                next = "In Progress";
+            }
+            // PRIORITY 3: Resume from delay — vehicle is actively moving again
+                else if ("Delayed".equals(current) && speedKmh >= 5
+                    && movementSincePreviousTelemetry >= 20.0) {
+                // Only resume if not near completion (98%+ progress)
+                if (progressPct < 98.0) {
+                    next = "In Progress";
+                }
             }
 
             if (!next.equals(current)) {
-                jdbc.update("UPDATE public.trips SET status=?, updated_at=NOW() WHERE trip_id=?", next, tripId);
-                log.info("Trip {} status auto-updated: {} -> {}", tripId, current, next);
+                log.warn("⚠️ TRIP STATUS CHANGE: {} -> {}, progress={:.2f}%, speed={:.1f} km/h", 
+                    current, next, progressPct, speedKmh);
+                if ("Completed".equals(next)) {
+                    jdbc.update("""
+                        UPDATE public.trips
+                        SET status = ?, end_date = COALESCE(end_date, NOW()), updated_at = NOW()
+                        WHERE trip_id = ?
+                        """, next, tripId);
+                } else {
+                    jdbc.update("""
+                        UPDATE public.trips
+                        SET status = ?, start_date = COALESCE(start_date, NOW()),
+                            started_at = COALESCE(started_at, NOW()), updated_at = NOW()
+                        WHERE trip_id = ?
+                        """, next, tripId);
+                }
+                log.info("Trip {} status auto-updated: {} -> {} (progress: {:.2f}%, speed: {:.1f} km/h)",
+                    tripId, current, next, progressPct, speedKmh);
             }
-        } catch (Exception e) { log.warn("autoUpdateTripStatus failed: {}", e.getMessage()); }
+        } catch (Exception e) { 
+            log.warn("autoUpdateTripStatus failed for trip {}: {}", tripId, e.getMessage());
+        }
     }
 
     private void saveTelemetry(String vid, String driverName, Long clientId, TelemetryPayload p) {

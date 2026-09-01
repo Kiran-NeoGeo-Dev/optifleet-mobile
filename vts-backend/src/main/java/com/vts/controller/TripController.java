@@ -38,7 +38,14 @@ public class TripController {
 
     @GetMapping
     public ResponseEntity<List<Trip>> list() {
-        return ResponseEntity.ok(tripService.getTripsForCurrentClient());
+        List<Trip> trips = tripService.getTripsForCurrentClient();
+        org.slf4j.LoggerFactory.getLogger(TripController.class)
+            .info("GET /api/trips returning {} trips", trips.size());
+        for (Trip t : trips) {
+            org.slf4j.LoggerFactory.getLogger(TripController.class)
+                .info("  - Trip {}: id={}, status={}, vehicleId={}", t.getTripId(), t.getId(), t.getStatus(), t.getVehicleId());
+        }
+        return ResponseEntity.ok(trips);
     }
 
     @PutMapping("/{id}")

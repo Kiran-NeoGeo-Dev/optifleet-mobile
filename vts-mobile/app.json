@@ -2,41 +2,46 @@
   "expo": {
     "name": "OptiFleet",
     "slug": "vts-mobile",
-    "jsEngine": "hermes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/OptiFleet.png",
     "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/images/OptiFleet.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "assetBundlePatterns": [
       "**/*"
     ],
+
     "ios": {
       "supportsTablet": false
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/OptiFleet.png",
         "backgroundColor": "#1A3A5C"
       },
       "package": "com.neogeo.vtsmobile",
-      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
+
     "extra": {
       "eas": {
         "projectId": "d8e6bd09-986b-4dd6-975d-1e7308549c45"
       }
     },
+
     "owner": "kiran_maradana",
+
     "plugins": [
       "expo-secure-store",
       [

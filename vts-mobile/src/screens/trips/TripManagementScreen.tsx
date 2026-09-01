@@ -72,7 +72,11 @@ const TripManagementScreen = ({ navigation }: Props) => {
     if (!silent) setLoading(true);
     try {
       const res = await api.get<TripItem[]>(ENDPOINTS.TRIPS);
-      setTrips(Array.isArray(res.data) ? res.data : []);
+      const tripData = Array.isArray(res.data) ? res.data : [];
+      // DEBUG: Log trip statuses received from API
+      console.log(`[TripManagement] Loaded ${tripData.length} trips from API:`, 
+        tripData.map(t => ({tripId: t.tripId, status: t.status})));
+      setTrips(tripData);
     } catch {
       if (!silent) showToast("Failed to load trips.", "error");
     } finally {

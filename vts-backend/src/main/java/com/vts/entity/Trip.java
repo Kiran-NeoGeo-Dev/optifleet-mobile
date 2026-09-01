@@ -55,10 +55,32 @@ public class Trip {
     private Integer driverId;
 
     @Column(name = "status", length = 20)
-    private String status = "Not Started";
+    private String status = "Not Started";  // Valid values: "Not Started", "In Progress", "Completed", "Delayed"
 
     @Column(name = "planned_end_time")
     private OffsetDateTime plannedEndTime;
+
+    // Additional database columns (schema mismatch fix)
+    @Column(name = "start_date")
+    private OffsetDateTime startDate;
+
+    @Column(name = "end_date")
+    private OffsetDateTime endDate;
+
+    @Column(name = "started_at")
+    private OffsetDateTime startedAt;
+
+    @Column(name = "travelled_distance_km")
+    private Double travelledDistanceKm;
+
+    @Column(name = "distance_traveled_km")
+    private Double distanceTraveledKm;
+
+    @Column(name = "last_tracked_lat")
+    private Double lastTrackedLat;
+
+    @Column(name = "last_tracked_lng")
+    private Double lastTrackedLng;
 
     @Column(name = "client_id")
     private Long clientId;
@@ -106,6 +128,20 @@ public class Trip {
     public void setStatus(String v)               { this.status = v; }
     public OffsetDateTime getPlannedEndTime()      { return plannedEndTime; }
     public void setPlannedEndTime(OffsetDateTime v){ this.plannedEndTime = v; }
+    public OffsetDateTime getStartDate()          { return startDate; }
+    public void setStartDate(OffsetDateTime v)    { this.startDate = v; }
+    public OffsetDateTime getEndDate()            { return endDate; }
+    public void setEndDate(OffsetDateTime v)      { this.endDate = v; }
+    public OffsetDateTime getStartedAt()          { return startedAt; }
+    public void setStartedAt(OffsetDateTime v)    { this.startedAt = v; }
+    public Double getTravelledDistanceKm()        { return travelledDistanceKm; }
+    public void setTravelledDistanceKm(Double v)  { this.travelledDistanceKm = v; }
+    public Double getDistanceTraveledKm()         { return distanceTraveledKm; }
+    public void setDistanceTraveledKm(Double v)   { this.distanceTraveledKm = v; }
+    public Double getLastTrackedLat()             { return lastTrackedLat; }
+    public void setLastTrackedLat(Double v)       { this.lastTrackedLat = v; }
+    public Double getLastTrackedLng()             { return lastTrackedLng; }
+    public void setLastTrackedLng(Double v)       { this.lastTrackedLng = v; }
     public Long getClientId()                     { return clientId; }
     public void setClientId(Long v)               { this.clientId = v; }
     public String getCreatedBy()                  { return createdBy; }

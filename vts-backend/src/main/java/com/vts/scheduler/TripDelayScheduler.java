@@ -33,9 +33,10 @@ public class TripDelayScheduler {
     @Scheduled(fixedDelay = 60_000)
     public void markDelayedTrips() {
         try {
-            // Only mark "In Progress" trips as "Delayed" when time exceeds planned end time.
-            // "Not Started" trips should NOT become "Delayed" just because time passed.
-            // They should only transition to "In Progress" when vehicle actually moves.
+            // CRITICAL FIX: Only mark "In Progress" trips as "Delayed" when time exceeds planned end time.
+            // DO NOT mark "Not Started" trips as "Delayed" just because time passed.
+            // New trips with short durations (e.g., 6 minutes) would immediately be marked as Delayed.
+            // Instead, "Not Started" trips should ONLY transition to "In Progress" when vehicle actually moves.
             int updated = jdbc.update("""
                 UPDATE public.trips
                 SET    status = 'Delayed', updated_at = NOW()

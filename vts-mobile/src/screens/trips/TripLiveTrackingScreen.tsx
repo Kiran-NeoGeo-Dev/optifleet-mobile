@@ -59,8 +59,13 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
         const u = res.data;
         if (!u || u.lat == null) return;
         setRemainingKm(u.remainingDistanceKm != null ? Number.parseFloat(u.remainingDistanceKm.toFixed(1)) : null);
-        setEtaMin(u.etaMinutes != null ? Math.round(u.etaMinutes) : null);
-        setProgress(u.progressPercentage != null ? Number.parseFloat(u.progressPercentage.toFixed(1)) : 0);
+        const nextRemainingKm = u.remainingDistanceKm != null
+          ? Number.parseFloat(u.remainingDistanceKm.toFixed(1)) : null;
+        const nextProgress = u.progressPercentage != null
+          ? Number.parseFloat(u.progressPercentage.toFixed(1)) : 0;
+        setEtaMin(nextRemainingKm != null && nextRemainingKm <= 0 || nextProgress >= 98
+          ? 0 : (u.etaMinutes != null ? Math.round(u.etaMinutes) : null));
+        setProgress(nextProgress);
         setLiveSpeed(u.speed ?? 0);
         setIsDeviating(u.isDeviating ?? false);
         if (u.popupData) { setPopup(u.popupData); processPopup(u.popupData); }
@@ -113,7 +118,9 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
     } catch { /* silent */ }
   };
 
-  const etaLabel = etaMin != null && etaMin > 0
+  const etaLabel = remainingKm != null && remainingKm <= 0
+    ? "0min"
+    : etaMin != null && etaMin > 0
     ? (etaMin >= 60 ? `${Math.floor(etaMin / 60)}h ${etaMin % 60}min` : `${etaMin}min`)
     : (trip.duration ?? "—");
   const distLabel = remainingKm != null ? `${remainingKm} km` : (trip.distanceKm ? `${trip.distanceKm} km` : "—");

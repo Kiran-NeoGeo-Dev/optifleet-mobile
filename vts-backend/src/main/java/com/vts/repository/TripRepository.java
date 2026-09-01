@@ -45,7 +45,9 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
         "SELECT t.id, t.trip_id, t.trip_name, t.vehicle_id, t.driver_id, t.driver_name, " +
         "t.start_place, t.end_place, t.start_lat, t.start_lng, t.end_lat, t.end_lng, " +
         "t.distance_km, t.duration, t.status, t.client_id, t.created_by, t.created_at, t.updated_at, " +
-        "t.custom_polyline, t.planned_end_time " +
+        "t.custom_polyline, t.planned_end_time, " +
+        "t.start_date, t.end_date, t.started_at, t.travelled_distance_km, t.distance_traveled_km, " +
+        "t.last_tracked_lat, t.last_tracked_lng " +
         "FROM public.trips t " +
         "INNER JOIN public.drivers d ON t.driver_id = d.id " +
         "WHERE t.driver_id = :driverId " +

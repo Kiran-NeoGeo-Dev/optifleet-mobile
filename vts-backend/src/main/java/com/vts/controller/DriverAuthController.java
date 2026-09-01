@@ -143,6 +143,7 @@ public class DriverAuthController {
      * @deprecated This endpoint is kept for backward compatibility but is no longer the primary login method.
      * New clients should use OTP-based login (/send-otp and /verify-otp).
      */
+    @Deprecated
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         String mobileNumber = body.get("mobileNumber");

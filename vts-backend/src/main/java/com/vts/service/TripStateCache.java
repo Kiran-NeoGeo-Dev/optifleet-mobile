@@ -1,12 +1,13 @@
 package com.vts.service;
 
-import com.vts.model.RoutePoint;
-import org.springframework.stereotype.Component;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.stereotype.Component;
+
+import com.vts.model.RoutePoint;
 
 @Component
 public class TripStateCache {
@@ -25,6 +26,7 @@ public class TripStateCache {
         public Instant          lastUpdateTime;
         public double           lastLat;
         public double           lastLng;
+        public boolean          hasLastPosition;
         public com.vts.model.VehiclePopupData lastPopup;
 
         public double progressPct() {

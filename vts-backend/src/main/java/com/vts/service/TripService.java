@@ -9,6 +9,8 @@ import com.vts.repository.DriverRepository;
 import com.vts.repository.TripRepository;
 import com.vts.repository.TripStopRepository;
 import com.vts.repository.VehicleRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,8 @@ import java.util.Optional;
 
 @Service
 public class TripService {
+    
+    private static final Logger log = LoggerFactory.getLogger(TripService.class);
 
     private final TripRepository        tripRepository;
     private final DriverRepository      driverRepository;
@@ -26,16 +30,18 @@ public class TripService {
     private final VehicleRepository     vehicleRepository;
     private final AssociationRepository associationRepository;
     private final TripStopRepository    tripStopRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public TripService(TripRepository tripRepository, DriverRepository driverRepository, AuthService authService,
                        VehicleRepository vehicleRepository, AssociationRepository associationRepository,
-                       TripStopRepository tripStopRepository) {
+                       TripStopRepository tripStopRepository, org.springframework.jdbc.core.JdbcTemplate jdbc) {
         this.tripRepository        = tripRepository;
         this.driverRepository      = driverRepository;
         this.authService           = authService;
         this.vehicleRepository     = vehicleRepository;
         this.associationRepository = associationRepository;
         this.tripStopRepository    = tripStopRepository;
+        this.jdbc                  = jdbc;
     }
 
     @Transactional
@@ -53,7 +59,7 @@ public class TripService {
                 .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
         authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
         if (req.getDriverId() != null) {
-            var driver = driverRepository.findById(req.getDriverId().longValue())
+            var driver = driverRepository.findById(req.getDriverId() != null ? Long.valueOf(req.getDriverId()) : null)
                     .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
             authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
             if (!java.util.Objects.equals(vehicle.getOrgId(), driver.getOrgId()))
@@ -79,11 +85,68 @@ public class TripService {
         trip.setCreatedAt(now);
         trip.setUpdatedAt(now);
         trip.setPlannedEndTime(parsePlannedEndTime(req.getDuration(), now));
+        
+        // Explicitly set database columns that are not in the original entity
+        // These must match database constraints (some are NOT NULL)
+        trip.setStartDate(null);               // nullable - will be set when trip actually starts
+        trip.setEndDate(null);                 // nullable - will be set when trip completes
+        trip.setStartedAt(null);               // nullable - will be set when trip actually starts
+        trip.setTravelledDistanceKm(0.0);      // NOT NULL constraint - must be 0.0, not null
+        trip.setDistanceTraveledKm(0.0);       // NOT NULL constraint - must be 0.0, not null
+        trip.setLastTrackedLat(null);          // nullable - no telemetry yet
+        trip.setLastTrackedLng(null);          // nullable - no telemetry yet
+        
         if (client != null) {
             trip.setClientId(vehicle.getClientId());
             trip.setCreatedBy(client.getUsername());
         }
+        
         Trip saved = tripRepository.save(trip);
+        log.info("Trip created (after JPA save): tripId={}, status={}",saved.getTripId(), saved.getStatus());
+        
+        // Force sync with database
+        tripRepository.flush();
+        log.info("Trip after flush: tripId={}, status={}", saved.getTripId(), saved.getStatus());
+        
+        // Direct SQL query to see what's ACTUALLY in the database
+        try {
+            String dbStatus = jdbc.queryForObject(
+                "SELECT status FROM public.trips WHERE trip_id = ?",
+                String.class, saved.getTripId());
+            log.info("Trip status from raw SQL: tripId={}, status={}", saved.getTripId(), dbStatus);
+
+            // A database trigger or rule may rewrite the initial status during INSERT.
+            // Correct it before this transaction returns the newly created trip.
+            if (!"Not Started".equals(dbStatus == null ? null : dbStatus.trim())) {
+                log.warn("Database rewrote new trip {} status to '{}'; restoring Not Started",
+                    saved.getTripId(), dbStatus);
+                jdbc.update("""
+                    UPDATE public.trips
+                    SET status = 'Not Started',
+                        start_date = NULL,
+                        started_at = NULL,
+                        updated_at = NOW()
+                    WHERE trip_id = ?
+                    """, saved.getTripId());
+                saved.setStatus("Not Started");
+                saved.setStartDate(null);
+                saved.setStartedAt(null);
+
+                String correctedStatus = jdbc.queryForObject(
+                    "SELECT status FROM public.trips WHERE trip_id = ?",
+                    String.class, saved.getTripId());
+                if (!"Not Started".equals(correctedStatus == null ? null : correctedStatus.trim())) {
+                    throw new IllegalStateException(
+                        "Database changed new trip status back to '" + correctedStatus
+                            + "'. Remove the trips INSERT/UPDATE trigger before creating trips.");
+                }
+            }
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Could not query trip status from DB: {}", e.getMessage());
+        }
+        
         saveTripStops(saved.getTripId(), req.getTripStops());
         return saved;
     }
@@ -180,7 +243,7 @@ public class TripService {
         }
         var vehicle = vehicleRepository.findByLicensePlate(vehicleId)
                 .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
-        var driver = driverRepository.findById(driverId.longValue())
+        var driver = driverRepository.findById(driverId != null ? Long.valueOf(driverId) : null)
                 .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
         authService.requireOrgAccess(vehicle.getOrgId(), vehicle.getClientId());
         authService.requireOrgAccess(driver.getOrgId(), driver.getClientId());
