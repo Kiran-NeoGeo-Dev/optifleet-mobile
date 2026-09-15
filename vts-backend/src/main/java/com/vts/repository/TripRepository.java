@@ -55,4 +55,12 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
         "ORDER BY t.created_at DESC LIMIT 1",
         nativeQuery = true)
     Optional<Trip> findActiveByDriverId(@Param("driverId") Long driverId);
+
+    // BUG-007: Find all trips for a driver (for name synchronization)
+    @Query(value = "SELECT * FROM public.trips WHERE driver_id = :driverId", nativeQuery = true)
+    List<Trip> findByDriverId(@Param("driverId") Integer driverId);
+
+    // BUG-008: Find all trips for a vehicle (for registration number synchronization)
+    @Query(value = "SELECT * FROM public.trips WHERE vehicle_id = :vehicleId", nativeQuery = true)
+    List<Trip> findByVehicleId(@Param("vehicleId") String vehicleId);
 }

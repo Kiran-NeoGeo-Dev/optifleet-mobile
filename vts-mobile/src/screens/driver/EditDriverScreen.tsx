@@ -52,10 +52,25 @@ const EditDriverScreen = ({ route, navigation }: Props) => {
 
   const validate = () => {
     const e: Record<string, string> = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     if (!driverName.trim()) e.driverName = "Driver name is required.";
     else if (!/^[a-zA-Z\s]+$/.test(driverName.trim())) e.driverName = "Letters and spaces only.";
     if (!phoneNumber.trim()) e.phoneNumber = "Phone number is required.";
     else if (!/^\d{10}$/.test(phoneNumber.trim())) e.phoneNumber = "Must be exactly 10 digits.";
+    
+    // BUG-006: Validate minimum driving age (18 years)
+    if (dob.trim() && /^\d{2}\/\d{2}\/\d{4}$/.test(dob.trim())) {
+      const [day, month, year] = dob.trim().split('/').map(Number);
+      const birthDate = new Date(year, month - 1, day);
+      const ageInYears = (today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+      if (ageInYears < 18) {
+        showToast("Driver does not meet the minimum required driving age.", "warning");
+        return false;
+      }
+    }
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };

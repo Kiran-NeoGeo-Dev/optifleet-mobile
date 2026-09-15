@@ -84,8 +84,28 @@ const EditVehicleScreen = ({ route, navigation }: Props) => {
     if (!result.canceled && result.assets[0].base64) setPhoto(result.assets[0].base64);
   };
 
+  const validate = (): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // BUG-003: Validate Manufacturing Date is not in the future
+    if (dateOfMfg && dateOfMfg > today) {
+      showToast("Manufacturing Date cannot be a future date.", "warning");
+      return false;
+    }
+
+    // BUG-004 & BUG-005: Validate Insurance Date >= Registration Date
+    if (insDate && dateOfReg && insDate < dateOfReg) {
+      showToast("Insurance Date cannot be earlier than Vehicle Registration Date.", "warning");
+      return false;
+    }
+
+    return true;
+  };
+
   const onSubmit = async () => {
     if (!regNum.trim()) { showToast("Vehicle Registration Number is required.", "warning"); return; }
+    if (!validate()) return;
     setLoading(true);
     try {
       await updateVehicle(vehicleId, {

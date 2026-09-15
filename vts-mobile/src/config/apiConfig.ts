@@ -13,7 +13,6 @@ export const API_BASE_URL = "http://192.168.1.70:8086";
 
 //export const API_BASE_URL = "http://vtsweb.neogeoinfo.in:8787";
 
-
 export const ENDPOINTS = {
   LOGIN: "/api/auth/login",
   FORGOT_PASSWORD_MESSAGE: "/api/auth/forgot-password-message",

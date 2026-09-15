@@ -2,10 +2,15 @@ package com.vts.service;
 
 import com.vts.dto.VehicleRequest;
 import com.vts.entity.Client;
+import com.vts.entity.Trip;
 import com.vts.entity.Vehicle;
 import com.vts.exception.ResourceNotFoundException;
+import com.vts.repository.TripRepository;
 import com.vts.repository.VehicleRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,11 +21,16 @@ import java.util.List;
 @Service
 public class VehicleService {
 
+    private static final Logger log = LoggerFactory.getLogger(VehicleService.class);
+
     private final VehicleRepository vehicleRepository;
+    private final TripRepository    tripRepository;
     private final AuthService       authService;
 
-    public VehicleService(VehicleRepository vehicleRepository, AuthService authService) {
+    public VehicleService(VehicleRepository vehicleRepository, TripRepository tripRepository, 
+                          AuthService authService) {
         this.vehicleRepository = vehicleRepository;
+        this.tripRepository    = tripRepository;
         this.authService       = authService;
     }
 
@@ -77,8 +87,11 @@ public class VehicleService {
         vehicleRepository.delete(vehicle);
     }
 
+    @Transactional
     public Vehicle updateVehicle(Long vehicleId, VehicleRequest request) {
         Vehicle vehicle = getVehicle(vehicleId);
+        String oldRegistrationNo = vehicle.getLicensePlate();
+        
         mapRequestToEntity(request, vehicle);
         // Fix: update clientId when admin reassigns vehicle to different user (FIX BUG-003)
         if (request.getClientId() != null) {
@@ -88,11 +101,26 @@ public class VehicleService {
                 vehicle.setOrgId(authService.resolveResourceOrgId(ownerId));
             } catch (Exception e) {
                 // Log error and keep existing clientId if resolution fails
-                org.slf4j.LoggerFactory.getLogger(VehicleService.class)
-                    .warn("Failed to resolve clientId {}: {}", request.getClientId(), e.getMessage());
+                log.warn("Failed to resolve clientId {}: {}", request.getClientId(), e.getMessage());
             }
         }
-        return vehicleRepository.save(vehicle);
+        Vehicle savedVehicle = vehicleRepository.save(vehicle);
+        
+        // BUG-008: Synchronize vehicle registration number across all trips when it changes
+        String newRegistrationNo = savedVehicle.getLicensePlate();
+        if (newRegistrationNo != null && !newRegistrationNo.equals(oldRegistrationNo)) {
+            List<Trip> trips = tripRepository.findByVehicleId(oldRegistrationNo);
+            if (!trips.isEmpty()) {
+                log.info("[VehicleService] Synchronizing vehicle ID from '{}' to '{}' across {} trips", 
+                         oldRegistrationNo, newRegistrationNo, trips.size());
+                for (Trip trip : trips) {
+                    trip.setVehicleId(newRegistrationNo);
+                }
+                tripRepository.saveAll(trips);
+            }
+        }
+        
+        return savedVehicle;
     }
 
     private void mapRequestToEntity(VehicleRequest request, Vehicle vehicle) {
@@ -107,11 +135,23 @@ public class VehicleService {
         if (request.getVehicleMake() != null)         vehicle.setVehicleMake(request.getVehicleMake());
         if (request.getVehicleModel() != null)        vehicle.setVehicleModel(request.getVehicleModel());
         LocalDate mfgDate = parseDate(request.getDateOfManufacturing());
-        if (mfgDate != null)                          vehicle.setDateOfManufacturing(mfgDate);
+        // BUG-003: Validate Manufacturing Date is not in the future
+        if (mfgDate != null) {
+            if (mfgDate.isAfter(LocalDate.now())) {
+                throw new IllegalArgumentException("Manufacturing Date cannot be a future date.");
+            }
+            vehicle.setDateOfManufacturing(mfgDate);
+        }
         if (request.getFuelType() != null)            vehicle.setFuelType(request.getFuelType());
         if (request.getInsuranceNumber() != null)     vehicle.setInsuranceNumber(request.getInsuranceNumber());
         LocalDate insDate = parseDate(request.getVehicleInsuranceDate());
-        if (insDate != null)                          vehicle.setInsuranceDate(insDate);
+        // BUG-004 & BUG-005: Validate Insurance Date >= Registration Date
+        if (insDate != null) {
+            if (regDate != null && insDate.isBefore(regDate)) {
+                throw new IllegalArgumentException("Insurance Date cannot be earlier than Vehicle Registration Date.");
+            }
+            vehicle.setInsuranceDate(insDate);
+        }
         LocalDate pucDate = parseDate(request.getLastPucDate());
         if (pucDate != null)                          vehicle.setLastPucDate(pucDate);
         LocalDate pucDue = parseDate(request.getPucDueOn());

@@ -224,6 +224,15 @@ const AddDriverScreen = ({ navigation }: Props) => {
       e.dob = "This field is required.";
     else if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dob.trim()))
       e.dob = "Please enter date in DD/MM/YYYY format.";
+    // BUG-006: Validate minimum driving age (18 years)
+    else {
+      const [day, month, year] = dob.trim().split('/').map(Number);
+      const birthDate = new Date(year, month - 1, day);
+      const ageInYears = (today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+      if (ageInYears < 18) {
+        e.dob = "Driver does not meet the minimum required driving age.";
+      }
+    }
 
     if (comments.trim().length > 250)
       e.comments = "Maximum 250 characters allowed.";

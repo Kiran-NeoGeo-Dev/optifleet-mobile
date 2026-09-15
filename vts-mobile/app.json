@@ -10,7 +10,8 @@
     "splash": {
       "image": "./assets/images/OptiFleet.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "tabletBackgroundColor": "#ffffff"
     },
 
     "assetBundlePatterns": [
@@ -24,14 +25,20 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/OptiFleet.png",
-        "backgroundColor": "#1A3A5C"
+        "backgroundColor": "#ffffff"
       },
       "package": "com.neogeo.vtsmobile",
+      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS"
-      ]
+      ],
+      "splash": {
+        "image": "./assets/images/OptiFleet.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     },
 
     "extra": {

@@ -273,6 +273,9 @@ const AddVehicleScreen = ({ navigation }: Props) => {
       e.insNum = "Please enter a valid insurance number (8–25 alphanumeric characters).";
     if (!insDate)
       e.insDate = "This field is required.";
+    // BUG-004: Validate Insurance Date >= Registration Date
+    else if (dateOfReg && insDate < dateOfReg)
+      e.insDate = "Insurance Date cannot be earlier than Vehicle Registration Date.";
     if (!lastPuc)
       e.lastPuc = "This field is required.";
     if (!pucDue)

@@ -143,7 +143,7 @@ const LoginScreen = ({ navigation }: LoginProps) => {
         const { token, clientId, username: uname, role } = res.data;
         showToast("Login successful! Welcome to OptiFleet.", "success");
         setAuthToken(token);
-        setTimeout(() => setAuth(token, uname, clientId, role), 1500);
+        setAuth(token, uname, clientId, role);
       } catch (e: any) {
         showToast(e?.response?.data?.error || "Invalid OTP. Please try again.", "error");
       } finally {
@@ -166,11 +166,22 @@ const LoginScreen = ({ navigation }: LoginProps) => {
         return;
       }
       showToast("Login successful! Welcome to OptiFleet.", "success");
-      setTimeout(() => setAuth(res.token, res.username, res.clientId, res.role ?? "Client"), 1800);
+      setAuth(res.token, res.username, res.clientId, res.role ?? "Client");
     } catch (e: any) {
       const is401     = e?.response?.status === 401;
       const serverMsg = e?.response?.data?.message;
-      showToast(is401 || serverMsg ? "Invalid username or password." : "Network error — check backend is running.", "error");
+      const errorMsg  = e?.message || "";
+      
+      // Detect SSL/certificate errors
+      if (errorMsg.includes("CERTIFICATE_VERIFY_FAILED") || errorMsg.includes("CERT_UNTRUSTED") || errorMsg.includes("EHOSTUNREACH")) {
+        showToast("SSL Certificate Error: Cannot connect to server. Ensure backend is running and certificate is valid.", "error");
+      } else if (is401 || serverMsg) {
+        showToast("Invalid username or password.", "error");
+      } else if (errorMsg.includes("timeout") || errorMsg.includes("ECONNREFUSED")) {
+        showToast("Connection timeout: Cannot reach backend server. Check network and backend status.", "error");
+      } else {
+        showToast("Network error — check backend is running.", "error");
+      }
     } finally {
       setLoading(false);
     }
