@@ -1,5 +1,5 @@
 // Production — public IP, works on any network (mobile data, WiFi, etc.)
-export const API_BASE_URL = "http://192.168.1.70:8086";
+export const API_BASE_URL = "http://10.144.12.165:8086";
 
 // Testing on local machine
 //export const API_BASE_URL = "http://localhost:8085";
@@ -11,7 +11,7 @@ export const API_BASE_URL = "http://192.168.1.70:8086";
 
 // Custom domain
 
-//export const API_BASE_URL = "http://vtsweb.neogeoinfo.in:8787";
+// export const API_BASE_URL = "http://optifleet.neogeoinfo.in:8787";
 
 export const ENDPOINTS = {
   LOGIN: "/api/auth/login",

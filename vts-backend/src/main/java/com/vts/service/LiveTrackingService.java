@@ -25,17 +25,20 @@ public class LiveTrackingService {
     private final TripStateCache        cache;
     private final SimpMessagingTemplate ws;
     private final ThingsBoardDirectQueryService thingsBoardDirectQueryService;
+    private final DistanceTrackingService distanceTrackingService;
 
     public LiveTrackingService(JdbcTemplate jdbc, ThingsBoardConfig config,
                                HaversineDistance haversine, TripStateCache cache,
                                SimpMessagingTemplate ws,
-                               ThingsBoardDirectQueryService thingsBoardDirectQueryService) {
+                               ThingsBoardDirectQueryService thingsBoardDirectQueryService,
+                               DistanceTrackingService distanceTrackingService) {
         this.jdbc      = jdbc;
         this.config    = config;
         this.haversine = haversine;
         this.cache     = cache;
         this.ws        = ws;
         this.thingsBoardDirectQueryService = thingsBoardDirectQueryService;
+        this.distanceTrackingService = distanceTrackingService;
     }
 
     /**
@@ -66,6 +69,10 @@ public class LiveTrackingService {
         Map<String, Object> tripData = queryTrip(vid, clientId);
 
         log.info("CONDITIONS PASSED → live tracking: {} (trip={})", vid, tripData != null ? tripData.get("trip_id") : "none");
+
+        // ── UPDATE DISTANCE TRAVELLED ─────────────────────────────────────────
+        String activeTripId = tripData != null ? (String) tripData.get("trip_id") : null;
+        distanceTrackingService.updateDistanceTravelled(vid, p.getLat(), p.getLng(), activeTripId);
 
         // ── Init or get in-memory state ───────────────────────────────────────
         TripStateCache.State state = cache.get(vid);

@@ -31,6 +31,7 @@ export interface TripItem {
   customPolyline: string | null;
   updatedAt?: string;
   plannedEndTime?: string | null;
+  distanceTraveledKm?: number;
 }
 
 const { width: SW } = Dimensions.get("window");
@@ -166,6 +167,12 @@ const TripManagementScreen = ({ navigation }: Props) => {
               <Ionicons name="person-circle-outline" size={12} color="#0D3B8E" />
               <Text style={styles.chipTxt}>{item.driverName || "—"}</Text>
             </View>
+            {item.distanceTraveledKm != null && item.distanceTraveledKm > 0 && (
+              <View style={[styles.chip, styles.chipTravelled]}>
+                <Ionicons name="navigate-outline" size={12} color="#059669" />
+                <Text style={[styles.chipTxt, { color: "#047857" }]}>{item.distanceTraveledKm.toFixed(1)} km</Text>
+              </View>
+            )}
             {item.distanceKm > 0 && (
               <View style={[styles.chip, styles.chipDist]}>
                 <Ionicons name="speedometer-outline" size={12} color="#B45309" />
@@ -373,6 +380,7 @@ const styles = StyleSheet.create({
   // Chips
   chipsRow:         { flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 10 },
   chip:             { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#EFF6FF", borderRadius: 7, paddingHorizontal: 7, paddingVertical: 4, borderWidth: 1, borderColor: "#BFDBFE" },
+  chipTravelled:    { backgroundColor: "#D1FAE5", borderColor: "#6EE7B7" },
   chipDist:         { backgroundColor: "#FFFBEB", borderColor: "#FDE68A" },
   chipDuration:     { backgroundColor: "#F5F3FF", borderColor: "#DDD6FE" },
   chipTxt:          { fontSize: 10, color: "#1E3A6D", fontWeight: "700" },

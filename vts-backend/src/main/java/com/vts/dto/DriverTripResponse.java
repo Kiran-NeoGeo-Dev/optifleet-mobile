@@ -15,6 +15,7 @@ public class DriverTripResponse {
     private String  duration;
     private String  status;
     private String  customPolyline;
+    private Double  distanceTraveledKm;
     private java.util.List<TripStopDto> tripStops;
 
     public static class TripStopDto {
@@ -47,6 +48,7 @@ public class DriverTripResponse {
         this.duration       = t.getDuration();
         this.status         = t.getStatus();
         this.customPolyline = t.getCustomPolyline();
+        this.distanceTraveledKm = t.getDistanceTraveledKm();
         this.tripStops      = stops != null
             ? stops.stream().map(s -> new TripStopDto(
                 s.getStopOrder(), s.getStopName(),
@@ -69,5 +71,6 @@ public class DriverTripResponse {
     public String  getDuration()                            { return duration; }
     public String  getStatus()                              { return status; }
     public String  getCustomPolyline()                      { return customPolyline; }
+    public Double  getDistanceTraveledKm()                  { return distanceTraveledKm; }
     public java.util.List<TripStopDto> getTripStops()       { return tripStops; }
 }

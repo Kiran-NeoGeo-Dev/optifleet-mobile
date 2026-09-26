@@ -13,4 +13,5 @@ export interface Driver {
   frontFaceImage?: string;
   leftFaceImage?: string;
   rightFaceImage?: string;
+  kmTravelled?: number;
 }

@@ -70,6 +70,9 @@ public class Vehicle {
     @Column(name = "org_id")
     private Long orgId;
 
+    @Column(name = "km_travelled")
+    private Double kmTravelled = 0.0;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getLicensePlate() { return licensePlate; }
@@ -110,4 +113,6 @@ public class Vehicle {
     public void setClientId(Long clientId) { this.clientId = clientId; }
     public Long getOrgId() { return orgId; }
     public void setOrgId(Long orgId) { this.orgId = orgId; }
+    public Double getKmTravelled() { return kmTravelled; }
+    public void setKmTravelled(Double kmTravelled) { this.kmTravelled = kmTravelled; }
 }

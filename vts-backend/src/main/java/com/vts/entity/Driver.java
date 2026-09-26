@@ -52,6 +52,9 @@ public class Driver {
     @Column(name = "org_id")
     private Long orgId;
 
+    @Column(name = "km_travelled")
+    private Double kmTravelled = 0.0;
+
     @Column(name = "username", length = 50, unique = true)
     private String username;
 
@@ -95,4 +98,6 @@ public class Driver {
     public void setPassword(String password) { this.password = password; }
     public String getComments() { return comments; }
     public void setComments(String comments) { this.comments = comments; }
+    public Double getKmTravelled() { return kmTravelled; }
+    public void setKmTravelled(Double kmTravelled) { this.kmTravelled = kmTravelled; }
 }

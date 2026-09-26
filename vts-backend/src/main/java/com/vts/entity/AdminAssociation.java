@@ -23,6 +23,9 @@ public class AdminAssociation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "km_travelled")
+    private Double kmTravelled = 0.0;
+
     // ── Constructors ──────────────────────────────────────────────────────────
     public AdminAssociation() {}
 
@@ -48,5 +51,8 @@ public class AdminAssociation {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public Double getKmTravelled() { return kmTravelled; }
+    public void setKmTravelled(Double kmTravelled) { this.kmTravelled = kmTravelled; }
 }
 

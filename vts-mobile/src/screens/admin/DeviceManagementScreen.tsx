@@ -184,6 +184,9 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
       </View>
       <Text style={styles.cardModel}>{item.deviceModel}</Text>
       <Text style={styles.cardSub}>📱 {item.mobileNumber}  •  🔢 {item.imeiNumber}</Text>
+      {item.kmTravelled != null && item.kmTravelled > 0 && (
+        <Text style={styles.cardDistance}>🚗 Distance Travelled: <Text style={{ color: "#059669", fontWeight: "700" }}>{item.kmTravelled.toFixed(1)} km</Text></Text>
+      )}
       <View style={styles.cardActions}>
         <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#6366f122" }]} onPress={() => openModal("view", item)}>
           <Ionicons name="eye-outline" size={15} color="#6366f1" /><Text style={[styles.actionTxt, { color: "#6366f1" }]}>View</Text>
@@ -450,6 +453,7 @@ const styles = StyleSheet.create({
   badgeText:     { fontSize: 10, fontWeight: "700" },
   cardModel:     { fontSize: 12, color: C.muted, marginBottom: 3 },
   cardSub:       { fontSize: 11, color: "#6A8AB0", marginBottom: 8 },
+  cardDistance:  { fontSize: 11, color: "#374151", marginBottom: 8 },
   cardActions:   { flexDirection: "row", gap: 6 },
   actionBtn:     { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
   actionTxt:     { fontSize: 11, fontWeight: "600" },

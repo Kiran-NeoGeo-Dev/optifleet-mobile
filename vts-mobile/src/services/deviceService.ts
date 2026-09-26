@@ -10,6 +10,7 @@ export interface Device {
   status: boolean;
   clientId?: number;
   createdAt?: string;
+  kmTravelled?: number;
 }
 
 export interface DevicePayload {

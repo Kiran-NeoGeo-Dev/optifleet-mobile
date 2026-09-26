@@ -234,6 +234,7 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
         {/* Info bar */}
         <View style={styles.infoBar}>
           {[
+            ["TRAVELLED", trip.distanceTraveledKm != null ? `${trip.distanceTraveledKm.toFixed(1)} km` : "0 km"],
             ["REMAINING", distLabel],
             ["ETA",       etaLabel],
             ["SPEED",     `${liveSpeed} km/h`],
@@ -241,7 +242,7 @@ const TripLiveTrackingScreen = ({ navigation, route }: Props) => {
           ].map(([label, value], i, arr) => (
             <View key={label} style={{ flex: 1, alignItems: "center" }}>
               <Text style={styles.infoLabel}>{label}</Text>
-              <Text style={[styles.infoValue, label === "SPEED" && { color: "#38BDF8" }, label === "PROGRESS" && { color: isDeviating ? "#FF3B30" : "#4ADE80" }]}>{value}</Text>
+              <Text style={[styles.infoValue, label === "TRAVELLED" && { color: "#059669" }, label === "SPEED" && { color: "#38BDF8" }, label === "PROGRESS" && { color: isDeviating ? "#FF3B30" : "#4ADE80" }]}>{value}</Text>
               {i < arr.length - 1 && <View style={styles.infoDivider} />}
             </View>
           ))}

@@ -78,6 +78,12 @@ const AdminVehicleListScreen = ({ navigation }: Props) => {
               <Text style={s.colLabel}>Make / Model</Text>
               <Text style={s.colVal}>{[item.vehicleMake, item.vehicleModel].filter(Boolean).join(" / ") || "—"}</Text>
             </View>
+            {item.kmTravelled != null && item.kmTravelled > 0 && (
+              <View style={s.col}>
+                <Text style={s.colLabel}>Distance Travelled</Text>
+                <Text style={[s.colVal, { color: "#059669", fontWeight: "700" }]}>{item.kmTravelled.toFixed(1)} km</Text>
+              </View>
+            )}
           </View>
           <View style={s.divider} />
           <View style={s.actions}>

@@ -33,6 +33,9 @@ public class Association {
     @Column(name = "client_id")
     private Long clientId;
 
+    @Column(name = "km_travelled")
+    private Double kmTravelled = 0.0;
+
     public Integer getId()                   { return id; }
     public void    setId(Integer id)         { this.id = id; }
     public Integer getVehicleId()            { return vehicleId; }
@@ -49,4 +52,6 @@ public class Association {
     public void    setCreatedAt(LocalDateTime v) { this.createdAt = v; }
     public Long    getClientId()             { return clientId; }
     public void    setClientId(Long v)       { this.clientId = v; }
+    public Double getKmTravelled() { return kmTravelled; }
+    public void setKmTravelled(Double kmTravelled) { this.kmTravelled = kmTravelled; }
 }

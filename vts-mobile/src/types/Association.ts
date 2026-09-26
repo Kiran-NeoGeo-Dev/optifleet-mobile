@@ -5,6 +5,7 @@ export interface BaseAssociation {
   registration_no: string;
   device_code: string;
   created_at: string;
+  km_travelled?: number;
 }
 
 export interface ClientAssociation extends BaseAssociation {

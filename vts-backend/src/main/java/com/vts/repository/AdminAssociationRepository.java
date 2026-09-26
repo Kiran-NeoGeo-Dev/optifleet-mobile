@@ -22,7 +22,7 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
     @Query(value = "SELECT aa.id, aa.vehicle_id, aa.device_id, " +
                "v.registration_no as registration_no, v.vehicle_make, v.vehicle_model, " +
                "d.device_id as device_code, d.device_model, d.device_type, d.mobile_number, " +
-               "aa.created_at " +
+               "aa.created_at, aa.km_travelled " +
                "FROM admin_associations aa " +
                "JOIN vehicles v ON v.id = aa.vehicle_id " +
                "JOIN devices d ON d.id = aa.device_id " +
@@ -103,7 +103,7 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
     @Query(value = "SELECT aa.id, aa.vehicle_id, aa.device_id, " +
                "v.registration_no as registration_no, v.vehicle_make, v.vehicle_model, " +
                "d.device_id as device_code, d.device_model, d.device_type, d.mobile_number, " +
-               "aa.created_at " +
+               "aa.created_at, aa.km_travelled " +
                "FROM admin_associations aa " +
                "JOIN vehicles v ON v.id = aa.vehicle_id " +
                "JOIN devices d ON d.id = aa.device_id " +
@@ -112,7 +112,7 @@ public interface AdminAssociationRepository extends JpaRepository<AdminAssociati
     List<Map<String, Object>> findAllWithDetailsByClientId(@Param("clientId") Long clientId);
 
     @Query(value = "SELECT aa.id, aa.vehicle_id, aa.device_id, v.registration_no, v.vehicle_make, v.vehicle_model, " +
-               "d.device_id AS device_code, d.device_model, d.device_type, d.mobile_number, aa.created_at " +
+               "d.device_id AS device_code, d.device_model, d.device_type, d.mobile_number, aa.created_at, aa.km_travelled " +
                "FROM admin_associations aa JOIN vehicles v ON v.id = aa.vehicle_id JOIN devices d ON d.id = aa.device_id " +
                "WHERE v.org_id = :orgId ORDER BY aa.created_at DESC", nativeQuery = true)
     List<Map<String, Object>> findAllWithDetailsByOrgId(@Param("orgId") Long orgId);

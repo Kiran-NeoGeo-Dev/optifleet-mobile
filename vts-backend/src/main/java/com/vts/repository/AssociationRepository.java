@@ -32,7 +32,7 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
         "SELECT a.id, a.vehicle_id, v.registration_no, " +
         "a.device_id, d.device_id AS device_code, " +
         "a.driver_id, dr.driver_name, dr.license_no, " +
-        "a.country, a.status, a.created_at " +
+        "a.country, a.status, a.created_at, a.km_travelled " +
         "FROM associations a " +
         "JOIN vehicles v ON v.id = a.vehicle_id " +
         "JOIN devices d ON d.id = a.device_id " +
@@ -44,7 +44,7 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
         "SELECT a.id, a.vehicle_id, v.registration_no, " +
         "a.device_id, d.device_id AS device_code, " +
         "a.driver_id, dr.driver_name, dr.license_no, " +
-        "a.country, a.status, a.created_at " +
+        "a.country, a.status, a.created_at, a.km_travelled " +
         "FROM associations a " +
         "JOIN vehicles v ON v.id = a.vehicle_id " +
         "JOIN devices d ON d.id = a.device_id " +
@@ -55,7 +55,7 @@ public interface AssociationRepository extends JpaRepository<Association, Intege
 
     @Query(value =
         "SELECT a.id, a.vehicle_id, v.registration_no, a.device_id, d.device_id AS device_code, " +
-        "a.driver_id, dr.driver_name, dr.license_no, a.country, a.status, a.created_at " +
+        "a.driver_id, dr.driver_name, dr.license_no, a.country, a.status, a.created_at, a.km_travelled " +
         "FROM associations a JOIN vehicles v ON v.id = a.vehicle_id " +
         "JOIN devices d ON d.id = a.device_id JOIN drivers dr ON dr.id = a.driver_id " +
         "WHERE v.org_id = :orgId ORDER BY a.created_at DESC", nativeQuery = true)

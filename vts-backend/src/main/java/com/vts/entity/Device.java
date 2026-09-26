@@ -38,6 +38,9 @@ public class Device {
     @Column(name = "org_id")
     private Long orgId;
 
+    @Column(name = "km_travelled")
+    private Double kmTravelled = 0.0;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -63,4 +66,6 @@ public class Device {
     public void setOrgId(Long orgId)           { this.orgId = orgId; }
     public LocalDateTime getCreatedAt()        { return createdAt; }
     public void setCreatedAt(LocalDateTime v)  { this.createdAt = v; }
+    public Double getKmTravelled() { return kmTravelled; }
+    public void setKmTravelled(Double kmTravelled) { this.kmTravelled = kmTravelled; }
 }

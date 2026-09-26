@@ -392,6 +392,14 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
                 <Text style={styles.detailVal}>{item.country || "—"}</Text>
               </View>
             )}
+            {item.km_travelled != null && item.km_travelled > 0 && (
+              <View style={styles.detailCol}>
+                <Text style={styles.detailLabel}>Distance Travelled</Text>
+                <Text style={[styles.detailVal, { color: "#059669", fontWeight: "700" }]}>
+                  {item.km_travelled.toFixed(1)} km
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.cardActions}>

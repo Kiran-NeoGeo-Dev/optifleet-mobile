@@ -66,6 +66,12 @@ const AdminDriverListScreen = ({ navigation }: Props) => {
             <Ionicons name="call-outline" size={13} color="#6B7280" />
             <Text style={s.infoTxt}>{item.phoneNumber || "—"}</Text>
           </View>
+          {item.kmTravelled != null && item.kmTravelled > 0 && (
+            <View style={s.infoRow}>
+              <Ionicons name="car-sport-outline" size={13} color="#059669" />
+              <Text style={[s.infoTxt, { color: "#059669", fontWeight: "700" }]}>Distance Travelled: {item.kmTravelled.toFixed(1)} km</Text>
+            </View>
+          )}
           <View style={s.divider} />
           <View style={s.actions}>
             <TouchableOpacity style={[s.btn, { backgroundColor: "rgba(14,165,233,0.10)", borderColor: "rgba(14,165,233,0.35)" }]}

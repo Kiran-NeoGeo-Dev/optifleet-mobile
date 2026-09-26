@@ -111,7 +111,7 @@ public class FleetDriverController {
         int resolvedYear  = (year  != null) ? year  : now.getYear();
         int resolvedMonth = (month != null) ? month : now.getMonthValue();
 
-        Map<String, Object> events = fetchEventsByVehicleMonth(vehicleReg, resolvedYear, resolvedMonth);
+        Map<String, Object> events = fetchEventsByDriverMonth(id, vehicleReg, resolvedYear, resolvedMonth);
         Double rawScore = calcRawScore(events);
         String remark   = rawScore != null ? getRemark(rawScore) : null;
 
@@ -242,17 +242,16 @@ public class FleetDriverController {
 
             List<Map<String, Object>> eventRows = jdbc.queryForList(eventSql, y, m);
 
-            // Step 2: get total km per vehicle from trips — only vehicle_id + distance_km, no date filter
+            // Step 2: get driver km_travelled by joining driver_id from associations
             String kmSql =
-                "SELECT UPPER(vehicle_id) AS vid, COALESCE(SUM(distance_km), 0) AS km_driven " +
-                "FROM public.trips " +
-                "WHERE vehicle_id IS NOT NULL " +
-                "  AND EXTRACT(YEAR  FROM start_date) = ? " +
-                "  AND EXTRACT(MONTH FROM start_date) = ? " +
-                "GROUP BY UPPER(vehicle_id)";
+                "SELECT UPPER(v.registration_no) AS vid, COALESCE(d.km_travelled, 0) AS km_driven " +
+                "FROM public.associations a " +
+                "JOIN public.drivers d ON d.id = a.driver_id " +
+                "JOIN public.vehicles v ON v.id = a.vehicle_id " +
+                "WHERE a.status = true AND v.registration_no IS NOT NULL";
 
             Map<String, Double> kmByVehicle = new HashMap<>();
-            for (Map<String, Object> row : jdbc.queryForList(kmSql, y, m)) {
+            for (Map<String, Object> row : jdbc.queryForList(kmSql)) {
                 String vid = row.get("vid") != null ? row.get("vid").toString() : null;
                 double km  = row.get("km_driven") != null ? ((Number) row.get("km_driven")).doubleValue() : 0;
                 if (vid != null) kmByVehicle.put(vid, km);
@@ -280,9 +279,9 @@ public class FleetDriverController {
 
     /**
      * Fetch event counts + KM driven for a specific year/month.
-     * KM Driven = SUM(public.trips.distance_km) for completed trips in the month.
+     * KM Driven = public.drivers.km_travelled (accumulated GPS-based distance).
      */
-    private Map<String, Object> fetchEventsByVehicleMonth(String vehicleRegNo, int year, int month) {
+    private Map<String, Object> fetchEventsByDriverMonth(Long driverId, String vehicleRegNo, int year, int month) {
         if (vehicleRegNo == null) return emptyEvents();
         try {
             String sql =
@@ -304,12 +303,10 @@ public class FleetDriverController {
 
             Map<String, Object> row = jdbc.queryForMap(sql, vehicleRegNo, year, month);
 
+            // Get driver's accumulated km_travelled from drivers table
             Double km = jdbc.queryForObject(
-                "SELECT COALESCE(SUM(distance_km), 0) FROM public.trips " +
-                "WHERE UPPER(vehicle_id) = UPPER(?) " +
-                "  AND EXTRACT(YEAR  FROM start_date) = ? " +
-                "  AND EXTRACT(MONTH FROM start_date) = ?",
-                Double.class, vehicleRegNo, year, month);
+                "SELECT COALESCE(km_travelled, 0) FROM public.drivers WHERE id = ?",
+                Double.class, driverId);
 
             Map<String, Object> ev = new LinkedHashMap<>();
             ev.put("smoking",            toLong(row.get("smoking")));

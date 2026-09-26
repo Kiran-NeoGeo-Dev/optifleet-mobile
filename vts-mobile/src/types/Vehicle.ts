@@ -18,4 +18,5 @@ export interface Vehicle {
   vehiclePhoto?: string;
   clientId?: number;
   status: string;
+  kmTravelled?: number;
 }
