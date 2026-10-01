@@ -20,6 +20,7 @@ export interface LiveVehicle {
   speed:          number;
   driverName:     string;
   tripStatus:     string;
+  isActive:       boolean;  // true = live telemetry (<=120s), false = inactive/stale
   overspeed:      string;
   smoking:        string;
   mobileUsage:    string;

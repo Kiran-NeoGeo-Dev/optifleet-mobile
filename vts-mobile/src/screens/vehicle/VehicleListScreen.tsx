@@ -6,8 +6,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MainStackParamList } from "../../navigation/MainNavigator";
-import { Vehicle } from "../../types/Vehicle";
-import { fetchVehicles } from "../../services/vehicleService";
+import { FleetVehicle, fetchFleetVehicles } from "../../services/fleetService";
 import { COLORS, SHADOWS } from "../../components/ScreenBg";
 
 type Props = NativeStackScreenProps<MainStackParamList, "VehicleList">;
@@ -16,34 +15,54 @@ const FUEL_ACCENT: Record<string, string> = {
   Petrol: "#FBBF24", Diesel: "#38BDF8", CNG: "#34D399", Electric: "#A78BFA",
 };
 
+// Status color mapping for live trip status
+const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
+  moving:  { color: "#16A34A", bg: "rgba(22,163,74,0.12)", border: "#16A34A55" },
+  idle:    { color: "#F59E0B", bg: "rgba(245,158,11,0.12)", border: "#F59E0B55" },
+  parked:  { color: "#6B7280", bg: "rgba(107,116,128,0.12)", border: "#6B728055" },
+  offline: { color: "#DC2626", bg: "rgba(220,38,38,0.12)",   border: "#DC262655" },
+};
+
 const VehicleListScreen = ({ navigation }: Props) => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useFocusEffect(useCallback(() => {
-    setLoading(true);
+  const loadVehicles = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(false);
-    fetchVehicles()
-      .then(setVehicles)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []));
+    try {
+      const data = await fetchFleetVehicles();
+      setVehicles(data);
+    } catch (err) {
+      setError(true);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    loadVehicles();
+    // Poll every 10 seconds for real-time status updates
+    const interval = setInterval(() => loadVehicles(true), 10_000);
+    return () => clearInterval(interval);
+  }, [loadVehicles]));
 
   const filtered = vehicles.filter(v =>
     (v.licensePlate || "").toLowerCase().includes(query.toLowerCase()) ||
-    (v.ownerName || "").toLowerCase().includes(query.toLowerCase()) ||
+    (v.driverName || "").toLowerCase().includes(query.toLowerCase()) ||
     (v.vehicleMake || "").toLowerCase().includes(query.toLowerCase())
   );
 
-  const renderCard = ({ item }: { item: Vehicle }) => {
-    const isActive = item.status === "ACTIVE";
-    const fuelColor = FUEL_ACCENT[item.fuelType || ""] ?? "#5A7A9F";
+  const renderCard = ({ item }: { item: FleetVehicle }) => {
+    // Use live trip status (Moving/Idle/Parked/Offline) from ThingsBoard
+    const statusKey = (item.tripStatus || "Offline").toLowerCase();
+    const statusCfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG.offline;
 
     return (
       <View style={[styles.card, SHADOWS.card]}>
-        <View style={[styles.accentBar, { backgroundColor: fuelColor }]} />
+        <View style={[styles.accentBar, { backgroundColor: statusCfg.color }]} />
         <View style={styles.cardInner}>
           <View style={styles.topRow}>
             <View style={styles.plateWrap}>
@@ -51,18 +70,18 @@ const VehicleListScreen = ({ navigation }: Props) => {
               <Text style={styles.plate}>{item.licensePlate}</Text>
             </View>
             <View style={[styles.statusPill, {
-              backgroundColor: isActive ? "rgba(22,163,74,0.12)" : "rgba(220,38,38,0.12)",
-              borderColor: isActive ? "#16A34A55" : "#DC262655",
+              backgroundColor: statusCfg.bg,
+              borderColor: statusCfg.border,
             }]}>
-              <View style={[styles.statusDot, { backgroundColor: isActive ? "#16A34A" : "#DC2626" }]} />
-              <Text style={[styles.statusTxt, { color: isActive ? "#16A34A" : "#DC2626" }]}>{item.status}</Text>
+              <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
+              <Text style={[styles.statusTxt, { color: statusCfg.color }]}>{item.tripStatus}</Text>
             </View>
           </View>
 
           <View style={styles.detailGrid}>
             <View style={styles.detailCol}>
-              <Text style={styles.detailLabel}>Owner</Text>
-              <Text style={styles.detailVal}>{item.ownerName || "—"}</Text>
+              <Text style={styles.detailLabel}>Driver</Text>
+              <Text style={styles.detailVal}>{item.driverName || "—"}</Text>
             </View>
             <View style={styles.detailCol}>
               <Text style={styles.detailLabel}>Make / Model</Text>
@@ -71,12 +90,20 @@ const VehicleListScreen = ({ navigation }: Props) => {
           </View>
 
           <View style={styles.bottomRow}>
-            {item.fuelType ? (
-              <View style={[styles.fuelBadge, { borderColor: fuelColor + "66", backgroundColor: fuelColor + "18" }]}>
-                <Ionicons name="flame" size={12} color={fuelColor} />
-                <Text style={[styles.fuelTxt, { color: fuelColor }]}>{item.fuelType}</Text>
-              </View>
-            ) : <View />}
+            {/* Live status indicator */}
+            <View style={[styles.liveBadge, { 
+              borderColor: statusKey === 'offline' ? "#DC262666" : "#16A34A66",
+              backgroundColor: statusKey === 'offline' ? "rgba(220,38,38,0.08)" : "rgba(22,163,74,0.08)"
+            }]}>
+              <View style={[styles.liveDot, { 
+                backgroundColor: statusKey === 'offline' ? "#DC2626" : "#16A34A" 
+              }]} />
+              <Text style={[styles.liveTxt, { 
+                color: statusKey === 'offline' ? "#DC2626" : "#16A34A" 
+              }]}>
+                {statusKey === 'offline' ? 'OFFLINE' : 'LIVE'}
+              </Text>
+            </View>
             <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate("EditVehicle", { vehicleId: item.id })}>
               <Ionicons name="create-outline" size={14} color="#1565C0" />
               <Text style={styles.editBtnTxt}>Edit</Text>
@@ -191,8 +218,9 @@ const styles = StyleSheet.create({
   detailLabel: { fontSize: 9, color: "#5A7A9F", fontWeight: "700", textTransform: "uppercase", marginBottom: 1, letterSpacing: 0.5 },
   detailVal:   { fontSize: 12, color: "#0A1F44", fontWeight: "600" },
   bottomRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  fuelBadge:   { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1 },
-  fuelTxt:     { fontSize: 10, fontWeight: "700" },
+  liveBadge:   { flexDirection: "row", alignItems: "center", gap: 3, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1 },
+  liveDot:     { width: 5, height: 5, borderRadius: 3 },
+  liveTxt:     { fontSize: 10, fontWeight: "700" },
   editBtn:     { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(21,101,192,0.10)", borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5, height: 28, borderWidth: 1, borderColor: "rgba(21,101,192,0.30)" },
   editBtnTxt:  { fontSize: 11, fontWeight: "700", color: "#1565C0" },
   empty:       { alignItems: "center", paddingTop: 50, gap: 10 },

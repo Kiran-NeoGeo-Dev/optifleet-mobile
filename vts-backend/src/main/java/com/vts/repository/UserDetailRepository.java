@@ -12,6 +12,8 @@ public interface UserDetailRepository extends JpaRepository<UserDetailEntity, In
 
     Optional<UserDetailEntity> findByEmailAddress(String emailAddress);
 
+    Optional<UserDetailEntity> findByEmailAddressIgnoreCase(String emailAddress);
+
     Optional<UserDetailEntity> findByPhoneNumber(String phoneNumber);
 
     Optional<UserDetailEntity> findFirstByRole(String role);

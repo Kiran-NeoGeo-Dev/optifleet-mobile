@@ -52,7 +52,7 @@ const FleetDriversScreen = ({ navigation }: Props) => {
 
   useFocusEffect(useCallback(() => {
     load();
-    const t = setInterval(() => load(true), 10_000);
+    const t = setInterval(() => load(true), 20_000);  // Increased from 10s to 20s for performance
     return () => clearInterval(t);
   }, [load]));
 

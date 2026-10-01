@@ -5,6 +5,8 @@ import com.vts.entity.Driver;
 import com.vts.service.AuthService;
 import com.vts.service.DriverService;
 import com.vts.service.ThingsBoardDirectQueryService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +16,8 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/fleet/drivers")
 public class FleetDriverController {
+
+    private static final Logger log = LoggerFactory.getLogger(FleetDriverController.class);
 
     // Configurable event weights
     private static final int W_SMOKING      = 5;
@@ -62,10 +66,22 @@ public class FleetDriverController {
         for (Driver d : drivers) {
             String vehicleReg   = driverIdToVehicle.get(d.getId());
             String vehicleModel = driverIdToModel.get(d.getId());
-            String tripStatus   = vehicleReg != null
-                    ? liveStatus.getOrDefault(vehicleReg.toUpperCase(), "Parked")
-                    : "Parked";
-            boolean active = "Moving".equalsIgnoreCase(tripStatus) || "Idle".equalsIgnoreCase(tripStatus);
+            
+            // CRITICAL FIX: Determine actual trip status and active state
+            String tripStatus;
+            boolean active;
+            
+            if (vehicleReg != null && liveStatus.containsKey(vehicleReg.toUpperCase())) {
+                // Vehicle is in live telemetry list - use its actual status
+                tripStatus = liveStatus.get(vehicleReg.toUpperCase());
+                active = "Moving".equalsIgnoreCase(tripStatus) || "Idle".equalsIgnoreCase(tripStatus);
+                log.debug("[FLEET_DRIVER] Driver {} (vehicle={}) → ACTIVE (tripStatus={})", d.getDriverName(), vehicleReg, tripStatus);
+            } else {
+                // Vehicle is NOT in live telemetry list = OFFLINE (INACTIVE in ThingsBoard or telemetry > 120s old)
+                tripStatus = vehicleReg != null ? "Offline" : "Parked";
+                active = false; // Driver is inactive when vehicle is offline
+                log.debug("[FLEET_DRIVER] Driver {} (vehicle={}) → INACTIVE (not in live telemetry)", d.getDriverName(), vehicleReg != null ? vehicleReg : "NONE");
+            }
 
             Double rawScore = vehicleReg != null
                     ? vehicleScores.getOrDefault(vehicleReg.toUpperCase(), null)
@@ -115,6 +131,9 @@ public class FleetDriverController {
         Double rawScore = calcRawScore(events);
         String remark   = rawScore != null ? getRemark(rawScore) : null;
 
+        log.info("[SCORECARD] Driver ID={}, Year={}, Month={}, kmDriven={}, rawScore={}, remark={}", 
+            id, resolvedYear, resolvedMonth, events.get("kmDriven"), rawScore, remark);
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("driverId",     id);
         result.put("driverName",   driver.getDriverName());
@@ -126,6 +145,10 @@ public class FleetDriverController {
         result.put("safetyScore",  rawScore);
         result.put("remark",       remark);
         result.put("events",       events);
+        
+        log.info("[SCORECARD] Response for driver {}: safetyScore={}, events.kmDriven={}", 
+            id, rawScore, events.get("kmDriven"));
+        
         return ResponseEntity.ok(result);
     }
 
@@ -222,6 +245,7 @@ public class FleetDriverController {
             int y = now.getYear(), m = now.getMonthValue();
 
             // Step 1: get event weights per vehicle from tb_device_telemetry (varchar columns)
+            // Handle telemetry_time as VARCHAR format: 'DD-MM-YYYY HH24:MI:SS'
             String eventSql =
                 "SELECT UPPER(vehicle_id) AS vid, " +
                 "  COALESCE(SUM(CASE WHEN smoking_status     ILIKE 'Yes' THEN " + W_SMOKING     + " ELSE 0 END),0) +" +
@@ -236,11 +260,19 @@ public class FleetDriverController {
                 "  COALESCE(SUM(CASE WHEN yawn_alert         ILIKE 'Yes' THEN " + W_YAWN_ALERT  + " ELSE 0 END),0) AS total_weight " +
                 "FROM public.tb_device_telemetry " +
                 "WHERE vehicle_id IS NOT NULL " +
-                "  AND EXTRACT(YEAR  FROM telemetry_time) = ? " +
-                "  AND EXTRACT(MONTH FROM telemetry_time) = ? " +
+                "  AND (CASE " +
+                "    WHEN telemetry_time ~ '^\\d{2}-\\d{2}-\\d{4}\\s+' " +
+                "      THEN to_timestamp(telemetry_time, 'DD-MM-YYYY HH24:MI:SS') " +
+                "    ELSE telemetry_time::timestamptz " +
+                "  END) >= make_timestamptz(?, ?, 1, 0, 0, 0, 'Asia/Kolkata') " +
+                "  AND (CASE " +
+                "    WHEN telemetry_time ~ '^\\d{2}-\\d{2}-\\d{4}\\s+' " +
+                "      THEN to_timestamp(telemetry_time, 'DD-MM-YYYY HH24:MI:SS') " +
+                "    ELSE telemetry_time::timestamptz " +
+                "  END) < make_timestamptz(?, ?, 1, 0, 0, 0, 'Asia/Kolkata') + INTERVAL '1 month' " +
                 "GROUP BY UPPER(vehicle_id)";
 
-            List<Map<String, Object>> eventRows = jdbc.queryForList(eventSql, y, m);
+            List<Map<String, Object>> eventRows = jdbc.queryForList(eventSql, y, m, y, m);
 
             // Step 2: get driver km_travelled by joining driver_id from associations
             String kmSql =
@@ -282,8 +314,28 @@ public class FleetDriverController {
      * KM Driven = public.drivers.km_travelled (accumulated GPS-based distance).
      */
     private Map<String, Object> fetchEventsByDriverMonth(Long driverId, String vehicleRegNo, int year, int month) {
-        if (vehicleRegNo == null) return emptyEvents();
+        // ALWAYS fetch km_travelled first - it's independent of telemetry data
+        Double km = 0.0;
         try {
+            km = jdbc.queryForObject(
+                "SELECT COALESCE(km_travelled, 0) FROM public.drivers WHERE id = ?",
+                Double.class, driverId);
+            log.info("[SCORECARD] Driver ID={} has km_travelled={}", driverId, km);
+        } catch (Exception e) {
+            log.error("[SCORECARD] Error fetching km_travelled for driver {}: {}", driverId, e.getMessage(), e);
+        }
+        
+        // If no vehicle registration, return empty events but WITH correct km_travelled
+        if (vehicleRegNo == null) {
+            log.warn("[SCORECARD] No vehicle for driver {}, returning empty events with km={}", driverId, km);
+            Map<String, Object> result = emptyEvents();
+            result.put("kmDriven", km != null ? km : 0.0);
+            return result;
+        }
+        
+        try {
+            // Handle telemetry_time as VARCHAR format: 'DD-MM-YYYY HH24:MI:SS'
+            // If it's already timestamp, the CASE will work with ::timestamptz
             String sql =
                 "SELECT " +
                 "  COALESCE(SUM(CASE WHEN smoking_status     ILIKE 'Yes'    THEN 1 ELSE 0 END),0) AS smoking, " +
@@ -298,15 +350,20 @@ public class FleetDriverController {
                 "  COALESCE(SUM(CASE WHEN yawn_alert         ILIKE 'Yes'    THEN 1 ELSE 0 END),0) AS yawn_alert " +
                 "FROM public.tb_device_telemetry " +
                 "WHERE UPPER(vehicle_id) = UPPER(?) " +
-                "  AND EXTRACT(YEAR  FROM telemetry_time) = ? " +
-                "  AND EXTRACT(MONTH FROM telemetry_time) = ?";
+                "  AND (CASE " +
+                "    WHEN telemetry_time ~ '^\\d{2}-\\d{2}-\\d{4}\\s+' " +
+                "      THEN to_timestamp(telemetry_time, 'DD-MM-YYYY HH24:MI:SS') " +
+                "    ELSE telemetry_time::timestamptz " +
+                "  END) >= make_timestamptz(?, ?, 1, 0, 0, 0, 'Asia/Kolkata') " +
+                "  AND (CASE " +
+                "    WHEN telemetry_time ~ '^\\d{2}-\\d{2}-\\d{4}\\s+' " +
+                "      THEN to_timestamp(telemetry_time, 'DD-MM-YYYY HH24:MI:SS') " +
+                "    ELSE telemetry_time::timestamptz " +
+                "  END) < make_timestamptz(?, ?, 1, 0, 0, 0, 'Asia/Kolkata') + INTERVAL '1 month'";
 
-            Map<String, Object> row = jdbc.queryForMap(sql, vehicleRegNo, year, month);
+            Map<String, Object> row = jdbc.queryForMap(sql, vehicleRegNo, year, month, year, month);
 
-            // Get driver's accumulated km_travelled from drivers table
-            Double km = jdbc.queryForObject(
-                "SELECT COALESCE(km_travelled, 0) FROM public.drivers WHERE id = ?",
-                Double.class, driverId);
+            log.info("[SCORECARD] Driver ID={}, vehicleRegNo={}, kmDriven={}", driverId, vehicleRegNo, km);
 
             Map<String, Object> ev = new LinkedHashMap<>();
             ev.put("smoking",            toLong(row.get("smoking")));
@@ -320,9 +377,16 @@ public class FleetDriverController {
             ev.put("rashTurning",        toLong(row.get("rash_turning")));
             ev.put("yawnAlert",          toLong(row.get("yawn_alert")));
             ev.put("kmDriven",           km != null ? km : 0.0);
+            
+            log.info("[SCORECARD] Events for driver {}: kmDriven={}, events={}", driverId, km, ev);
+            
             return ev;
         } catch (Exception e) {
-            return emptyEvents();
+            log.error("[SCORECARD] Error fetching telemetry events for driver {}: {}", driverId, e.getMessage(), e);
+            // Return empty events but WITH correct km_travelled
+            Map<String, Object> result = emptyEvents();
+            result.put("kmDriven", km != null ? km : 0.0);
+            return result;
         }
     }
 

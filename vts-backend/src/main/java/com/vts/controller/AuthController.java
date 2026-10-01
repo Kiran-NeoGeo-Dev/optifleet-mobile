@@ -100,7 +100,8 @@ public class AuthController {
         return ResponseEntity.ok("Please contact NeoGeo Info Technologies Ltd to reset your credentials.");
     }
 
-    // ── Multi-admin self-recovery: identify by registered email, update credentials only ──
+    // ── Self-recovery: identify by registered email, update credentials only ──
+    // Works for Admin, SuperAdmin, and User accounts
     @PostMapping("/admin-recovery")
     public ResponseEntity<?> adminRecovery(@RequestBody Map<String, String> body) {
         try {
@@ -117,21 +118,47 @@ public class AuthController {
             if (newPassword == null || newPassword.length() < 6)
                 return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters"));
 
-            // Identify the admin account by registered email
-            UserDetailEntity ud = userDetailRepository.findByEmailAddress(email.trim()).orElse(null);
-            if (ud == null)
-                return ResponseEntity.badRequest().body(Map.of("error", "No account found with that email address"));
+            String emailTrimmed = email.trim();
+            logger.info("[ADMIN_RECOVERY] Recovery attempt for email: {}", emailTrimmed);
 
-            // Only Admin and SuperAdmin accounts may use this recovery flow
+            // Identify the admin account by registered email (case-insensitive)
+            UserDetailEntity ud = userDetailRepository.findByEmailAddressIgnoreCase(emailTrimmed).orElse(null);
+            
+            if (ud == null) {
+                logger.warn("[ADMIN_RECOVERY] No account found with email: {}", emailTrimmed);
+                return ResponseEntity.badRequest().body(Map.of("error", "No account found with that email address"));
+            }
+
+            logger.info("[ADMIN_RECOVERY] Found account - username: {}, role: {}, clientId: {}", 
+                ud.getUsername(), ud.getRole(), ud.getClientId());
+
+            // Verify account has a valid role
             String existingRole = ud.getRole();
-            if (!"Admin".equalsIgnoreCase(existingRole) && !"superadmin".equalsIgnoreCase(existingRole))
-                return ResponseEntity.badRequest().body(Map.of("error", "No admin account found with that email address"));
+            if (existingRole == null || existingRole.isBlank()) {
+                logger.warn("[ADMIN_RECOVERY] Account has no role assigned: {}", emailTrimmed);
+                return ResponseEntity.badRequest().body(Map.of("error", "Account has no role assigned. Please contact support."));
+            }
+            
+            // Allow recovery for Admin, SuperAdmin, and User accounts
+            if (!"Admin".equalsIgnoreCase(existingRole) 
+                && !"superadmin".equalsIgnoreCase(existingRole)
+                && !"User".equalsIgnoreCase(existingRole)) {
+                logger.warn("[ADMIN_RECOVERY] Account has invalid role - email: {}, role: {}", emailTrimmed, existingRole);
+                return ResponseEntity.badRequest().body(Map.of("error", "Account recovery is not available for role: " + existingRole));
+            }
+            
+            logger.info("[ADMIN_RECOVERY] Role validation passed - proceeding with recovery for role: {}", existingRole);
 
             // Check new username uniqueness (skip if unchanged)
             String oldUsername = ud.getUsername();
             if (!newUsername.trim().equals(oldUsername) &&
-                    userDetailRepository.findByUsername(newUsername.trim()).isPresent())
+                    userDetailRepository.findByUsername(newUsername.trim()).isPresent()) {
+                logger.warn("[ADMIN_RECOVERY] Username already exists: {}", newUsername.trim());
                 return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
+            }
+
+            logger.info("[ADMIN_RECOVERY] Updating credentials for clientId: {}, old username: {}, new username: {}", 
+                ud.getClientId(), oldUsername, newUsername.trim());
 
             // Update userdetail — credentials + optional profile fields only; role/org/data untouched
             ud.setUsername(newUsername.trim());
@@ -148,11 +175,13 @@ public class AuthController {
             login.setPassword(passwordEncoder.encode(newPassword.trim()));
             loginRepository.save(login);
 
-            emailService.sendCredentialsEmail(email.trim(), ud.getFullName(), newUsername.trim(), newPassword.trim());
+            logger.info("[ADMIN_RECOVERY] Successfully updated credentials for email: {}", emailTrimmed);
+
+            emailService.sendCredentialsEmail(emailTrimmed, ud.getFullName(), newUsername.trim(), newPassword.trim());
 
             return ResponseEntity.ok(Map.of("message", "Credentials updated successfully", "username", newUsername.trim()));
         } catch (Exception e) {
-            logger.error("Admin recovery error: {}", e.getMessage(), e);
+            logger.error("[ADMIN_RECOVERY] Recovery failed: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
@@ -185,9 +214,12 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
             }
             String email = body.get("emailAddress");
-            if (email != null && !email.isBlank() &&
-                userDetailRepository.findByEmailAddress(email).isPresent()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Email address already exists"));
+            if (email != null && !email.isBlank()) {
+                // Normalize email to lowercase to prevent case-sensitivity issues
+                email = email.trim().toLowerCase();
+                if (userDetailRepository.findByEmailAddressIgnoreCase(email).isPresent()) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "Email address already exists"));
+                }
             }
             String rawPhone = body.getOrDefault("phoneNumber", "").trim();
             if (!rawPhone.isBlank() && userDetailRepository.findByPhoneNumber(rawPhone).isPresent()) {
@@ -204,7 +236,7 @@ public class AuthController {
             UserDetailEntity ud = new UserDetailEntity();
             ud.setUsername(username);
             ud.setFullName(body.get("fullName"));
-            ud.setEmailAddress(body.get("emailAddress"));
+            ud.setEmailAddress(email); // Already normalized to lowercase above
             ud.setPhoneNumber(rawPhone.isBlank() ? "0000000000" : rawPhone);
             ud.setRole(role);
             ud.setRoleDescription(body.getOrDefault("roleDescription", ""));
@@ -299,12 +331,16 @@ public class AuthController {
             if (body.containsKey("emailAddress")) {
                 String newEmail = body.get("emailAddress");
                 if (newEmail != null && !newEmail.isBlank()) {
-                    userDetailRepository.findByEmailAddress(newEmail).ifPresent(existing -> {
+                    // Normalize email to lowercase
+                    newEmail = newEmail.trim().toLowerCase();
+                    userDetailRepository.findByEmailAddressIgnoreCase(newEmail).ifPresent(existing -> {
                         if (!existing.getClientId().equals(clientId))
                             throw new RuntimeException("Email address already exists");
                     });
+                    ud.setEmailAddress(newEmail);
+                } else {
+                    ud.setEmailAddress(newEmail);
                 }
-                ud.setEmailAddress(newEmail);
             }
             if (body.containsKey("phoneNumber")) {
                 String newPhone = body.get("phoneNumber");

@@ -4,6 +4,8 @@ import com.vts.entity.Client;
 import com.vts.service.AuthService;
 import com.vts.service.ThingsBoardDirectQueryService;
 import com.vts.service.TripStateCache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +14,8 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationController.class);
 
     private final AuthService  authService;
     private final ThingsBoardDirectQueryService thingsBoardDirectQueryService;
@@ -65,6 +69,37 @@ public class NotificationController {
                 String driverName = (String) row.get("driver_name");
                 Double lat = row.get("lat") != null ? ((Number) row.get("lat")).doubleValue() : null;
                 Double lng = row.get("lng") != null ? ((Number) row.get("lng")).doubleValue() : null;
+                
+                // CRITICAL FIX: Validate telemetry timestamp to ensure alerts are from ACTIVE vehicles only
+                // Skip alerts if telemetry is stale (>120 seconds old) or if ThingsBoard state is INACTIVE
+                Long telemetryTs = row.get("telemetryTimestamp") != null 
+                    ? ((Number) row.get("telemetryTimestamp")).longValue() 
+                    : null;
+                String tbState = row.get("thingsBoardState") != null 
+                    ? row.get("thingsBoardState").toString() 
+                    : null;
+                
+                if (telemetryTs == null) {
+                    log.debug("[NOTIF] Skipping vehicle={} - no telemetry timestamp", vehicleId);
+                    continue; // Skip vehicles with no timestamp
+                }
+                
+                long ageMs = System.currentTimeMillis() - telemetryTs;
+                if (ageMs > 120_000) {
+                    // Telemetry is stale (>120 seconds old) - vehicle is effectively offline
+                    log.debug("[NOTIF] Skipping vehicle={} - stale telemetry (age={}s)", vehicleId, ageMs / 1000);
+                    continue;
+                }
+                
+                if ("INACTIVE".equalsIgnoreCase(tbState)) {
+                    // Vehicle device is inactive in ThingsBoard
+                    log.debug("[NOTIF] Skipping vehicle={} - ThingsBoard state=INACTIVE", vehicleId);
+                    continue;
+                }
+                
+                // Use actual telemetry timestamp for alert (not current time)
+                java.util.Date alertTimestamp = new java.util.Date(telemetryTs);
+                
                 for (String[] af : alertFields) {
                     String  field       = af[0];
                     String  alertType   = af[1];
@@ -75,7 +110,7 @@ public class NotificationController {
                         : alertValue.equalsIgnoreCase("yes");
                     if (isActive) {
                         results.add(buildNotif("live", vehicleId, driverName,
-                            alertType, description, lat, lng, new java.util.Date(), false));
+                            alertType, description, lat, lng, alertTimestamp, false));
                     }
                 }
             }

@@ -59,7 +59,10 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
 
   const load = async () => {
     setLoading(true);
-    try { setDevices(await fetchDevices()); }
+    try {
+      const devs = await fetchDevices();
+      setDevices(devs);
+    }
     catch { showToast("Failed to load devices", "error"); }
     finally { setLoading(false); }
   };
@@ -173,33 +176,36 @@ const DeviceManagementScreen = ({ navigation, route }: Props) => {
     (d.mobileNumber ?? "").includes(search)
   );
 
-  const DeviceCard = ({ item }: { item: Device }) => (
-    <View style={[styles.card]}>
-      <View style={[styles.cardAccent, { backgroundColor: item.status ? C.green : C.red }]} />
-      <View style={styles.cardRow}>
-        <Text style={styles.deviceId}>{item.deviceId}</Text>
-        <View style={[styles.badge, { backgroundColor: item.status ? C.green + "33" : C.red + "33", borderColor: item.status ? C.green : C.red }]}>
-          <Text style={[styles.badgeText, { color: item.status ? C.green : C.red }]}>{item.status ? "Active" : "Inactive"}</Text>
+  const DeviceCard = ({ item }: { item: Device }) => {
+    return (
+      <View style={[styles.card]}>
+        <View style={[styles.cardAccent, { backgroundColor: item.status ? C.green : C.red }]} />
+        <View style={styles.cardRow}>
+          <Text style={styles.deviceId}>{item.deviceId}</Text>
+          <View style={[styles.badge, { backgroundColor: item.status ? C.green + "33" : C.red + "33", borderColor: item.status ? C.green : C.red }]}>
+            <Text style={[styles.badgeText, { color: item.status ? C.green : C.red }]}>{item.status ? "Active" : "Inactive"}</Text>
+          </View>
+        </View>
+        <Text style={styles.cardModel}>{item.deviceModel}</Text>
+        <Text style={styles.cardSub}>📱 {item.mobileNumber}  •  🔢 {item.imeiNumber}</Text>
+        
+        {item.kmTravelled != null && item.kmTravelled > 0 && (
+          <Text style={styles.cardDistance}>🚗 Distance Travelled: <Text style={{ color: "#059669", fontWeight: "700" }}>{item.kmTravelled.toFixed(1)} km</Text></Text>
+        )}
+        <View style={styles.cardActions}>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#6366f122" }]} onPress={() => openModal("view", item)}>
+            <Ionicons name="eye-outline" size={15} color="#6366f1" /><Text style={[styles.actionTxt, { color: "#6366f1" }]}>View</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: C.accent + "22" }]} onPress={() => openModal("edit", item)}>
+            <Ionicons name="create-outline" size={15} color={C.accent} /><Text style={[styles.actionTxt, { color: C.accent }]}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: C.red + "22" }]} onPress={() => setDeleteTarget(item.id)}>
+            <Ionicons name="trash-outline" size={15} color={C.red} /><Text style={[styles.actionTxt, { color: C.red }]}>Delete</Text>
+          </TouchableOpacity>
         </View>
       </View>
-      <Text style={styles.cardModel}>{item.deviceModel}</Text>
-      <Text style={styles.cardSub}>📱 {item.mobileNumber}  •  🔢 {item.imeiNumber}</Text>
-      {item.kmTravelled != null && item.kmTravelled > 0 && (
-        <Text style={styles.cardDistance}>🚗 Distance Travelled: <Text style={{ color: "#059669", fontWeight: "700" }}>{item.kmTravelled.toFixed(1)} km</Text></Text>
-      )}
-      <View style={styles.cardActions}>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#6366f122" }]} onPress={() => openModal("view", item)}>
-          <Ionicons name="eye-outline" size={15} color="#6366f1" /><Text style={[styles.actionTxt, { color: "#6366f1" }]}>View</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: C.accent + "22" }]} onPress={() => openModal("edit", item)}>
-          <Ionicons name="create-outline" size={15} color={C.accent} /><Text style={[styles.actionTxt, { color: C.accent }]}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: C.red + "22" }]} onPress={() => setDeleteTarget(item.id)}>
-          <Ionicons name="trash-outline" size={15} color={C.red} /><Text style={[styles.actionTxt, { color: C.red }]}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   const showList = !(openAddModal && modalMode === "add" && modalVisible);
 

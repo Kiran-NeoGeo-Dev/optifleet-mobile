@@ -9,6 +9,8 @@ import com.vts.repository.DriverRepository;
 import com.vts.repository.TripRepository;
 import com.vts.repository.UserDetailRepository;
 import com.vts.repository.VehicleRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +21,8 @@ import java.util.Set;
 
 @Service
 public class DashboardService {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardService.class);
 
     private final DriverRepository           driverRepository;
     private final VehicleRepository          vehicleRepository;
@@ -114,6 +118,24 @@ public class DashboardService {
                 String vehicleId  = (String) row.get("vehicle_id");
                 String tripStatus = row.get("trip_status") != null ? row.get("trip_status").toString() : "";
                 String driverName = row.get("driver_name") != null ? row.get("driver_name").toString() : "";
+                
+                // CRITICAL FIX: Ensure we don't count vehicles with INACTIVE ThingsBoard state or stale telemetry
+                String tbState = row.get("thingsBoardState") != null ? row.get("thingsBoardState").toString() : "";
+                if ("INACTIVE".equalsIgnoreCase(tbState)) {
+                    continue; // Skip inactive/offline vehicles
+                }
+                
+                // Additional validation: Check telemetry timestamp age (defense in depth)
+                Long telemetryTs = row.get("telemetryTimestamp") != null 
+                    ? ((Number) row.get("telemetryTimestamp")).longValue() 
+                    : null;
+                if (telemetryTs != null) {
+                    long ageMs = System.currentTimeMillis() - telemetryTs;
+                    if (ageMs > 120_000) {
+                        log.debug("[DASHBOARD_SUMMARY] Skipping vehicle={} for alert count - stale telemetry (age={}s)", vehicleId, ageMs / 1000);
+                        continue; // Skip vehicles with stale telemetry (>120 seconds old)
+                    }
+                }
 
                 if ("moving".equalsIgnoreCase(tripStatus)) {
                     movingVehicles.add(vehicleId);
@@ -122,6 +144,7 @@ public class DashboardService {
                     idleVehiclesSet.add(vehicleId);
                 }
 
+                // Count alerts only from vehicles with fresh telemetry
                 String overspeed  = row.get("overspeed")         != null ? row.get("overspeed").toString()         : "";
                 String smoking    = row.get("smoking_status")     != null ? row.get("smoking_status").toString()    : "";
                 String mobile     = row.get("mobile_usage")       != null ? row.get("mobile_usage").toString()      : "";
@@ -148,36 +171,57 @@ public class DashboardService {
     }
 
     private long countUniqueAssociationsForAdmin() {
-        Set<String> uniquePairs = new HashSet<>();
-        associationRepository.findAll().forEach(a -> {
-            if (a.getVehicleId() != null && a.getDeviceId() != null)
-                uniquePairs.add(a.getVehicleId() + "-" + a.getDeviceId());
-        });
-        return uniquePairs.size();
+        // Performance fix: Use COUNT query instead of loading all entities into memory
+        try {
+            Long count = jdbc.queryForObject(
+                "SELECT COUNT(DISTINCT CONCAT(vehicle_id, '-', device_id)) FROM associations WHERE vehicle_id IS NOT NULL AND device_id IS NOT NULL",
+                Long.class
+            );
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private long countUniqueAssociationsForClient(Long clientId) {
-        Set<String> uniquePairs = new HashSet<>();
-        associationRepository.findByClientId(clientId).forEach(a -> {
-            if (a.getVehicleId() != null && a.getDeviceId() != null)
-                uniquePairs.add(a.getVehicleId() + "-" + a.getDeviceId());
-        });
-        List<Map<String, Object>> adminPairs = adminAssociationRepository.findVehiclesWithAdminDevice(clientId, null);
-        for (Map<String, Object> pair : adminPairs) {
-            Object vehicleId = pair.get("vehicle_id");
-            Object deviceId  = pair.get("device_id");
-            if (vehicleId != null && deviceId != null)
-                uniquePairs.add(vehicleId.toString() + "-" + deviceId.toString());
+        // Performance fix: Use COUNT query instead of loading entities into memory
+        try {
+            // Count from associations table
+            Long fullAssocCount = jdbc.queryForObject(
+                "SELECT COUNT(DISTINCT CONCAT(vehicle_id, '-', device_id)) FROM associations WHERE client_id = ? AND vehicle_id IS NOT NULL AND device_id IS NOT NULL",
+                Long.class, clientId
+            );
+            
+            // Count from admin_associations for this client's vehicles
+            Long adminAssocCount = jdbc.queryForObject(
+                "SELECT COUNT(DISTINCT CONCAT(aa.vehicle_id, '-', aa.device_id)) " +
+                "FROM admin_associations aa " +
+                "JOIN vehicles v ON v.id = aa.vehicle_id " +
+                "WHERE v.client_id = ?",
+                Long.class, clientId
+            );
+            
+            long total = (fullAssocCount != null ? fullAssocCount : 0) + 
+                        (adminAssocCount != null ? adminAssocCount : 0);
+            return total;
+        } catch (Exception e) {
+            return 0;
         }
-        return uniquePairs.size();
     }
 
     private long countUniqueAssociationsForOrg(Long orgId) {
-        Set<String> uniquePairs = new HashSet<>();
-        associationRepository.findByOrgId(orgId).forEach(a -> {
-            if (a.getVehicleId() != null && a.getDeviceId() != null)
-                uniquePairs.add(a.getVehicleId() + "-" + a.getDeviceId());
-        });
-        return uniquePairs.size();
+        // Performance fix: Use COUNT query instead of loading entities into memory
+        try {
+            Long count = jdbc.queryForObject(
+                "SELECT COUNT(DISTINCT CONCAT(a.vehicle_id, '-', a.device_id)) " +
+                "FROM associations a " +
+                "JOIN vehicles v ON v.id = a.vehicle_id " +
+                "WHERE v.org_id = ? AND a.vehicle_id IS NOT NULL AND a.device_id IS NOT NULL",
+                Long.class, orgId
+            );
+            return count != null ? count : 0;
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

@@ -1,40 +1,61 @@
 import { useCallback, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet, StatusBar, ActivityIndicator, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MainStackParamList } from "../../navigation/MainNavigator";
-import { Driver } from "../../types/Driver";
-import { fetchDrivers } from "../../services/driverService";
+import { FleetDriver, fetchFleetDrivers } from "../../services/fleetService";
 import { COLORS, SHADOWS } from "../../components/ScreenBg";
 
 type Props = NativeStackScreenProps<MainStackParamList, "DriverList">;
 
 const DriverListScreen = ({ navigation }: Props) => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [drivers, setDrivers] = useState<FleetDriver[]>([]);
   const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"active" | "inactive">("active");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
 
-  useFocusEffect(useCallback(() => {
-    setLoading(true);
+  const loadDrivers = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(false);
-    fetchDrivers()
-      .then(setDrivers)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []));
+    try {
+      const data = await fetchFleetDrivers();
+      setDrivers(data);
+    } catch (err) {
+      setError(true);
+    } finally {
+      if (!silent) setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  const filtered = drivers.filter(d =>
-    d.driverName.toLowerCase().includes(query.toLowerCase()) ||
-    (d.phoneNumber || "").includes(query.toLowerCase())
-  );
+  useFocusEffect(useCallback(() => {
+    loadDrivers();
+    // Poll every 15 seconds for real-time status updates (drivers change less frequently than vehicles)
+    const interval = setInterval(() => loadDrivers(true), 15_000);
+    return () => clearInterval(interval);
+  }, [loadDrivers]));
 
-  const renderCard = ({ item }: { item: Driver }) => {
+  const q = query.toLowerCase();
+  const filtered = drivers.filter(d => {
+    const matchTab = activeTab === "active" ? d.active : !d.active;
+    if (!matchTab) return false;
+    if (!q) return true;
+    return d.driverName?.toLowerCase().includes(q) ||
+           (d.phoneNumber || "").toLowerCase().includes(q) ||
+           (d.vehicleRegNo || "").toLowerCase().includes(q);
+  });
+
+  const activeCount = drivers.filter(d => d.active).length;
+  const inactiveCount = drivers.filter(d => !d.active).length;
+
+  const renderCard = ({ item }: { item: FleetDriver }) => {
     const initials = item.driverName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-    const isActive = item.status === true;
+    const isActive = item.active;
 
     return (
       <View style={[styles.card, SHADOWS.card]}>
@@ -52,7 +73,7 @@ const DriverListScreen = ({ navigation }: Props) => {
               }]}>
                 <View style={[styles.statusDot, { backgroundColor: isActive ? "#16A34A" : "#DC2626" }]} />
                 <Text style={[styles.statusTxt, { color: isActive ? "#16A34A" : "#DC2626" }]}>
-                  {item.status ? "ACTIVE" : "INACTIVE"}
+                  {isActive ? "ACTIVE" : "INACTIVE"}
                 </Text>
               </View>
             </View>
@@ -62,6 +83,13 @@ const DriverListScreen = ({ navigation }: Props) => {
             <Ionicons name="call-outline" size={13} color="#1565C0" />
             <Text style={styles.infoTxt}>{item.phoneNumber || "—"}</Text>
           </View>
+
+          {item.vehicleRegNo && (
+            <View style={styles.infoRow}>
+              <Ionicons name="bus-outline" size={13} color="#1565C0" />
+              <Text style={[styles.infoTxt, { fontWeight: "600", color: "#1565C0" }]}>{item.vehicleRegNo}</Text>
+            </View>
+          )}
 
           <View style={styles.actions}>
             <TouchableOpacity style={styles.viewBtn} onPress={() => navigation.navigate("ViewDriverPhotos", { driverId: item.id })}>
@@ -100,7 +128,10 @@ const DriverListScreen = ({ navigation }: Props) => {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Driver List</Text>
-            <Text style={styles.headerSub}>{filtered.length} driver{filtered.length !== 1 ? "s" : ""}</Text>
+            <Text style={styles.headerSub}>
+              {activeTab === "active" ? activeCount : inactiveCount} {activeTab} driver
+              {(activeTab === "active" ? activeCount : inactiveCount) !== 1 ? "s" : ""}
+            </Text>
           </View>
           <View style={{ width: 42 }} />
         </View>
@@ -110,7 +141,7 @@ const DriverListScreen = ({ navigation }: Props) => {
           <Ionicons name="search" size={16} color="#5F6F8F" style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by Name, Phone Number…"
+            placeholder="Search by Name, Phone, Vehicle…"
             placeholderTextColor="#5F6F8F"
             value={query}
             onChangeText={setQuery}
@@ -122,12 +153,50 @@ const DriverListScreen = ({ navigation }: Props) => {
           )}
         </View>
 
+        {/* Active/Inactive Tabs */}
+        <View style={styles.tabs}>
+          {(["active", "inactive"] as const).map(tab => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeTab === tab && styles.tabActive]}
+              onPress={() => setActiveTab(tab)}
+              activeOpacity={0.75}
+            >
+              <Text>
+                {tab === "active" ? (
+                  <Text>
+                    <Text style={activeTab === "active" ? styles.tabTxtActiveGreen : styles.tabTxt}>Active </Text>
+                    <Text style={styles.tabCount}>(</Text>
+                    <Text style={activeTab === "active" ? styles.tabCountNumActive : styles.tabCountNumActive}>{activeCount}</Text>
+                    <Text style={styles.tabCount}>)</Text>
+                  </Text>
+                ) : (
+                  <Text>
+                    <Text style={activeTab === "inactive" ? styles.tabTxtActiveRed : styles.tabTxt}>Inactive </Text>
+                    <Text style={styles.tabCount}>(</Text>
+                    <Text style={activeTab === "inactive" ? styles.tabCountNumInactive : styles.tabCountNumInactive}>{inactiveCount}</Text>
+                    <Text style={styles.tabCount}>)</Text>
+                  </Text>
+                )}
+              </Text>
+              {activeTab === tab && <View style={styles.tabLine} />}
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <FlatList
           data={filtered}
           keyExtractor={i => i.id.toString()}
           renderItem={renderCard}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); loadDrivers(); }}
+              colors={["#1565C0"]}
+            />
+          }
           ListEmptyComponent={
             loading ? (
               <View style={styles.empty}>
@@ -165,6 +234,17 @@ const styles = StyleSheet.create({
 
   searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "#F0F4FF", borderRadius: 12, marginHorizontal: 14, marginBottom: 10, paddingHorizontal: 12, height: 42, borderWidth: 1, borderColor: "#BFDBFE", elevation: 2 },
   searchInput: { flex: 1, fontSize: 13, color: "#10204A", fontWeight: "500" },
+
+  tabs:        { flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
+  tab:         { flex: 1, alignItems: "center", paddingVertical: 7, position: "relative" },
+  tabActive:   {},
+  tabTxt:      { fontSize: 13, fontWeight: "600", color: "#6B7280" },
+  tabTxtActiveGreen: { fontSize: 13, fontWeight: "800", color: "#16A34A" },
+  tabTxtActiveRed:   { fontSize: 13, fontWeight: "800", color: "#DC2626" },
+  tabCount:          { fontSize: 13, fontWeight: "700", color: "#0F172A" },
+  tabCountNumActive: { fontSize: 13, fontWeight: "800", color: "#15803D" },
+  tabCountNumInactive:{ fontSize: 13, fontWeight: "800", color: "#B91C1C" },
+  tabLine:     { position: "absolute", bottom: 0, left: "15%", right: "15%", height: 3, backgroundColor: "#FFD700", borderRadius: 2 },
 
   list:        { paddingHorizontal: 14, paddingBottom: 80 },
 

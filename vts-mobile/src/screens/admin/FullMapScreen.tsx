@@ -19,6 +19,7 @@ const buildMapHtml = (vehicles: LiveVehicle[]) => {
     status: v.tripStatus || "Idle",
     driver: v.driverName || "—",
     speed: v.speed || 0,
+    isActive: v.isActive !== undefined ? v.isActive : true, // Default to true for backward compatibility
     overspeed: v.overspeed || "No",
     smoking: v.smoking || "No",
     mobileUsage: v.mobileUsage || "No",
@@ -42,6 +43,7 @@ const buildMapHtml = (vehicles: LiveVehicle[]) => {
 .pk{color:#6B7280;font-size:11px}.pv{font-weight:700;color:#0D1B3E;font-size:11px}
 .pv.yes{color:#EF4444}.pv.no{color:#22C55E}.pv.moving{color:#22C55E}.pv.idle{color:#F59E0B}.pv.parked{color:#EF4444}
 .pa{font-weight:600;color:#0D1B3E;font-size:11px;display:block;margin-top:2px;line-height:15px;word-break:break-word}
+.inactive-badge{background:#9CA3AF;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:6px}
 <\/style>
 </head><body><div id="map"></div>
 <script>
@@ -50,7 +52,8 @@ var map,markers={};
 function statusClass(v){return v?v.toLowerCase():''}
 function buildPopup(x){
   var sc=statusClass(x.status);
-  return '<div class="pc"><div class="pt">'+x.regNo+'<\/div>'+
+  var inactiveBadge = !x.isActive ? '<span class="inactive-badge">INACTIVE</span>' : '';
+  return '<div class="pc"><div class="pt">'+x.regNo+inactiveBadge+'<\/div>'+
     '<div class="pr"><span class="pk">Trip Status<\/span><span class="pv '+sc+'">'+x.status+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Driver<\/span><span class="pv">'+(x.driver||'—')+'<\/span><\/div>'+
     '<div class="pr"><span class="pk">Speed<\/span><span class="pv">'+x.speed+' km/h<\/span><\/div>'+
@@ -67,16 +70,18 @@ function buildPopup(x){
     '<div class="pr"><span class="pk">Rash Turning<\/span><span class="pv '+(x.rashTurning==='Yes'?'yes':'no')+'">'+x.rashTurning+'<\/span><\/div>'+
     '<\/div>';
 }
-function makeIcon(status){
+function makeIcon(status,isActive){
   var col={Moving:'#22C55E',Idle:'#F59E0B',Parked:'#EF4444'}[status]||'#3B82F6';
-  return L.divIcon({className:'',html:'<div style="width:34px;height:34px;border-radius:50%;background:'+col+';border:3px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.35);font-size:16px;">🚛<\/div>',iconSize:[34,34],iconAnchor:[17,17]});
+  if(!isActive) col='#9CA3AF'; // Gray for inactive vehicles
+  var opacity = isActive ? 1.0 : 0.65; // Reduced opacity for inactive
+  return L.divIcon({className:'',html:'<div style="width:34px;height:34px;border-radius:50%;background:'+col+';border:3px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.35);font-size:16px;opacity:'+opacity+';">🚛<\/div>',iconSize:[34,34],iconAnchor:[17,17]});
 }
 window.onload=function(){
   var c=vehicles.length>0?[vehicles[0].lat,vehicles[0].lng]:[17.3850,78.4867];
   map=L.map('map',{center:c,zoom:12,zoomControl:false,attributionControl:false});
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,subdomains:['a','b','c']}).addTo(map);
   vehicles.forEach(function(x){
-    var m=L.marker([x.lat,x.lng],{icon:makeIcon(x.status)}).bindPopup(buildPopup(x)).addTo(map);
+    var m=L.marker([x.lat,x.lng],{icon:makeIcon(x.status,x.isActive)}).bindPopup(buildPopup(x)).addTo(map);
     markers[x.id]=m;
   });
 };
@@ -84,10 +89,10 @@ window.updateVehicles=function(newData){
   newData.forEach(function(x){
     if(markers[x.id]){
       markers[x.id].setLatLng([x.lat,x.lng]);
-      markers[x.id].setIcon(makeIcon(x.status));
+      markers[x.id].setIcon(makeIcon(x.status,x.isActive));
       markers[x.id].setPopupContent(buildPopup(x));
     } else {
-      var m=L.marker([x.lat,x.lng],{icon:makeIcon(x.status)}).bindPopup(buildPopup(x)).addTo(map);
+      var m=L.marker([x.lat,x.lng],{icon:makeIcon(x.status,x.isActive)}).bindPopup(buildPopup(x)).addTo(map);
       markers[x.id]=m;
     }
   });
@@ -114,7 +119,8 @@ const FullMapScreen = ({ navigation }: Props) => {
         const vJson = JSON.stringify(vehicles.map(v => ({
           lat: v.lat, lng: v.lng, id: v.vehicleId, regNo: v.vehicleId,
           status: v.tripStatus || "Idle", driver: v.driverName || "—",
-          speed: v.speed || 0, overspeed: v.overspeed || "No",
+          speed: v.speed || 0, isActive: v.isActive !== undefined ? v.isActive : true,
+          overspeed: v.overspeed || "No",
           smoking: v.smoking || "No", mobileUsage: v.mobileUsage || "No",
           drowsiness: v.drowsiness || "Normal", routeDeviation: v.routeDeviation || "No",
           harshBraking: v.harshBraking || "No", harshAcceleration: v.harshAcceleration || "No", rashTurning: v.rashTurning || "No",

@@ -147,14 +147,19 @@ interface Props {
 const DriverScorecardScreen = ({ navigation, route }: Props) => {
   const { driver } = route.params;
   const now = new Date();
+  
+  // DEFAULT TO SEPTEMBER 2026 (where telemetry data exists) instead of current month
+  const defaultYear = 2026;
+  const defaultMonth = "September"; // Change this to test different months
+  
   const [data,       setData]       = useState<DriverScorecard | null>(null);
   const [loading,    setLoading]    = useState(true);
-  const [selYear,    setSelYear]    = useState(now.getFullYear());
-  const [selMonth,   setSelMonth]   = useState<MonthName>(MONTHS[now.getMonth()]);
+  const [selYear,    setSelYear]    = useState(defaultYear);
+  const [selMonth,   setSelMonth]   = useState<MonthName>(defaultMonth);
   const [showPicker, setShowPicker] = useState(false);
   const [imgError,   setImgError]   = useState(false);
-  const [tempYear,   setTempYear]   = useState(now.getFullYear());
-  const [tempMonth,  setTempMonth]  = useState<MonthName>(MONTHS[now.getMonth()]);
+  const [tempYear,   setTempYear]   = useState(defaultYear);
+  const [tempMonth,  setTempMonth]  = useState<MonthName>(defaultMonth);
 
   const openPicker  = () => { setTempYear(selYear); setTempMonth(selMonth); setShowPicker(true); };
   const applyPicker = () => { setSelYear(tempYear); setSelMonth(tempMonth); setShowPicker(false); };
@@ -163,8 +168,17 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
 
   const load = useCallback(async (year: number, month: MonthName) => {
     setLoading(true);
-    try { setData(await fetchDriverScorecard(driver.id, year, monthNum(month))); }
-    catch (_) { setData(null); }
+    try { 
+      const scorecard = await fetchDriverScorecard(driver.id, year, monthNum(month));
+      console.log('[DriverScorecard] API Response:', JSON.stringify(scorecard, null, 2));
+      console.log('[DriverScorecard] events.kmDriven:', scorecard?.events?.kmDriven);
+      console.log('[DriverScorecard] Type of kmDriven:', typeof scorecard?.events?.kmDriven);
+      setData(scorecard);
+    }
+    catch (error) { 
+      console.error('[DriverScorecard] Error loading scorecard:', error);
+      setData(null); 
+    }
     finally { setLoading(false); }
   }, [driver.id]);
 
@@ -181,6 +195,13 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
   const remark       = data?.remark ?? null;
   const events       = data?.events ?? { smoking: 0, mobile: 0, overspeed: 0, drowsiness: 0, seatbelt: 0, distraction: 0, harshBraking: 0, harshAcceleration: 0, rashTurning: 0, yawnAlert: 0, kmDriven: 0 };
   const vehicleModel = data?.vehicleModel ?? driver.vehicleModel ?? null;
+  
+  // Debug logging
+  console.log('[DriverScorecard] Render - data:', data);
+  console.log('[DriverScorecard] Render - events:', events);
+  console.log('[DriverScorecard] Render - events.kmDriven:', events.kmDriven);
+  console.log('[DriverScorecard] Render - Type:', typeof events.kmDriven);
+  
   // hasNoData: no score available (km = 0 means no completed trips this month)
   const hasNoData    = rawScore === null;
 
@@ -339,7 +360,9 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
                 </View>
                 <Text style={[sc.evLabel, { color: "#0D1B3E", fontWeight: "700" }]}>KM Driven</Text>
                 <View style={[sc.evCountBadge, { backgroundColor: "#DBEAFE" }]}>
-                  <Text style={[sc.evCount, { color: "#1565C0" }]}>{events.kmDriven.toFixed(1)}</Text>
+                  <Text style={[sc.evCount, { color: "#1565C0" }]}>
+                    {typeof events.kmDriven === 'number' ? events.kmDriven.toFixed(1) : '0.0'}
+                  </Text>
                 </View>
               </View>
             </View>

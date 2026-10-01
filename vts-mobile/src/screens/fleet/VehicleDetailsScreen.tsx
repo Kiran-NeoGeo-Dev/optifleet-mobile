@@ -83,6 +83,9 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
   const [signalHealth,   setSignalHealth]   = useState<string>("—");
   const [lastUpdateTime, setLastUpdateTime] = useState<string>("—");
   const [lastUpdateDate, setLastUpdateDate] = useState<string>("—");
+  const [batteryPercentage, setBatteryPercentage] = useState<number | null>(null);
+  const [batteryStatus,     setBatteryStatus]     = useState<string | null>(null);
+  const [hasVehicleDeviceLink, setHasVehicleDeviceLink] = useState<boolean>(true);
   const [telLoading,     setTelLoading]     = useState(true);
   const [imgError,       setImgError]       = useState(false);
 
@@ -113,17 +116,26 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
       setSignalHealth(data.signalHealth ?? "—");
       setLastUpdateTime(data.lastUpdateTime || "—");
       setLastUpdateDate(data.lastUpdateDate || "—");
-    } catch (_) {
+      
+      // Battery information
+      setBatteryPercentage(data.batteryPercentage ?? null);
+      setBatteryStatus(data.batteryStatus ?? null);
+      
+      // Use the explicit flag from backend to determine if vehicle-device link exists
+      setHasVehicleDeviceLink(data.hasVehicleDeviceLink ?? false);
+    } catch (error) {
+      // If fetch fails, assume no link
+      setHasVehicleDeviceLink(false);
     } finally {
       setTelLoading(false);
     }
   };
 
-  // Poll both on focus — 5s interval for faster telemetry updates
+  // Poll both on focus — 10s interval for performance optimization
   useFocusEffect(() => {
     refreshLive();
     refreshTelemetry();
-    const t = setInterval(() => { refreshLive(); refreshTelemetry(); }, 5_000);
+    const t = setInterval(() => { refreshLive(); refreshTelemetry(); }, 10_000);  // Increased from 5s to 10s
     return () => clearInterval(t);
   });
 
@@ -232,7 +244,29 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
           ) : (
             <View style={s.infoGrid}>
               <View style={s.infoRow}>
-                <InfoCell iconName="car-sport-outline"     iconBg="#EDE9FE" iconColor="#7C3AED" label="Model"         value={model} />
+                {/* Battery Information - replaces Model */}
+                {hasVehicleDeviceLink ? (
+                  <View style={[cell.wrap, { borderLeftColor: "#16A34A" }]}>
+                    <View style={[cell.iconBox, { backgroundColor: "#DCFCE7" }]}>
+                      <Ionicons name="battery-charging-outline" size={22} color="#16A34A" />
+                    </View>
+                    <Text style={cell.label}>Battery</Text>
+                    <Text style={cell.value}>
+                      {batteryPercentage !== null && batteryPercentage !== undefined ? `${batteryPercentage}%` : "N/A"}
+                    </Text>
+                    {batteryStatus && batteryStatus !== "—" && batteryStatus !== null && batteryStatus !== "N/A" && (
+                      <Text style={[cell.label, { fontSize: 8, marginTop: 2, textTransform: "none" }]}>{batteryStatus}</Text>
+                    )}
+                  </View>
+                ) : (
+                  <View style={[cell.wrap, { borderLeftColor: "#EF4444" }]}>
+                    <View style={[cell.iconBox, { backgroundColor: "#FEE2E2" }]}>
+                      <Ionicons name="unlink-outline" size={22} color="#EF4444" />
+                    </View>
+                    <Text style={cell.label}>Battery</Text>
+                    <Text style={[cell.value, { fontSize: 10, color: "#EF4444" }]}>Vehicle–Device Not Linked</Text>
+                  </View>
+                )}
                 <InfoCell iconName="speedometer-outline"   iconBg="#DBEAFE" iconColor="#2563EB" label="Speed"         value={`${speed} km/h`} />
               </View>
               <View style={s.infoRow}>

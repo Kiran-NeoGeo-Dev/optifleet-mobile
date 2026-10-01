@@ -23,6 +23,9 @@ export interface VehicleTelemetry {
   signalHealth:   string;
   lastUpdateTime: string;
   lastUpdateDate: string;
+  batteryPercentage?: number | null;
+  batteryStatus?: string | null;
+  hasVehicleDeviceLink?: boolean;
 }
 
 export const fetchFleetVehicles = async (): Promise<FleetVehicle[]> => {
@@ -83,6 +86,17 @@ export const fetchFleetDrivers = async (): Promise<FleetDriver[]> => {
 };
 
 export const fetchDriverScorecard = async (id: number, year: number, month: number): Promise<DriverScorecard> => {
-  const res = await api.get<DriverScorecard>(`/api/fleet/drivers/${id}/scorecard?year=${year}&month=${month}`);
+  console.log(`[fetchDriverScorecard] Fetching for driver ID: ${id}, year: ${year}, month: ${month}`);
+  const url = `/api/fleet/drivers/${id}/scorecard?year=${year}&month=${month}`;
+  console.log('[fetchDriverScorecard] URL:', url);
+  
+  const res = await api.get<DriverScorecard>(url);
+  
+  console.log('[fetchDriverScorecard] Raw response:', res);
+  console.log('[fetchDriverScorecard] Response data:', JSON.stringify(res.data, null, 2));
+  console.log('[fetchDriverScorecard] events:', res.data.events);
+  console.log('[fetchDriverScorecard] kmDriven:', res.data.events?.kmDriven);
+  console.log('[fetchDriverScorecard] kmDriven type:', typeof res.data.events?.kmDriven);
+  
   return res.data;
 };

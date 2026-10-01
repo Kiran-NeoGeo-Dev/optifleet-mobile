@@ -37,6 +37,48 @@ public class ThingsBoardDirectQueryService {
     private final Map<String, String> deviceIdCache = new java.util.concurrent.ConcurrentHashMap<>();
     // Cache: "lat,lng" → address (prevents Nominatim 429 rate-limit)
     private final Map<String, String> geocodeCache = new java.util.concurrent.ConcurrentHashMap<>();
+    
+    // Cache: telemetry data with TTL
+    private final Map<String, CachedTelemetry> telemetryCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long TELEMETRY_CACHE_TTL_MS = 10_000L; // 10 seconds cache
+    private static final int MAX_GEOCODE_CACHE_SIZE = 1000; // Prevent unlimited growth
+    
+    private static class CachedTelemetry {
+        final Map<String, Object> data;
+        final long timestamp;
+        
+        CachedTelemetry(Map<String, Object> data) {
+            this.data = data;
+            this.timestamp = System.currentTimeMillis();
+        }
+        
+        boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > TELEMETRY_CACHE_TTL_MS;
+        }
+    }
+    
+    /**
+     * Clear telemetry cache - useful for testing or forced refresh
+     */
+    public void clearTelemetryCache() {
+        telemetryCache.clear();
+        log.info("[TB_DIRECT] Telemetry cache cleared");
+    }
+    
+    /**
+     * Clear expired entries from telemetry cache
+     */
+    public void cleanupExpiredCache() {
+        telemetryCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+        
+        // Also limit geocode cache size
+        if (geocodeCache.size() > MAX_GEOCODE_CACHE_SIZE) {
+            // Remove oldest 20% of entries (simple LRU approximation)
+            int toRemove = MAX_GEOCODE_CACHE_SIZE / 5;
+            geocodeCache.keySet().stream().limit(toRemove).forEach(geocodeCache::remove);
+            log.info("[TB_DIRECT] Geocode cache trimmed to {} entries", geocodeCache.size());
+        }
+    }
 
     public ThingsBoardDirectQueryService(JdbcTemplate jdbc, ThingsBoardAuthService tbAuth) {
         this.jdbc = jdbc;
@@ -48,6 +90,8 @@ public class ThingsBoardDirectQueryService {
      * SuperAdmin: clientId=null, orgId=null → all vehicles.
      * OrgAdmin:   clientId=null, orgId=X   → vehicles in that org only.
      * User:       clientId=X,   orgId=null → vehicles owned by that client.
+     * 
+     * PERFORMANCE OPTIMIZATION: Batch processing with parallel streams and caching
      */
     public List<Map<String, Object>> fetchAllLiveTelemetry(Long clientId, Long orgId) {
         try {
@@ -58,49 +102,70 @@ public class ThingsBoardDirectQueryService {
                 return List.of();
             }
 
-            List<Map<String, Object>> results = new ArrayList<>();
+            // PERFORMANCE OPTIMIZATION: Use parallel stream for concurrent processing
+            List<Map<String, Object>> results = vehicles.parallelStream()
+                .map(row -> {
+                    String vehicleId = (String) row.get("vehicle_id");
+                    String driverName = (String) row.get("driver_name");
 
-            for (Map<String, Object> row : vehicles) {
-                String vehicleId = (String) row.get("vehicle_id");
-                String driverName = (String) row.get("driver_name");
+                    try {
+                        // Check cache first
+                        CachedTelemetry cached = telemetryCache.get(vehicleId);
+                        if (cached != null && !cached.isExpired()) {
+                            log.debug("[TB_DIRECT] Cache HIT for vehicle={}", vehicleId);
+                            return cached.data;
+                        }
 
-                try {
-                    // Resolve ThingsBoard device ID
-                    String tbDeviceEntityId = resolveThingsBoardDeviceId(vehicleId);
-                    if (tbDeviceEntityId == null) {
-                        log.warn("[TB_DIRECT] No ThingsBoard device found for vehicle={}", vehicleId);
-                        continue;
+                        // Resolve ThingsBoard device ID
+                        String tbDeviceEntityId = resolveThingsBoardDeviceId(vehicleId);
+                        if (tbDeviceEntityId == null) {
+                            log.warn("[TB_DIRECT] No ThingsBoard device found for vehicle={}", vehicleId);
+                            return null;
+                        }
+
+                        DeviceState nativeState = fetchNativeDeviceState(tbDeviceEntityId, vehicleId);
+                        if (nativeState == DeviceState.INACTIVE) {
+                            // Clear cache for inactive vehicles to prevent stale data
+                            telemetryCache.remove(vehicleId);
+                            log.info("[TB_DIRECT] vehicle={} OFFLINE (ThingsBoard state=INACTIVE) - cache cleared", vehicleId);
+                            return null;
+                        }
+
+                        // Fetch telemetry from ThingsBoard
+                        Map<String, Object> telemetry = fetchTelemetryFromThingsBoard(tbDeviceEntityId, vehicleId, driverName);
+                        if (telemetry == null) {
+                            telemetryCache.remove(vehicleId);
+                            return null;
+                        }
+                        telemetry.put("thingsBoardState", nativeState.name());
+
+                        // Priority 2: ThingsBoard telemetry timestamp (>120s -> OFFLINE)
+                        Long ts = (Long) telemetry.get("telemetryTimestamp");
+                        if (ts == null) {
+                            telemetryCache.remove(vehicleId);
+                            log.warn("[TB_DIRECT] vehicle={} has no timestamp — OFFLINE", vehicleId);
+                            return null;
+                        }
+                        long ageMs = System.currentTimeMillis() - ts;
+                        if (ageMs > LIVE_THRESHOLD_MS) {
+                            telemetryCache.remove(vehicleId);
+                            log.info("[TB_DIRECT] vehicle={} OFFLINE (age={}s > 120s) - cache cleared", vehicleId, ageMs / 1000);
+                            return null;
+                        }
+                        
+                        // Cache the result
+                        telemetryCache.put(vehicleId, new CachedTelemetry(telemetry));
+                        
+                        log.info("[TB_DIRECT] vehicle={} LIVE (tbState={}, age={}s, lat={}, lng={})", vehicleId, nativeState, ageMs / 1000, telemetry.get("lat"), telemetry.get("lng"));
+                        return telemetry;
+
+                    } catch (Exception e) {
+                        log.error("[TB_DIRECT] Error fetching telemetry for vehicle={}: {}", vehicleId, e.getMessage());
+                        return null;
                     }
-
-                    DeviceState nativeState = fetchNativeDeviceState(tbDeviceEntityId, vehicleId);
-                    if (nativeState == DeviceState.INACTIVE) {
-                        log.info("[TB_DIRECT] vehicle={} OFFLINE (ThingsBoard state=INACTIVE)", vehicleId);
-                        continue;
-                    }
-
-                    // Fetch telemetry from ThingsBoard
-                    Map<String, Object> telemetry = fetchTelemetryFromThingsBoard(tbDeviceEntityId, vehicleId, driverName);
-                    if (telemetry == null) continue;
-                    telemetry.put("thingsBoardState", nativeState.name());
-
-                    // Priority 2: ThingsBoard telemetry timestamp (>120s -> OFFLINE)
-                    Long ts = (Long) telemetry.get("telemetryTimestamp");
-                    if (ts == null) {
-                        log.warn("[TB_DIRECT] vehicle={} has no timestamp — OFFLINE", vehicleId);
-                        continue;
-                    }
-                    long ageMs = System.currentTimeMillis() - ts;
-                    if (ageMs > LIVE_THRESHOLD_MS) {
-                        log.info("[TB_DIRECT] vehicle={} OFFLINE (age={}s > 120s)", vehicleId, ageMs / 1000);
-                        continue;
-                    }
-                    log.info("[TB_DIRECT] vehicle={} LIVE (tbState={}, age={}s, lat={}, lng={})", vehicleId, nativeState, ageMs / 1000, telemetry.get("lat"), telemetry.get("lng"));
-                    results.add(telemetry);
-
-                } catch (Exception e) {
-                    log.error("[TB_DIRECT] Error fetching telemetry for vehicle={}: {}", vehicleId, e.getMessage());
-                }
-            }
+                })
+                .filter(telemetry -> telemetry != null)
+                .toList();
 
             log.info("[TB_DIRECT] LIVE vehicles: {}/{}", results.size(), vehicles.size());
             return results;
@@ -112,10 +177,134 @@ public class ThingsBoardDirectQueryService {
     }
 
     /**
+     * Fetch telemetry for ALL vehicles (both active and inactive) from ThingsBoard.
+     * Inactive vehicles are shown at their last known location with last telemetry timestamp.
+     * This method includes an 'isActive' flag to distinguish live vs stale telemetry.
+     * 
+     * SuperAdmin: clientId=null, orgId=null → all vehicles.
+     * OrgAdmin:   clientId=null, orgId=X   → vehicles in that org only.
+     * User:       clientId=X,   orgId=null → vehicles owned by that client.
+     * 
+     * PERFORMANCE OPTIMIZATION: Batch processing with parallel streams and caching
+     */
+    public List<Map<String, Object>> fetchAllVehicleTelemetryIncludingInactive(Long clientId, Long orgId) {
+        try {
+            // Get all vehicles from vehicles + associations (no trip requirement)
+            List<Map<String, Object>> vehicles = fetchFleetVehicles(clientId, orgId);
+            if (vehicles.isEmpty()) {
+                log.info("[TB_DIRECT_ALL] No fleet vehicles found (clientId={})", clientId);
+                return List.of();
+            }
+
+            // PERFORMANCE OPTIMIZATION: Use parallel stream for concurrent processing
+            List<Map<String, Object>> results = vehicles.parallelStream()
+                .map(row -> {
+                    String vehicleId = (String) row.get("vehicle_id");
+                    String driverName = (String) row.get("driver_name");
+
+                    try {
+                        // Check cache first
+                        CachedTelemetry cached = telemetryCache.get(vehicleId);
+                        if (cached != null && !cached.isExpired()) {
+                            log.debug("[TB_DIRECT_ALL] Cache HIT for vehicle={}", vehicleId);
+                            return cached.data;
+                        }
+
+                        // Resolve ThingsBoard device ID
+                        String tbDeviceEntityId = resolveThingsBoardDeviceId(vehicleId);
+                        if (tbDeviceEntityId == null) {
+                            log.warn("[TB_DIRECT_ALL] No ThingsBoard device found for vehicle={}", vehicleId);
+                            return null;
+                        }
+
+                        DeviceState nativeState = fetchNativeDeviceState(tbDeviceEntityId, vehicleId);
+                        
+                        // Fetch telemetry from ThingsBoard (regardless of device state)
+                        Map<String, Object> telemetry = fetchTelemetryFromThingsBoard(tbDeviceEntityId, vehicleId, driverName);
+                        if (telemetry == null) {
+                            log.warn("[TB_DIRECT_ALL] No telemetry data for vehicle={}", vehicleId);
+                            return null;
+                        }
+                        
+                        telemetry.put("thingsBoardState", nativeState.name());
+
+                        // Check telemetry timestamp to determine if vehicle is active
+                        Long ts = (Long) telemetry.get("telemetryTimestamp");
+                        boolean isActive = false;
+                        long ageMs = 0;
+                        
+                        if (ts != null) {
+                            ageMs = System.currentTimeMillis() - ts;
+                            // Vehicle is active if: device state is not INACTIVE AND telemetry age <= 120s
+                            isActive = (nativeState != DeviceState.INACTIVE) && (ageMs <= LIVE_THRESHOLD_MS);
+                        }
+                        
+                        // Add isActive flag to telemetry
+                        telemetry.put("isActive", isActive);
+                        telemetry.put("telemetryAgeSeconds", ts != null ? (ageMs / 1000) : null);
+                        
+                        // CRITICAL FIX: Store the actual device-reported trip_status separately
+                        // so controller can decide whether to use it or override to "Offline"
+                        String deviceReportedStatus = telemetry.get("trip_status") != null ? 
+                            telemetry.get("trip_status").toString() : "Idle";
+                        telemetry.put("device_reported_trip_status", deviceReportedStatus);
+                        
+                        // CRITICAL FIX: Set trip_status based on isActive flag consistently
+                        // If inactive: always "Offline" regardless of device-reported status
+                        // If active: use device-reported status
+                        String finalTripStatus = isActive ? deviceReportedStatus : "Offline";
+                        telemetry.put("trip_status", finalTripStatus);
+                        
+                        // Cache the result with final status already determined
+                        telemetryCache.put(vehicleId, new CachedTelemetry(telemetry));
+                        
+                        // DEFENSIVE LOGGING: Status determination details for diagnostics
+                        if (isActive) {
+                            log.info("[TB_DIRECT_ALL] ✓ vehicle={} ACTIVE (tbState={}, age={}s, tripStatus={}, deviceReported={})", 
+                                vehicleId, nativeState, ageMs / 1000, finalTripStatus, deviceReportedStatus);
+                        } else {
+                            log.warn("[TB_DIRECT_ALL] ✗ vehicle={} INACTIVE (tbState={}, age={}s, reason={}, overriding tripStatus: {} → Offline) - showing last known location", 
+                                vehicleId, nativeState, ts != null ? (ageMs / 1000) : -1,
+                                nativeState == DeviceState.INACTIVE ? "TB_INACTIVE" : "STALE_TELEMETRY",
+                                deviceReportedStatus);
+                        }
+                        
+                        return telemetry;
+
+                    } catch (Exception e) {
+                        log.error("[TB_DIRECT_ALL] Error fetching telemetry for vehicle={}: {}", vehicleId, e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(telemetry -> telemetry != null)
+                .toList();
+
+            long activeCount = results.stream().filter(r -> Boolean.TRUE.equals(r.get("isActive"))).count();
+            long inactiveCount = results.stream().filter(r -> Boolean.FALSE.equals(r.get("isActive"))).count();
+            
+            log.info("[TB_DIRECT_ALL] Total vehicles: {}, Active: {}, Inactive: {}", 
+                results.size(), activeCount, inactiveCount);
+            return results;
+
+        } catch (Exception e) {
+            log.error("[TB_DIRECT_ALL] Error fetching all vehicle telemetry: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
      * Fetch live telemetry for a single vehicle from ThingsBoard
+     * PERFORMANCE OPTIMIZATION: Cache results to avoid repeated API calls
      */
     public Map<String, Object> fetchSingleVehicleTelemetry(String vehicleId) {
         try {
+            // Check cache first
+            CachedTelemetry cached = telemetryCache.get(vehicleId);
+            if (cached != null && !cached.isExpired()) {
+                log.debug("[TB_DIRECT] Cache HIT for single vehicle={}", vehicleId);
+                return cached.data;
+            }
+
             String tbDeviceEntityId = resolveThingsBoardDeviceId(vehicleId);
             if (tbDeviceEntityId == null) {
                 log.warn("[TB_DIRECT] No ThingsBoard device found for vehicle={}", vehicleId);
@@ -143,6 +332,9 @@ public class ThingsBoardDirectQueryService {
                 log.info("[TB_DIRECT] vehicle={} OFFLINE (age={}s > 120s)", vehicleId, ageMs / 1000);
                 return null;
             }
+
+            // Cache the result
+            telemetryCache.put(vehicleId, new CachedTelemetry(telemetry));
 
             return telemetry;
 
@@ -191,7 +383,10 @@ public class ThingsBoardDirectQueryService {
 
     @SuppressWarnings("unchecked")
     private String resolveThingsBoardDeviceId(String vehicleId) {
-        if (deviceIdCache.containsKey(vehicleId)) return deviceIdCache.get(vehicleId);
+        // Check cache first (significantly improves performance)
+        if (deviceIdCache.containsKey(vehicleId)) {
+            return deviceIdCache.get(vehicleId);
+        }
 
         try {
             String encodedVehicleId = URLEncoder.encode(vehicleId, StandardCharsets.UTF_8);
@@ -205,6 +400,7 @@ public class ThingsBoardDirectQueryService {
                     String entityId = (String) ((Map<?, ?>) idObj).get("id");
                     if (entityId != null) {
                         deviceIdCache.put(vehicleId, entityId);
+                        log.debug("[TB_DIRECT] Cached device ID for vehicle={}", vehicleId);
                         return entityId;
                     }
                 }
@@ -367,31 +563,93 @@ public class ThingsBoardDirectQueryService {
             String url = tbAuth.activeUrl()
                 + "/api/plugins/telemetry/DEVICE/" + entityId
                 + "/values/timeseries?keys=lat,lng,speed,trip_status,overspeed,"
-                + "smoking_status,mobile_usage,drowsiness_status,harsh_braking,harsh_acceleration,rash_turning,engineRpm,engine_rpm,rpm,battery_percentage,ignition_status,"
-                + "device_status,hdop,gps_accuracy,last_telemetry_timestamp";
+                + "smoking_status,mobile_usage,drowsiness_status,harsh_braking,harsh_acceleration,rash_turning,engineRpm,engine_rpm,rpm,battery_percentage,battery_status,ignition_status,"
+                + "device_status,hdop,gps_accuracy,event_time";  // CRITICAL: event_time is the actual telemetry timestamp
 
             ResponseEntity<Map> res = restTemplate.exchange(
                 url, HttpMethod.GET, tbAuth.authEntity(), Map.class);
 
             if (res.getBody() == null || res.getBody().isEmpty()) {
+                log.warn("[TB_DIRECT] Empty response from ThingsBoard for vehicle={}", vehicleId);
                 return null;
             }
 
             Map<String, Object> data = res.getBody();
+            
+            // Debug logging (only enabled in development)
+            if (log.isDebugEnabled()) {
+                log.debug("[TB_DIRECT] THINGSBOARD RESPONSE FOR VEHICLE {}", vehicleId);
+                log.debug("Full response keys: {}", data.keySet());
+                
+                if (data.containsKey("battery_percentage")) {
+                    log.debug("battery_percentage present! Value: {}", data.get("battery_percentage"));
+                }
+                if (data.containsKey("battery_status")) {
+                    log.debug("battery_status present! Value: {}", data.get("battery_status"));
+                }
+            }
+            // ========== END DEBUG ==========
 
             // Extract coordinates
             Double lat = extractDouble(data, "lat");
             Double lng = extractDouble(data, "lng");
 
-            // Extract last telemetry timestamp
-            Long ts = extractAnyTimestamp(data);
+            // CRITICAL FIX: Extract event_time which is a STRING in format "DD-MM-YYYYHH:mm:ss"
+            // Example: "25-09-202617:41:36" means September 25, 2026 at 17:41:36
+            String eventTimeString = extractString(data, "event_time");
+            
+            Long ts = null;
             String lastUpdateTime = "";
             String lastUpdateDate = "";
-            if (ts != null) {
-                Instant instant = Instant.ofEpochMilli(ts);
-                ZoneId zone = ZoneId.of("Asia/Kolkata");
-                lastUpdateTime = DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(instant);
-                lastUpdateDate = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(instant);
+            
+            if (eventTimeString != null && !eventTimeString.isEmpty()) {
+                try {
+                    // Parse the custom format: "DD-MM-YYYYHH:mm:ss"
+                    // Need to insert a space before time: "25-09-2026 17:41:36"
+                    String normalized = eventTimeString;
+                    if (eventTimeString.length() >= 16) {
+                        // Insert space between date and time: "DD-MM-YYYY HH:mm:ss"
+                        normalized = eventTimeString.substring(0, 10) + " " + eventTimeString.substring(10);
+                    }
+                    
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+                    java.time.LocalDateTime localDateTime = java.time.LocalDateTime.parse(normalized, formatter);
+                    ZoneId zone = ZoneId.of("Asia/Kolkata");
+                    java.time.ZonedDateTime zonedDateTime = localDateTime.atZone(zone);
+                    ts = zonedDateTime.toInstant().toEpochMilli();
+                    
+                    // Format for display
+                    lastUpdateTime = DateTimeFormatter.ofPattern("hh:mm a").format(zonedDateTime);
+                    lastUpdateDate = DateTimeFormatter.ofPattern("dd/MM/yyyy").format(zonedDateTime);
+                    
+                    log.info("[TB_DIRECT] ✓ vehicle={} event_time string: '{}' → parsed to: {} {} (timestamp: {})", 
+                        vehicleId, eventTimeString, lastUpdateTime, lastUpdateDate, ts);
+                } catch (Exception e) {
+                    log.error("[TB_DIRECT] ✗ vehicle={} Failed to parse event_time '{}': {}", 
+                        vehicleId, eventTimeString, e.getMessage());
+                    // Fallback to extracting from ts field
+                    ts = extractAnyTimestamp(data);
+                    if (ts != null) {
+                        Instant instant = Instant.ofEpochMilli(ts);
+                        ZoneId zone = ZoneId.of("Asia/Kolkata");
+                        lastUpdateTime = DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(instant);
+                        lastUpdateDate = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(instant);
+                    }
+                }
+            } else {
+                log.warn("[TB_DIRECT] vehicle={} has no event_time, trying fallback extraction", vehicleId);
+                // Fallback to old timestamp extraction method
+                ts = extractAnyTimestamp(data);
+                if (ts != null) {
+                    Instant instant = Instant.ofEpochMilli(ts);
+                    ZoneId zone = ZoneId.of("Asia/Kolkata");
+                    lastUpdateTime = DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(instant);
+                    lastUpdateDate = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(instant);
+                }
+            }
+            
+            if (ts == null) {
+                log.error("[TB_DIRECT] ✗ vehicle={} NO TIMESTAMP EXTRACTED AT ALL!", vehicleId);
             }
 
             // Reverse geocode
@@ -414,7 +672,15 @@ public class ThingsBoardDirectQueryService {
             result.put("harsh_acceleration", extractString(data, "harsh_acceleration"));
             result.put("rash_turning",       extractString(data, "rash_turning"));
             result.put("engineRpm", extractFirstInt(data, "engineRpm", "engine_rpm", "rpm"));
-            result.put("battery_percentage", extractDouble(data, "battery_percentage"));
+            
+            // Extract battery values with detailed logging
+            Double batteryPercentage = extractDouble(data, "battery_percentage");
+            String batteryStatus = extractString(data, "battery_status");
+            log.info("[TB_DIRECT] Extracted battery values for vehicle={}: percentage={}, status={}", 
+                vehicleId, batteryPercentage, batteryStatus);
+            
+            result.put("battery_percentage", batteryPercentage);
+            result.put("battery_status", batteryStatus);
             result.put("ignition_status", extractString(data, "ignition_status"));
             result.put("device_status", extractString(data, "device_status"));
             result.put("hdop", extractDouble(data, "hdop"));
@@ -426,6 +692,9 @@ public class ThingsBoardDirectQueryService {
             result.put("lastUpdateDate", lastUpdateDate);
             // Internal: used by fetchAllLiveTelemetry for LIVE check — NOT sent to frontend
             result.put("telemetryTimestamp", ts);
+
+            log.info("[TB_DIRECT] ✓ Returning telemetry for vehicle={} with lastUpdateTime='{}' lastUpdateDate='{}'", 
+                vehicleId, lastUpdateTime, lastUpdateDate);
 
             return result;
 
@@ -441,18 +710,36 @@ public class ThingsBoardDirectQueryService {
      */
     private Long extractAnyTimestamp(Map<String, Object> data) {
         Long latest = null;
+        log.debug("[TB_EXTRACT_TS] Starting timestamp extraction from {} keys", data.size());
+        
         for (String key : data.keySet()) {
             try {
                 Object val = data.get(key);
                 if (val instanceof List && !((List<?>) val).isEmpty()) {
-                    Object ts = ((Map<?, ?>) ((List<?>) val).get(0)).get("ts");
-                    if (ts != null) {
-                        long t = Long.parseLong(ts.toString());
-                        if (latest == null || t > latest) latest = t;
+                    Object firstItem = ((List<?>) val).get(0);
+                    if (firstItem instanceof Map) {
+                        Object ts = ((Map<?, ?>) firstItem).get("ts");
+                        if (ts != null) {
+                            long t = Long.parseLong(ts.toString());
+                            log.debug("[TB_EXTRACT_TS] Found timestamp in key '{}': {}", key, t);
+                            if (latest == null || t > latest) {
+                                latest = t;
+                            }
+                        }
                     }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.debug("[TB_EXTRACT_TS] Error extracting timestamp from key '{}': {}", key, e.getMessage());
+            }
         }
+        
+        if (latest == null) {
+            log.warn("[TB_EXTRACT_TS] No timestamp found in telemetry data! Keys present: {}", data.keySet());
+        } else {
+            log.info("[TB_EXTRACT_TS] Extracted latest timestamp: {} ({})", 
+                latest, Instant.ofEpochMilli(latest).atZone(ZoneId.of("Asia/Kolkata")));
+        }
+        
         return latest;
     }
 
@@ -539,6 +826,53 @@ public class ThingsBoardDirectQueryService {
         return d != null ? d.intValue() : null;
     }
 
+    private Long extractLong(Map<String, Object> data, String key) {
+        try {
+            Object val = data.get(key);
+            if (val == null) {
+                log.debug("[TB_EXTRACT] Key '{}' not found in telemetry data", key);
+                return null;
+            }
+            
+            // Handle array format: [{ "ts": ..., "value": ... }]
+            if (val instanceof List) {
+                List<?> list = (List<?>) val;
+                if (!list.isEmpty()) {
+                    Object firstItem = list.get(0);
+                    if (firstItem instanceof Map) {
+                        Object v = ((Map<?, ?>) firstItem).get("value");
+                        if (v != null) {
+                            try {
+                                return Long.parseLong(v.toString());
+                            } catch (NumberFormatException e) {
+                                log.warn("[TB_EXTRACT] Failed to parse '{}' as Long: value='{}', error: {}", 
+                                    key, v, e.getMessage());
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+            // Handle direct numeric value
+            else if (val instanceof Number) {
+                return ((Number) val).longValue();
+            }
+            // Try to parse string
+            else {
+                try {
+                    return Long.parseLong(val.toString());
+                } catch (NumberFormatException e) {
+                    log.debug("[TB_EXTRACT] Failed to parse '{}' as Long: value='{}', type={}", 
+                        key, val, val.getClass().getName());
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[TB_EXTRACT] Exception extracting Long for key '{}': {}", key, e.getMessage());
+        }
+        return null;
+    }
+
     private Integer extractFirstInt(Map<String, Object> data, String... keys) {
         for (String key : keys) {
             Integer value = extractInt(data, key);
@@ -574,5 +908,41 @@ public class ThingsBoardDirectQueryService {
             log.warn("[TB_EXTRACT] Exception extracting String for key '{}': {}", key, e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Fetch battery telemetry for a specific device using ThingsBoard entity ID.
+     * Returns battery_percentage and battery_status.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> fetchDeviceBatteryTelemetry(String thingsboardDeviceId) {
+        try {
+            String url = tbAuth.activeUrl()
+                + "/api/plugins/telemetry/DEVICE/" + thingsboardDeviceId
+                + "/values/timeseries?keys=battery_percentage,battery_status";
+
+            ResponseEntity<Map> res = restTemplate.exchange(
+                url, HttpMethod.GET, tbAuth.authEntity(), Map.class);
+
+            if (res.getBody() == null || res.getBody().isEmpty()) {
+                log.warn("[TB_DIRECT] Empty battery response from ThingsBoard for device={}", thingsboardDeviceId);
+                return null;
+            }
+
+            Map<String, Object> data = res.getBody();
+            
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("battery_percentage", extractDouble(data, "battery_percentage"));
+            result.put("battery_status", extractString(data, "battery_status"));
+
+            log.info("[TB_DIRECT] ✓ Returning battery telemetry for device={}: {}%, status={}", 
+                thingsboardDeviceId, result.get("battery_percentage"), result.get("battery_status"));
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("[TB_DIRECT] fetchDeviceBatteryTelemetry failed for device={}: {}", thingsboardDeviceId, e.getMessage());
+            return null;
+        }
     }
 }

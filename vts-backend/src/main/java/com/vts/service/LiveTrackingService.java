@@ -46,6 +46,11 @@ public class LiveTrackingService {
      *  1. ThingsBoard vehicle_id  →  vehicles.registration_no
      *  2. Association exists      →  associations (status=true)
      *  Trip is queried if it exists, but NOT required for telemetry processing.
+     *  
+     * IMPORTANT: This method processes LIVE telemetry only. Stale/inactive telemetry
+     * is rejected upstream by ThingsBoard webhook filtering and should not reach here.
+     * Movement-based alarms, notifications, and trip status updates only occur for
+     * ACTIVE vehicles with fresh telemetry.
      */
     public LiveTrackingUpdate processTelemetry(TelemetryPayload p) {
         if (p.getVehicleId() == null || p.getLat() == null || p.getLng() == null) return null;
@@ -169,6 +174,15 @@ public class LiveTrackingService {
         return update;
     }
 
+    /**
+     * Returns live tracking state for a specific vehicle.
+     * IMPORTANT: This method returns NULL for inactive vehicles (device inactive or telemetry > 120s old).
+     * 
+     * For map display that should show ALL vehicles including inactive ones, use:
+     * ThingsBoardDirectQueryService.fetchAllVehicleTelemetryIncludingInactive() instead.
+     * 
+     * This method is intended for active trip tracking only, not for map display.
+     */
     public LiveTrackingUpdate getCurrentState(String vehicleId) {
         if (!thingsBoardDirectQueryService.isVehicleLive(vehicleId)) {
             log.info("getCurrentState: {} is offline by ThingsBoard state/telemetry age", vehicleId);
@@ -268,15 +282,60 @@ public class LiveTrackingService {
                     remainingM = totalM;
                 }
 
-                String address     = thingsBoardDirectQueryService.reverseGeocode(lat, lng);
+                // Use telemetry timestamp (last received data time), NOT current time
+                String lastUpdateTime = "";
+                String lastUpdateDate = "";
+                String address = "";
                 String coordinates = String.format("%.6f, %.6f", lat, lng);
-                java.time.ZoneId zone       = java.time.ZoneId.of("Asia/Kolkata");
-                java.time.Instant tsInstant = Instant.now();
-                String lastUpdateTime = java.time.format.DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(tsInstant);
-                String lastUpdateDate = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(tsInstant);
-                if (telemetry.get("lastUpdateTime") instanceof String s && !s.isEmpty()) lastUpdateTime = s;
-                if (telemetry.get("lastUpdateDate") instanceof String s && !s.isEmpty()) lastUpdateDate = s;
-                if (telemetry.get("address")        instanceof String s && !s.isEmpty()) address = s;
+                
+                // Priority: use timestamp and address from telemetry data
+                if (telemetry.get("lastUpdateTime") instanceof String s && !s.isEmpty()) {
+                    lastUpdateTime = s;
+                }
+                if (telemetry.get("lastUpdateDate") instanceof String s && !s.isEmpty()) {
+                    lastUpdateDate = s;
+                }
+                if (telemetry.get("address") instanceof String s && !s.isEmpty()) {
+                    address = s;
+                }
+                
+                // Fallback for address only
+                if (address.isEmpty()) {
+                    address = thingsBoardDirectQueryService.reverseGeocode(lat, lng);
+                }
+                
+                // CRITICAL FIX: If timestamp strings are empty but telemetry has timestamp, format it
+                // Do NOT use Instant.now() - that shows current time instead of actual telemetry time!
+                if (lastUpdateTime.isEmpty() || lastUpdateDate.isEmpty()) {
+                    Long ts = telemetry.get("telemetryTimestamp") != null 
+                        ? ((Number) telemetry.get("telemetryTimestamp")).longValue() 
+                        : null;
+                    
+                    if (ts != null) {
+                        // Use actual telemetry timestamp
+                        java.time.ZoneId zone = java.time.ZoneId.of("Asia/Kolkata");
+                        java.time.Instant tsInstant = java.time.Instant.ofEpochMilli(ts);
+                        if (lastUpdateTime.isEmpty()) {
+                            lastUpdateTime = java.time.format.DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(tsInstant);
+                        }
+                        if (lastUpdateDate.isEmpty()) {
+                            lastUpdateDate = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(tsInstant);
+                        }
+                        log.info("[LIVE_TRACKING] Using telemetry timestamp {} for vehicle={} → {} {}", 
+                            ts, vehicleId, lastUpdateTime, lastUpdateDate);
+                    } else {
+                        // Only if NO timestamp available at all, use current time as last resort
+                        log.warn("[LIVE_TRACKING] No telemetry timestamp for vehicle={}, using current time", vehicleId);
+                        java.time.ZoneId zone = java.time.ZoneId.of("Asia/Kolkata");
+                        java.time.Instant now = java.time.Instant.now();
+                        if (lastUpdateTime.isEmpty()) {
+                            lastUpdateTime = java.time.format.DateTimeFormatter.ofPattern("hh:mm a").withZone(zone).format(now);
+                        }
+                        if (lastUpdateDate.isEmpty()) {
+                            lastUpdateDate = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(zone).format(now);
+                        }
+                    }
+                }
 
                 VehiclePopupData popup = new VehiclePopupData();
                 popup.setVehicleId(vehicleId);
@@ -468,6 +527,12 @@ public class LiveTrackingService {
         } catch (Exception e) { log.warn("saveDeviationAlert failed: {}", e.getMessage()); }
     }
 
+    /**
+     * Build popup data for LIVE telemetry from webhook.
+     * Uses current time because webhook data arrives in real-time (telemetry just received).
+     * For historical/stale telemetry, use fetchTelemetryFromThingsBoard() which preserves
+     * the original telemetry timestamp.
+     */
     private VehiclePopupData buildPopup(TelemetryPayload p, String driverName,
                                         Long clientId, boolean deviated) {
         double lat = p.getLat();

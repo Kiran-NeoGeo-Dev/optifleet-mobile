@@ -209,7 +209,12 @@ const DriverMapScreen = ({ navigation }: Props) => {
             lastUpdateDate: myVehicle.lastUpdateDate || "",
           };
           setPopup(popupData);
-          processPopup(popupData);
+          
+          // IMPORTANT: Only process alerts for ACTIVE vehicles
+          // Inactive vehicles (isActive=false) should not trigger voice alerts or notifications
+          if (myVehicle.isActive) {
+            processPopup(popupData);
+          }
           
           // Inject live vehicle marker into map
           if (mapReadyRef.current && webViewRef.current) {

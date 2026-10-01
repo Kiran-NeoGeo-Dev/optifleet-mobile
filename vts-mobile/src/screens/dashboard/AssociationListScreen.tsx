@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useMemo, memo } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   StyleSheet, Modal, Pressable, ScrollView, ActivityIndicator,
@@ -125,6 +125,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      // PERFORMANCE OPTIMIZATION: Use Promise.all to fetch data in parallel
       if (isAdminFullMode) {
         const [assocs, vehs, drvs] = await Promise.all([
           fetchAdminFullAssociations(),
@@ -156,7 +157,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
     } finally {
       setLoading(false);
     }
-  }, [isAdminFullMode, isAdminMode]);
+  }, [isAdminFullMode, isAdminMode, showToast]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -337,16 +338,21 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
     }
   };
 
-  const filtered = associations.filter((a: any) => {
-    const regNo = a.registration_no?.toLowerCase() || "";
-    const deviceCode = a.device_code?.toLowerCase() || "";
-    const driverName = a.driver_name?.toLowerCase() || "";
-    return regNo.includes(query.toLowerCase()) || 
-           deviceCode.includes(query.toLowerCase()) || 
-           driverName.includes(query.toLowerCase());
-  });
+  // PERFORMANCE OPTIMIZATION: Memoize filtered results to avoid re-computing on every render
+  const filtered = useMemo(() => {
+    return associations.filter((a: any) => {
+      const regNo = a.registration_no?.toLowerCase() || "";
+      const deviceCode = a.device_code?.toLowerCase() || "";
+      const driverName = a.driver_name?.toLowerCase() || "";
+      const lowerQuery = query.toLowerCase();
+      return regNo.includes(lowerQuery) || 
+             deviceCode.includes(lowerQuery) || 
+             driverName.includes(lowerQuery);
+    });
+  }, [associations, query]);
 
-  const AssocCard = ({ item }: { item: any }) => {
+  // PERFORMANCE OPTIMIZATION: Memoize card component to prevent unnecessary re-renders
+  const AssocCard = memo(({ item }: { item: any }) => {
     const isPending = item.association_status === "PENDING";
     const hasStatus = 'status' in item;
     const statusColor = isPending ? "#D97706"
@@ -439,7 +445,7 @@ const AssociationListScreen = ({ navigation, route }: Props) => {
         </View>
       </View>
     );
-  };
+  });
 
   return (
     <View style={styles.root}>

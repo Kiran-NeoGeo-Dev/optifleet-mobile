@@ -77,6 +77,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     SecureStore.deleteItemAsync(KEYS.username);
     SecureStore.deleteItemAsync(KEYS.clientId);
     SecureStore.deleteItemAsync(KEYS.role);
+    
+    // Clear notification preference on logout so new user sees the prompt
+    if (clientId) {
+      const notifKey = `notif_preference_${clientId}`;
+      SecureStore.deleteItemAsync(notifKey).catch(err => 
+        console.error('[Auth] Error clearing notification preference:', err)
+      );
+    }
   };
 
   useEffect(() => {

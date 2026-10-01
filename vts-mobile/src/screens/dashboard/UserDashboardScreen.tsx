@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import RightDrawer from "../../components/RightDrawer";
 import { setupNotificationChannel, requestNotificationPermissions, sendLocalNotification } from "../../services/pushNotificationService";
+import * as SecureStore from "expo-secure-store";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,15 +33,16 @@ const C = {
   muted:  "#6B7280",
 };
 
-// ── Stat Card — with arrow navigation ────────────────────────────────────────
-const StatCard = ({ icon, label, count, accent, onPress }: {
-  icon: any; label: string; count: number; accent: string; onPress?: () => void;
+// ── Stat Card — with arrow navigation and optional subtitle ───────────────────
+const StatCard = ({ icon, label, count, accent, subtitle, onPress }: {
+  icon: any; label: string; count: number; accent: string; subtitle?: string; onPress?: () => void;
 }) => (
   <TouchableOpacity style={[sc.card, { borderLeftColor: accent, borderLeftWidth: 4 }]} onPress={onPress} activeOpacity={onPress ? 0.75 : 1}>
     <View style={[sc.iconBox, { backgroundColor: accent + "18" }]}>
       <Ionicons name={icon} size={20} color={accent} />
     </View>
     <Text style={sc.label}>{label}</Text>
+    {subtitle && <Text style={sc.subtitle}>{subtitle}</Text>}
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
       <Text style={[sc.count, { color: accent }]}>{count}</Text>
       <Ionicons name="chevron-forward" size={18} color={accent} />
@@ -148,7 +150,7 @@ window.updateVehicles=function(newData){
 };
 
 const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
-  const { logout } = useAuth();
+  const { logout, clientId } = useAuth();
   const [summary, setSummary] = useState({
     activeVehicles: 0, idleVehicles: 0, activeDrivers: 0, activeAlerts: 0,
   });
@@ -157,7 +159,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [drawerOpen,   setDrawerOpen]   = useState(false);
   const [enablePrompt, setEnablePrompt] = useState(false);
-  const notifEnabled = useRef(false);
+  const [notifPreferenceLoaded, setNotifPreferenceLoaded] = useState(false);
   const readKeysRef  = useRef<Set<string>>(new Set());
   const sentKeysRef  = useRef<Set<string>>(new Set());
   const lottieRef   = useRef<LottieView>(null);
@@ -166,6 +168,31 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
   const { toast, showToast, hideToast } = useToast();
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const SH = Dimensions.get("window").height;
+
+  // Load notification preference from SecureStore on mount
+  useEffect(() => {
+    const loadNotifPreference = async () => {
+      try {
+        const key = `notif_preference_${clientId}`;
+        const preference = await SecureStore.getItemAsync(key);
+        setNotifPreferenceLoaded(true);
+        
+        // If preference exists (either "enabled" or "dismissed"), don't show prompt
+        if (preference) {
+          console.log(`[UserDashboard] Notification preference loaded: ${preference}`);
+        } else {
+          console.log(`[UserDashboard] No notification preference found - will show prompt`);
+        }
+      } catch (error) {
+        console.error('[UserDashboard] Error loading notification preference:', error);
+        setNotifPreferenceLoaded(true);
+      }
+    };
+
+    if (clientId) {
+      loadNotifPreference();
+    }
+  }, [clientId]);
 
   useEffect(() => {
     setupNotificationChannel();
@@ -180,13 +207,27 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
     }
   }, [enablePrompt]);
 
-  const closeSheet = () => {
+  const closeSheet = async () => {
+    // Save "dismissed" preference when user clicks "Not now"
+    try {
+      const key = `notif_preference_${clientId}`;
+      await SecureStore.setItemAsync(key, "dismissed");
+      console.log('[UserDashboard] Notification preference saved: dismissed');
+    } catch (error) {
+      console.error('[UserDashboard] Error saving notification preference:', error);
+    }
     Animated.timing(sheetAnim, { toValue: SH, duration: 260, useNativeDriver: true }).start(() => setEnablePrompt(false));
   };
 
-  const handleEnable = () => {
-    Speech.speak("Notifications enabled", { rate: 1.2, pitch: 1.3 });
-    notifEnabled.current = true;
+  const handleEnable = async () => {
+    // Save "enabled" preference when user clicks "Enable"
+    try {
+      const key = `notif_preference_${clientId}`;
+      await SecureStore.setItemAsync(key, "enabled");
+      console.log('[UserDashboard] Notification preference saved: enabled');
+    } catch (error) {
+      console.error('[UserDashboard] Error saving notification preference:', error);
+    }
     closeSheet();
   };
 
@@ -198,7 +239,29 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
         fetchNotifications(readKeysRef.current).catch(() => []),
       ]);
 
-      const liveAlerts = notifs.filter((n: any) => n.status !== "Resolved");
+      const liveAlerts = notifs.filter((n: any) => {
+        // Filter out resolved alerts
+        if (n.status === "Resolved") return false;
+        
+        // CRITICAL FIX: Only show alerts with timestamps within last 120 seconds (client-side defense)
+        if (n.timestamp) {
+          try {
+            const alertTime = new Date(n.timestamp).getTime();
+            const now = Date.now();
+            const ageMs = now - alertTime;
+            
+            // Skip alerts older than 120 seconds (2 minutes)
+            if (ageMs > 120_000) {
+              return false;
+            }
+          } catch (err) {
+            // If timestamp parsing fails, include the alert (backend validation should have caught this)
+            console.warn('[Dashboard] Failed to parse alert timestamp:', n.timestamp, err);
+          }
+        }
+        
+        return true;
+      });
 
       // Fire Android tray notification for each new alert (deduplicate by stable vehicleId+alertType)
       liveAlerts.forEach((n: any) => {
@@ -251,16 +314,31 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
 
   useFocusEffect(useCallback(() => {
     loadAll();
-    const t = setInterval(loadAll, 5_000);
+    const t = setInterval(loadAll, 15_000);  // Increased from 5s to 15s for performance
     return () => clearInterval(t);
   }, [loadAll]));
 
   useFocusEffect(useCallback(() => {
-    if (!notifEnabled.current) {
-      const t = setTimeout(() => setEnablePrompt(true), 500);
-      return () => clearTimeout(t);
-    }
-  }, []));
+    // Only show prompt if preference is loaded and no preference exists
+    const checkAndShowPrompt = async () => {
+      if (!notifPreferenceLoaded) return;
+      
+      try {
+        const key = `notif_preference_${clientId}`;
+        const preference = await SecureStore.getItemAsync(key);
+        
+        // Only show prompt if no preference exists
+        if (!preference) {
+          const t = setTimeout(() => setEnablePrompt(true), 500);
+          return () => clearTimeout(t);
+        }
+      } catch (error) {
+        console.error('[UserDashboard] Error checking notification preference:', error);
+      }
+    };
+
+    checkAndShowPrompt();
+  }, [notifPreferenceLoaded, clientId]));
 
   return (
     <View style={s.root}>
@@ -309,6 +387,7 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
             <StatCard icon="person-outline"     label="Active Drivers"  count={summary.activeDrivers}  accent="#3B82F6"
               onPress={() => navigation.navigate("FleetDrivers")} />
             <StatCard icon="shield-outline"     label="Active Alerts"   count={summary.activeAlerts}   accent="#EF4444"
+              subtitle="Last 2 minutes"
               onPress={() => navigation.navigate("Notifications")} />
           </View>
 
@@ -453,10 +532,11 @@ const UserDashboardScreen = ({ navigation }: { navigation: any }) => {
 };
 
 const sc = StyleSheet.create({
-  card:    { width: "47.5%", backgroundColor: "#fff", borderRadius: 12, padding: 11, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  iconBox: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 6 },
-  label:   { fontSize: 12, color: "#6B7280", fontWeight: "600", marginBottom: 2 },
-  count:   { fontSize: 22, fontWeight: "800" },
+  card:     { width: "47.5%", backgroundColor: "#fff", borderRadius: 12, padding: 11, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  iconBox:  { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  label:    { fontSize: 12, color: "#6B7280", fontWeight: "600", marginBottom: 2 },
+  subtitle: { fontSize: 10, color: "#9CA3AF", fontWeight: "500", marginBottom: 4 },
+  count:    { fontSize: 22, fontWeight: "800" },
 });
 
 const s = StyleSheet.create({

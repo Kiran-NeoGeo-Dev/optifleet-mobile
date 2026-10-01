@@ -2,6 +2,7 @@ package com.vts.controller;
 
 import com.vts.entity.Client;
 import com.vts.entity.Vehicle;
+import com.vts.repository.AdminAssociationRepository;
 import com.vts.repository.AssociationRepository;
 import com.vts.repository.DriverRepository;
 import com.vts.repository.VehicleRepository;
@@ -26,6 +27,7 @@ public class FleetController {
     
     private final VehicleService                vehicleService;
     private final AssociationRepository         associationRepository;
+    private final AdminAssociationRepository    adminAssociationRepository;
     private final DriverRepository              driverRepository;
     private final ThingsBoardDirectQueryService tbQuery;
     private final ThingsBoardAuthService        tbAuth;
@@ -35,6 +37,7 @@ public class FleetController {
 
     public FleetController(VehicleService vehicleService,
                            AssociationRepository associationRepository,
+                           AdminAssociationRepository adminAssociationRepository,
                            DriverRepository driverRepository,
                            ThingsBoardDirectQueryService tbQuery,
                            ThingsBoardAuthService tbAuth,
@@ -42,6 +45,7 @@ public class FleetController {
                            VehicleRepository vehicleRepository) {
         this.vehicleService        = vehicleService;
         this.associationRepository = associationRepository;
+        this.adminAssociationRepository = adminAssociationRepository;
         this.driverRepository      = driverRepository;
         this.tbQuery               = tbQuery;
         this.tbAuth                = tbAuth;
@@ -80,8 +84,9 @@ public class FleetController {
             if (regNo != null) vehicleDriverMap.put(regNo.toString(), driverName != null ? driverName.toString() : "—");
         }
 
-        // Fetch live telemetry for trip_status
+        // Fetch live telemetry for trip_status (only returns ACTIVE/ONLINE vehicles)
         Map<String, String> liveStatus = new HashMap<>();
+        Set<String> liveVehicleIds = new HashSet<>();
         try {
             List<Map<String, Object>> telemetry;
             if (isSuperAdmin) {
@@ -94,19 +99,32 @@ public class FleetController {
             for (Map<String, Object> row : telemetry) {
                 String vid    = (String) row.get("vehicle_id");
                 String status = row.get("trip_status") != null ? row.get("trip_status").toString() : "Parked";
-                if (vid != null) liveStatus.put(vid, status);
+                if (vid != null) {
+                    liveStatus.put(vid, status);
+                    liveVehicleIds.add(vid);
+                }
             }
         } catch (Exception ignored) {}
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (Vehicle v : vehicles) {
+            String licensePlate = v.getLicensePlate();
+            // CRITICAL FIX: If vehicle is not in live telemetry list, it's OFFLINE (not Parked)
+            String tripStatus;
+            if (liveVehicleIds.contains(licensePlate)) {
+                tripStatus = liveStatus.getOrDefault(licensePlate, "Parked");
+            } else {
+                // Vehicle not in live telemetry = INACTIVE in ThingsBoard or telemetry > 120s old
+                tripStatus = "Offline";
+            }
+            
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("id",             v.getId());
-            entry.put("licensePlate",   v.getLicensePlate());
+            entry.put("licensePlate",   licensePlate);
             entry.put("vehicleMake",    v.getVehicleMake());
             entry.put("vehicleModel",   v.getVehicleModel());
-            entry.put("driverName",     vehicleDriverMap.getOrDefault(v.getLicensePlate(), "—"));
-            entry.put("tripStatus",     liveStatus.getOrDefault(v.getLicensePlate(), "Parked"));
+            entry.put("driverName",     vehicleDriverMap.getOrDefault(licensePlate, "—"));
+            entry.put("tripStatus",     tripStatus);
             entry.put("vehiclePhoto",   v.getVehiclePhoto());
             entry.put("clientId",       v.getClientId());
             result.add(entry);
@@ -130,16 +148,42 @@ public class FleetController {
         result.put("vehicleModel", (vehicle.getVehicleMake() != null ? vehicle.getVehicleMake() : "")
                 + " " + (vehicle.getVehicleModel() != null ? vehicle.getVehicleModel() : ""));
 
+        // Check if vehicle-device association exists
+        // Note: admin_associations.vehicle_id is INTEGER while vehicles.id is BIGINT
+        // Safe to cast since vehicle IDs in practice won't exceed Integer.MAX_VALUE
+        Integer vehicleIdInt = id.intValue();
+        boolean hasVehicleDeviceLink = adminAssociationRepository.existsByVehicleId(vehicleIdInt);
+        result.put("hasVehicleDeviceLink", hasVehicleDeviceLink);
+        
+        log.info("[FLEET] Vehicle {} (ID={}) hasVehicleDeviceLink={}", regNo, id, hasVehicleDeviceLink);
+
         // Live telemetry from ThingsBoard
         try {
             Map<String, Object> telemetry = tbQuery.fetchSingleVehicleTelemetry(regNo);
             if (telemetry != null) {
+                // Check ThingsBoard device state
+                String tbState = (String) telemetry.get("thingsBoardState");
+                boolean isDeviceActive = "ACTIVE".equals(tbState);
+                
+                log.info("[FLEET] Vehicle {} ThingsBoard state: {}, isActive: {}", regNo, tbState, isDeviceActive);
+                
                 result.put("speed",          telemetry.getOrDefault("speed", 0));
-                result.put("engineRpm",      telemetry.getOrDefault("engineRpm", 0));  // Now using correct key
+                result.put("engineRpm",      telemetry.getOrDefault("engineRpm", 0));
                 result.put("ignitionStatus", telemetry.getOrDefault("ignition_status", "OFF"));
                 result.put("tripStatus",     telemetry.getOrDefault("trip_status", "Parked"));
                 result.put("lastUpdateTime", telemetry.getOrDefault("lastUpdateTime", ""));
                 result.put("lastUpdateDate", telemetry.getOrDefault("lastUpdateDate", ""));
+                
+                // Only include battery data if device is ACTIVE in ThingsBoard
+                if (isDeviceActive && hasVehicleDeviceLink) {
+                    result.put("batteryPercentage", telemetry.getOrDefault("battery_percentage", null));
+                    result.put("batteryStatus",     telemetry.getOrDefault("battery_status", null));
+                    log.info("[FLEET] Battery included: {}%, {}", telemetry.get("battery_percentage"), telemetry.get("battery_status"));
+                } else {
+                    result.put("batteryPercentage", null);
+                    result.put("batteryStatus",     null);
+                    log.warn("[FLEET] Battery excluded - device not active or not linked");
+                }
                 
                 // Log telemetry for debugging
                 log.info("[FLEET] Vehicle {} telemetry: speed={}, engineRpm={}, status={}", 
@@ -155,15 +199,19 @@ public class FleetController {
                 result.put("tripStatus",     "Parked");
                 result.put("lastUpdateTime", "");
                 result.put("lastUpdateDate", "");
+                result.put("batteryPercentage", null);
+                result.put("batteryStatus",     null);
             }
         } catch (Exception e) {
-            log.error("[FLEET] Error fetching telemetry for vehicle {}: {}", regNo, e.getMessage());
+            log.error("[FLEET] Error fetching telemetry for vehicle {}: {}", regNo, e.getMessage(), e);
             result.put("speed",          0);
             result.put("engineRpm",      0);
             result.put("ignitionStatus", "OFF");
             result.put("tripStatus",     "Parked");
             result.put("lastUpdateTime", "");
             result.put("lastUpdateDate", "");
+            result.put("batteryPercentage", null);
+            result.put("batteryStatus",     null);
         }
 
         // Signal health from last 50 trip_status values via ThingsBoard history

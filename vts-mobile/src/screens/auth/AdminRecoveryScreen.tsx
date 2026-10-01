@@ -134,7 +134,7 @@ const AdminRecoveryScreen = ({ navigation }: Props) => {
             </TouchableOpacity>
             <View style={s.headerCenter}>
               <Text style={s.headerBrand}>OptiFleet</Text>
-              <Text style={s.headerSub}>SECURE ADMIN RECOVERY</Text>
+              <Text style={s.headerSub}>SECURE ACCOUNT RECOVERY</Text>
             </View>
             <View style={{ width: 42 }} />
           </View>
@@ -160,7 +160,7 @@ const AdminRecoveryScreen = ({ navigation }: Props) => {
 
               <View style={s.cardTitleRow}>
                 <Ionicons name="person-circle-outline" size={28} color={C.purple} />
-                <Text style={s.cardTitle}>Admin Recovery</Text>
+                <Text style={s.cardTitle}>Account Recovery</Text>
               </View>
               <Text style={s.cardSub}>Enter your registered email to verify your account, then set new credentials.</Text>
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, RefreshControl,
@@ -41,6 +41,28 @@ const ICON_PALETTE: Array<[string, string]> = [
   ["#7C3AED", "#EDE9FE"], ["#10B981", "#D1FAE5"], ["#F97316", "#FFEDD5"],
   ["#3B82F6", "#DBEAFE"], ["#EC4899", "#FCE7F3"], ["#06B6D4", "#CFFAFE"],
 ];
+
+// PERFORMANCE OPTIMIZATION: Memoized vehicle card component
+const VehicleCard = memo(({ item, index, onPress }: { item: VehicleRow; index: number; onPress: () => void }) => {
+  const [iconColor, iconBg] = ICON_PALETTE[index % ICON_PALETTE.length];
+  return (
+    <TouchableOpacity
+      style={s.card}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      <View style={[s.iconBox, { backgroundColor: iconBg }]}>
+        <Ionicons name="bus-outline" size={22} color={iconColor} />
+      </View>
+      <View style={s.cardBody}>
+        <Text style={s.regNo}>{item.licensePlate}</Text>
+        <Text style={s.driver}>Driver: {item.driverName}</Text>
+      </View>
+      <StatusBadge status={item.tripStatus} />
+      <View style={s.viewBtn}><Text style={s.viewBtnTxt}>View ›</Text></View>
+    </TouchableOpacity>
+  );
+});
 
 // Merged vehicle row shown in the list
 interface VehicleRow {
@@ -107,13 +129,14 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
     }
   }, []);
 
-  // Refresh every time screen gains focus (same pattern as Dashboard)
+  // Refresh every time screen gains focus
   useFocusEffect(useCallback(() => {
     load();
-    const t = setInterval(() => load(true), 5_000);
+    const t = setInterval(() => load(true), 20_000);  // Increased from 5s to 20s for performance
     return () => clearInterval(t);
   }, [load]));
 
+  // PERFORMANCE OPTIMIZATION: Memoize filtering to avoid re-computation
   useEffect(() => {
     if (!query.trim()) { setFiltered(rows); return; }
     const q = query.toLowerCase();
@@ -123,26 +146,23 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
     ));
   }, [query, rows]);
 
-  const renderItem = ({ item, index }: { item: VehicleRow; index: number }) => {
-    const [iconColor, iconBg] = ICON_PALETTE[index % ICON_PALETTE.length];
-    return (
-      <TouchableOpacity
-        style={s.card}
-        onPress={() => navigation.navigate("VehicleDetails", { vehicle: item })}
-        activeOpacity={0.75}
-      >
-        <View style={[s.iconBox, { backgroundColor: iconBg }]}>
-          <Ionicons name="bus-outline" size={22} color={iconColor} />
-        </View>
-        <View style={s.cardBody}>
-          <Text style={s.regNo}>{item.licensePlate}</Text>
-          <Text style={s.driver}>Driver: {item.driverName}</Text>
-        </View>
-        <StatusBadge status={item.tripStatus} />
-        <View style={s.viewBtn}><Text style={s.viewBtnTxt}>View ›</Text></View>
-      </TouchableOpacity>
-    );
-  };
+  // PERFORMANCE OPTIMIZATION: Memoize renderItem to prevent recreation
+  const renderItem = useCallback(({ item, index }: { item: VehicleRow; index: number }) => {
+    return <VehicleCard item={item} index={index} onPress={() => navigation.navigate("VehicleDetails", { vehicle: item })} />;
+  }, [navigation]);
+
+  // PERFORMANCE OPTIMIZATION: Extract keyExtractor
+  const keyExtractor = useCallback((item: VehicleRow) => item.id.toString(), []);
+
+  // PERFORMANCE OPTIMIZATION: Memoize getItemLayout for better scrolling performance
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: 80, // approximate item height
+      offset: 80 * index,
+      index,
+    }),
+    []
+  );
 
   return (
     <View style={s.root}>
@@ -177,10 +197,17 @@ const FleetVehiclesScreen = ({ navigation }: Props) => {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={item => String(item.id)}
+          keyExtractor={keyExtractor}
           renderItem={renderItem}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
+          // PERFORMANCE OPTIMIZATIONS
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={10}
+          windowSize={5}
+          getItemLayout={getItemLayout}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
