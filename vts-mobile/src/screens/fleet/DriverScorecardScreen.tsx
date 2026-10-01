@@ -148,9 +148,14 @@ const DriverScorecardScreen = ({ navigation, route }: Props) => {
   const { driver } = route.params;
   const now = new Date();
   
-  // DEFAULT TO SEPTEMBER 2026 (where telemetry data exists) instead of current month
-  const defaultYear = 2026;
-  const defaultMonth = "September"; // Change this to test different months
+  // DEFAULT TO CURRENT MONTH for production use
+  const defaultYear = now.getFullYear();
+  const defaultMonth = MONTHS[now.getMonth()];
+  
+  console.log('[DriverScorecard] INIT - Current date:', now.toISOString());
+  console.log('[DriverScorecard] INIT - Default year:', defaultYear);
+  console.log('[DriverScorecard] INIT - Default month:', defaultMonth);
+  console.log('[DriverScorecard] INIT - Month index:', now.getMonth());
   
   const [data,       setData]       = useState<DriverScorecard | null>(null);
   const [loading,    setLoading]    = useState(true);

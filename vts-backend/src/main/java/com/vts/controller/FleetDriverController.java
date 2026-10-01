@@ -274,16 +274,21 @@ public class FleetDriverController {
 
             List<Map<String, Object>> eventRows = jdbc.queryForList(eventSql, y, m, y, m);
 
-            // Step 2: get driver km_travelled by joining driver_id from associations
+            // Step 2: get driver km_travelled ONLY if updated_at matches current month
             String kmSql =
-                "SELECT UPPER(v.registration_no) AS vid, COALESCE(d.km_travelled, 0) AS km_driven " +
+                "SELECT UPPER(v.registration_no) AS vid, " +
+                "  CASE " +
+                "    WHEN EXTRACT(YEAR FROM d.updated_at) = ? AND EXTRACT(MONTH FROM d.updated_at) = ? " +
+                "      THEN COALESCE(d.km_travelled, 0) " +
+                "    ELSE 0 " +
+                "  END AS km_driven " +
                 "FROM public.associations a " +
                 "JOIN public.drivers d ON d.id = a.driver_id " +
                 "JOIN public.vehicles v ON v.id = a.vehicle_id " +
                 "WHERE a.status = true AND v.registration_no IS NOT NULL";
 
             Map<String, Double> kmByVehicle = new HashMap<>();
-            for (Map<String, Object> row : jdbc.queryForList(kmSql)) {
+            for (Map<String, Object> row : jdbc.queryForList(kmSql, y, m)) {
                 String vid = row.get("vid") != null ? row.get("vid").toString() : null;
                 double km  = row.get("km_driven") != null ? ((Number) row.get("km_driven")).doubleValue() : 0;
                 if (vid != null) kmByVehicle.put(vid, km);
@@ -311,16 +316,24 @@ public class FleetDriverController {
 
     /**
      * Fetch event counts + KM driven for a specific year/month.
-     * KM Driven = public.drivers.km_travelled (accumulated GPS-based distance).
+     * KM Driven = public.drivers.km_travelled ONLY if updated_at matches the requested month.
+     * This returns the km_travelled value that was recorded in that specific month.
      */
     private Map<String, Object> fetchEventsByDriverMonth(Long driverId, String vehicleRegNo, int year, int month) {
-        // ALWAYS fetch km_travelled first - it's independent of telemetry data
+        // Fetch km_travelled ONLY if updated_at is in the requested month
+        // This ensures we get the KM for the specific month being viewed
         Double km = 0.0;
         try {
             km = jdbc.queryForObject(
-                "SELECT COALESCE(km_travelled, 0) FROM public.drivers WHERE id = ?",
-                Double.class, driverId);
-            log.info("[SCORECARD] Driver ID={} has km_travelled={}", driverId, km);
+                "SELECT CASE " +
+                "  WHEN EXTRACT(YEAR FROM updated_at) = ? AND EXTRACT(MONTH FROM updated_at) = ? " +
+                "    THEN COALESCE(km_travelled, 0) " +
+                "  ELSE 0 " +
+                "END " +
+                "FROM public.drivers WHERE id = ?",
+                Double.class, year, month, driverId);
+            log.info("[SCORECARD] Driver ID={} for {}-{} has monthly km_travelled={} (filtered by updated_at)", 
+                driverId, year, month, km);
         } catch (Exception e) {
             log.error("[SCORECARD] Error fetching km_travelled for driver {}: {}", driverId, e.getMessage(), e);
         }
