@@ -564,7 +564,7 @@ public class ThingsBoardDirectQueryService {
                 + "/api/plugins/telemetry/DEVICE/" + entityId
                 + "/values/timeseries?keys=lat,lng,speed,trip_status,overspeed,"
                 + "smoking_status,mobile_usage,drowsiness_status,harsh_braking,harsh_acceleration,rash_turning,engineRpm,engine_rpm,rpm,battery_percentage,battery_status,ignition_status,"
-                + "device_status,hdop,gps_accuracy,event_time";  // CRITICAL: event_time is the actual telemetry timestamp
+                + "device_status,hdop,gps_accuracy,event_time,signal_strength";  // Added signal_strength
 
             ResponseEntity<Map> res = restTemplate.exchange(
                 url, HttpMethod.GET, tbAuth.authEntity(), Map.class);
@@ -685,6 +685,7 @@ public class ThingsBoardDirectQueryService {
             result.put("device_status", extractString(data, "device_status"));
             result.put("hdop", extractDouble(data, "hdop"));
             result.put("gps_accuracy", extractDouble(data, "gps_accuracy"));
+            result.put("signal_strength", extractInt(data, "signal_strength"));  // Added signal_strength
             result.put("last_telemetry_timestamp", ts);
             result.put("address", address);
             result.put("coordinates", coordinates);
