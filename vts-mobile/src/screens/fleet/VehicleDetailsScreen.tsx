@@ -10,6 +10,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { fetchLiveVehicles } from "../../services/dashboardService";
 import { fetchVehicleTelemetry } from "../../services/fleetService";
 import type { LiveVehicle } from "../../types/Dashboard";
+import SignalStrengthBar from "../../components/SignalStrengthBar";
 
 // ── Status Badge — identical mapping to Dashboard map popup ──────────────────
 const STATUS_MAP: Record<string, { label: string; dot: string; bg: string; text: string }> = {
@@ -81,6 +82,7 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
   const [engineRpm,      setEngineRpm]      = useState<number>(0);
   const [ignition,       setIgnition]       = useState<string>("—");
   const [signalHealth,   setSignalHealth]   = useState<string>("—");
+  const [signalStrength, setSignalStrength] = useState<number | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>("—");
   const [lastUpdateDate, setLastUpdateDate] = useState<string>("—");
   const [batteryPercentage, setBatteryPercentage] = useState<number | null>(null);
@@ -114,6 +116,7 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
       setEngineRpm(data.engineRpm ?? 0);
       setIgnition((data.ignitionStatus ?? "OFF").toUpperCase());
       setSignalHealth(data.signalHealth ?? "—");
+      setSignalStrength(data.signalStrength ?? null);
       setLastUpdateTime(data.lastUpdateTime || "—");
       setLastUpdateDate(data.lastUpdateDate || "—");
       
@@ -271,7 +274,13 @@ const VehicleDetailsScreen = ({ navigation, route }: Props) => {
               </View>
               <View style={s.infoRow}>
                 <InfoCell iconName="construct-outline"     iconBg="#FEF9C3" iconColor="#CA8A04" label="Engine RPM"    value={`${engineRpm} RPM`} />
-                <InfoCell iconName="cellular-outline"      iconBg="#FCE7F3" iconColor="#DB2777" label="Signal Health" value={signalHealth} />
+                {/* Signal Health Card with Bar Graph */}
+                <View style={[cell.wrap, { borderLeftColor: "#DB2777" }]}>
+                  <Text style={cell.label}>Signal Health</Text>
+                  <View style={{ marginTop: 4 }}>
+                    <SignalStrengthBar strength={signalStrength} showPercentage={true} showLabel={true} />
+                  </View>
+                </View>
               </View>
               <View style={s.infoRow}>
                 <InfoCell iconName="power-outline"         iconBg="#DCFCE7" iconColor="#16A34A" label="Ignition"      value={ignition} />

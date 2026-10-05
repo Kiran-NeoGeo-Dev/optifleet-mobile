@@ -178,15 +178,15 @@ public class FleetController {
                     result.put("batteryPercentage", telemetry.getOrDefault("battery_percentage", null));
                     result.put("batteryStatus",     telemetry.getOrDefault("battery_status", null));
                     
-                    // TASK 2: Use signal_strength directly from ThingsBoard (1-5 bars)
+                    // TASK 2: Return signal_strength as numeric value (1-5) for bar graph display
                     Integer signalStrength = (Integer) telemetry.get("signal_strength");
-                    String signalHealth;
                     if (signalStrength != null && signalStrength >= 1 && signalStrength <= 5) {
-                        signalHealth = signalStrength + " bar" + (signalStrength > 1 ? "s" : "");
+                        result.put("signalStrength", signalStrength);
+                        result.put("signalHealth", signalStrength); // Keep for backward compatibility
                     } else {
-                        signalHealth = "—";
+                        result.put("signalStrength", null);
+                        result.put("signalHealth", "—");
                     }
-                    result.put("signalHealth", signalHealth);
                     
                     // TASK 3: Use event_time directly as Last Updated
                     // event_time format from ThingsBoard: "DD-MM-YYYYHH:mm:ss"
@@ -224,7 +224,7 @@ public class FleetController {
                         regNo, 
                         telemetry.get("speed"), 
                         telemetry.get("engineRpm"),
-                        signalHealth,
+                        result.get("signalStrength"),
                         result.get("lastUpdateTime"));
                 } else {
                     // Device INACTIVE or no link - don't show live values, keep UI placeholders
@@ -237,7 +237,8 @@ public class FleetController {
                     result.put("lastUpdateDate", "—");
                     result.put("batteryPercentage", null);
                     result.put("batteryStatus",     null);
-                    result.put("signalHealth",   "Offline");
+                    result.put("signalStrength",    null);
+                    result.put("signalHealth",      "Offline");
                 }
             } else {
                 log.warn("[FLEET] No telemetry found for vehicle {}", regNo);
